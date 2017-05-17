@@ -1,2 +1,5 @@
 # Pixel.js
-A web-based graphics editing tool (a.k.a. Pixel Jazzz).
+```Pixel.js``` is ```Diva.js``` plugin.
+
+## Instructions
+- How to install the plug-in into ```Diva.js```.
