@@ -16,15 +16,17 @@ export default class PixelPlugin
         this.core = core;
         this.activated = false;
         this.pageToolsIcon = this.createIcon();
+        this.activated = false;
+        this.handle = null;
     }
 
     // Is called every time visible tiles are loaded to draw highlights on top of them
     drawHighlights()
     {
-        //FIXME
         let core = this.core;
 
-        Diva.Events.subscribe('VisibleTilesDidLoad', function (pageIndex, zoomLevel)
+        // This function is only called once (drawHighlights) so it will store the info that were passed the first time drawHighlights was called (Need a fix)
+        var handle = Diva.Events.subscribe('VisibleTilesDidLoad', function (pageIndex, zoomLevel)
         {
             let renderer = core.getSettings().renderer;
             let scaleRatio = Math.pow(2,zoomLevel);
@@ -59,6 +61,7 @@ export default class PixelPlugin
                 renderer._ctx.fillRect(highlightXOffset, highlightYOffset,relativeRectWidth,relativeRectHeight);
             }
         });
+        return handle;
     }
     /**
      * Enables the layering plugin and stops it from being repetitively called.
@@ -66,14 +69,17 @@ export default class PixelPlugin
      **/
     handleClick (event, settings, publicInstance, pageIndex)
     {
-        if (!this.activated)
+        if(!this.activated)
         {
-            this.drawHighlights();
+            this.handle = this.drawHighlights();
+            this.core.getSettings().renderer._paint();
             this.activated = true;
         }
         else
         {
-            Diva.Events.unsubscribe('VisibleTilesDidLoad');
+            Diva.Events.unsubscribe(this.handle);
+            this.core.getSettings().renderer._paint();
+            this.activated = false;
         }
     }
 
