@@ -5,9 +5,6 @@
  *
  * {string} pluginName - Added to the class prototype. Defines the name for the plugin.
  *
- * @method drawHighlights - Used to highlight pages after the tiles are visible
- *
- *
  **/
 export default class PixelPlugin
 {
@@ -17,63 +14,43 @@ export default class PixelPlugin
         this.drawHighlights();
     }
 
-    drawHighlights(){
-        var core = this.core;
+    // Is called every time visible tiles are loaded to draw highlights on top of them
+    drawHighlights()
+    {
+        let core = this.core;
 
-        Diva.Events.subscribe('VisibleTilesDidLoad', function (pageIndex, zoomLevel) {
-            var renderer = core.getSettings().renderer;
-
+        Diva.Events.subscribe('VisibleTilesDidLoad', function (pageIndex, zoomLevel)
+        {
+            let renderer = core.getSettings().renderer;
+            let scaleRatio = Math.pow(2,zoomLevel);
             const viewportPaddingX = Math.max(0, (renderer._viewport.width - renderer.layout.dimensions.width) / 2);
             const viewportPaddingY = Math.max(0, (renderer._viewport.height - renderer.layout.dimensions.height) / 2);
 
-            renderer._ctx.fillStyle = "rgba(255, 255, 0, 0.25)";
-            var rectWidth = 24 * Math.pow(2,zoomLevel);
-            var rectHeight = 24 * Math.pow(2,zoomLevel);
+            // Setup the rectangle to draw (These will be passed in an array afterwards)
+            // The following absolute values are experimental values to highlight the square on the first page of Salzinnes, CDN-Hsmu M2149.L4
+            var absoluteRectWidth = 24;
+            var absoluteRectHeight = 24;
+            var absoluteRectOriginX = 23;
+            var absoluteRectOriginY = 42;
 
-            var clickX = 23 * Math.pow(2,zoomLevel);
-            var clickY = 42 * Math.pow(2,zoomLevel);
+            // The relative values are used to scale the highlights according to the zoom level on the page itself
+            var relativeRectWidth = absoluteRectWidth * scaleRatio;
+            var relativeRectHeight = absoluteRectHeight * scaleRatio;
+            var relativeRectOriginX = absoluteRectOriginX * scaleRatio;
+            var relativeRectOriginY = absoluteRectOriginY * scaleRatio;
+
+            // This indicates the page on top of which the highlights are supposed to be drawn
             var highlightPageIndex = 0;
 
             if (pageIndex === highlightPageIndex){
-                var highlightXOffset = renderer._getImageOffset(pageIndex).left - renderer._viewport.left + viewportPaddingX + clickX;
-                var highlightYOffset = renderer._getImageOffset(pageIndex).top - renderer._viewport.top + viewportPaddingY + clickY;
+                // Calculates where the highlights should be drawn as a function of the whole webpage coordinates
+                // (to make it look like it is on top of a page in Diva)
+                var highlightXOffset = renderer._getImageOffset(pageIndex).left - renderer._viewport.left + viewportPaddingX + relativeRectOriginX;
+                var highlightYOffset = renderer._getImageOffset(pageIndex).top - renderer._viewport.top + viewportPaddingY + relativeRectOriginY;
 
-                renderer._ctx.fillRect(highlightXOffset, highlightYOffset,rectWidth,rectHeight)
-
-                renderer._ctx.fillStyle = "rgba(50, 0, 255, 0.2)";
-                var rectWidth = 55 * Math.pow(2,zoomLevel);
-                var rectHeight = 5 * Math.pow(2,zoomLevel);
-
-                var clickX = 48 * Math.pow(2,zoomLevel);
-                var clickY = 50 * Math.pow(2,zoomLevel);
-                var highlightPageIndex = 0;
-
-                var highlightXOffset = renderer._getImageOffset(pageIndex).left - renderer._viewport.left + viewportPaddingX + clickX;
-                var highlightYOffset = renderer._getImageOffset(pageIndex).top - renderer._viewport.top + viewportPaddingY + clickY;
-
-                renderer._ctx.fillRect(highlightXOffset, highlightYOffset,rectWidth,rectHeight)
-            }
-
-            renderer._ctx.fillStyle = "rgba(100, 255, 50, 0.25)";
-            var rectWidth = 24 * Math.pow(2,zoomLevel);
-            var rectHeight = 24 * Math.pow(2,zoomLevel);
-
-            var clickX = 23 * Math.pow(2,zoomLevel);
-            var clickY = 42 * Math.pow(2,zoomLevel);
-            var highlightPageIndex = 1;
-
-            if (pageIndex === highlightPageIndex){
-                var rectWidth = 80 * Math.pow(2,zoomLevel);
-                var rectHeight = 5 * Math.pow(2,zoomLevel);
-
-                var clickX = 36 * Math.pow(2,zoomLevel);
-                var clickY = 80 * Math.pow(2,zoomLevel);
-                var highlightPageIndex = 0;
-
-                var highlightXOffset = renderer._getImageOffset(pageIndex).left - renderer._viewport.left + viewportPaddingX + clickX;
-                var highlightYOffset = renderer._getImageOffset(pageIndex).top - renderer._viewport.top + viewportPaddingY + clickY;
-
-                renderer._ctx.fillRect(highlightXOffset, highlightYOffset,rectWidth,rectHeight)
+                //Draw the rectangle
+                renderer._ctx.fillStyle = "rgba(255, 255, 0, 0.25)";
+                renderer._ctx.fillRect(highlightXOffset, highlightYOffset,relativeRectWidth,relativeRectHeight);
             }
         });
     }
