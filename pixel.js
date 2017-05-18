@@ -5,18 +5,22 @@
  *
  * {string} pluginName - Added to the class prototype. Defines the name for the plugin.
  *
+ * @method drawHighlights - Used to highlight pages after the tiles are visible
+ *
+ *
  **/
 export default class PixelPlugin
 {
     constructor (core)
     {
         this.core = core;
-        this.drawHighlights();
+        this.pageToolsIcon = this.createIcon();
     }
 
     // Is called every time visible tiles are loaded to draw highlights on top of them
     drawHighlights()
     {
+        //FIXME
         let core = this.core;
 
         Diva.Events.subscribe('VisibleTilesDidLoad', function (pageIndex, zoomLevel)
@@ -42,7 +46,8 @@ export default class PixelPlugin
             // This indicates the page on top of which the highlights are supposed to be drawn
             var highlightPageIndex = 0;
 
-            if (pageIndex === highlightPageIndex){
+            if (pageIndex === highlightPageIndex)
+            {
                 // Calculates where the highlights should be drawn as a function of the whole webpage coordinates
                 // (to make it look like it is on top of a page in Diva)
                 var highlightXOffset = renderer._getImageOffset(pageIndex).left - renderer._viewport.left + viewportPaddingX + relativeRectOriginX;
@@ -54,9 +59,50 @@ export default class PixelPlugin
             }
         });
     }
+    /**
+     * Will be enabling the layering plugin
+     *
+     **/
+    handleClick (event, settings, publicInstance, pageIndex)
+    {
+        console.log("Entered Handle Click");
+        this.drawHighlights();
+    }
+
+    createIcon ()
+    {
+        const pageToolsIcon = document.createElement('div');
+        pageToolsIcon.classList.add('diva-pixel-icon');
+
+        let root = document.createElementNS("http://www.w3.org/2000/svg", "svg");
+        root.setAttribute("x", "0px");
+        root.setAttribute("y", "0px");
+        root.setAttribute("viewBox", "0 0 25 25");
+        root.id = `${this.core.settings.selector}pixel-icon`;
+
+        let g = document.createElementNS("http://www.w3.org/2000/svg", "g");
+        g.id = `${this.core.settings.selector}pixel-icon-glyph`;
+        g.setAttribute("transform", "matrix(1, 0, 0, 1, -11.5, -11.5)");
+        g.setAttribute("class", "diva-pagetool-icon");
+
+        //Placeholder icon
+        let rect = document.createElementNS("http://www.w3.org/2000/svg", "rect");
+        rect.setAttribute('x', '15');
+        rect.setAttribute('y', '10');
+        rect.setAttribute('width', '25');
+        rect.setAttribute('height', 25);
+
+        g.appendChild(rect);
+        root.appendChild(g);
+
+        pageToolsIcon.appendChild(root);
+
+        return pageToolsIcon;
+    }
 }
 
 PixelPlugin.prototype.pluginName = "pixel";
+PixelPlugin.prototype.isPageTool = true;
 
 /**
  * Make this plugin available in the global context
