@@ -14,6 +14,7 @@ export default class PixelPlugin
     constructor (core)
     {
         this.core = core;
+        this.activated = false;
         this.pageToolsIcon = this.createIcon();
     }
 
@@ -60,13 +61,20 @@ export default class PixelPlugin
         });
     }
     /**
-     * Will be enabling the layering plugin
+     * Enables the layering plugin and stops it from being repetitively called.
      *
      **/
     handleClick (event, settings, publicInstance, pageIndex)
     {
-        console.log("Entered Handle Click");
-        this.drawHighlights();
+        if (!this.activated)
+        {
+            this.drawHighlights();
+            this.activated = true;
+        }
+        else
+        {
+            Diva.Events.unsubscribe('VisibleTilesDidLoad');
+        }
     }
 
     createIcon ()
