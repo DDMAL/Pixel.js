@@ -20,46 +20,74 @@ export default class PixelPlugin
         this.handle = null;
     }
 
-    // Is called every time visible tiles are loaded to draw highlights on top of them
-    drawHighlights()
+    /**
+     * Is called every time visible tiles are loaded to draw highlights on top of them
+     *
+     * @param highlights, an array of HighlightArea objects that indicate places on a page to highlight
+     * @returns A handle for the event subscription
+     */
+    drawHighlights(highlights)
     {
         let core = this.core;
 
         // This function is only called once (drawHighlights) so it will store the info that were passed the first time drawHighlights was called (Need a fix)
-        var handle = Diva.Events.subscribe('VisibleTilesDidLoad', function (pageIndex, zoomLevel)
+        var handle = Diva.Events.subscribe('VisibleTilesDidLoad', function (args)
         {
-            let renderer = core.getSettings().renderer;
-            let scaleRatio = Math.pow(2,zoomLevel);
-            const viewportPaddingX = Math.max(0, (renderer._viewport.width - renderer.layout.dimensions.width) / 2);
-            const viewportPaddingY = Math.max(0, (renderer._viewport.height - renderer.layout.dimensions.height) / 2);
+            var pageIndex = args[0];
+            var zoomLevel = args[1];
 
-            // Setup the rectangle to draw (These will be passed in an array afterwards)
-            // The following absolute values are experimental values to highlight the square on the first page of Salzinnes, CDN-Hsmu M2149.L4
-            var absoluteRectWidth = 24,
-                absoluteRectHeight = 24,
-                absoluteRectOriginX = 23,
-                absoluteRectOriginY = 42;
+            highlights.forEach((highlighted) =>
+                {
+                    let opacity = 0.25,
+                        renderer = core.getSettings().renderer,
+                        scaleRatio = Math.pow(2,zoomLevel);
 
-            // The relative values are used to scale the highlights according to the zoom level on the page itself
-            var relativeRectWidth = absoluteRectWidth * scaleRatio,
-                relativeRectHeight = absoluteRectHeight * scaleRatio,
-                relativeRectOriginX = absoluteRectOriginX * scaleRatio,
-                relativeRectOriginY = absoluteRectOriginY * scaleRatio;
+                    const viewportPaddingX = Math.max(0, (renderer._viewport.width - renderer.layout.dimensions.width) / 2),
+                        viewportPaddingY = Math.max(0, (renderer._viewport.height - renderer.layout.dimensions.height) / 2);
 
-            // This indicates the page on top of which the highlights are supposed to be drawn
-            var highlightPageIndex = 0;
+                    // The following absolute values are experimental values to highlight the square on the first page of Salzinnes, CDN-Hsmu M2149.L4
+                    // The relative values are used to scale the highlights according to the zoom level on the page itself
+                    let absoluteRectOriginX = highlighted.relativeRectOriginX * scaleRatio,
+                        absoluteRectOriginY = highlighted.relativeRectOriginY * scaleRatio,
+                        absoluteRectWidth = highlighted.relativeRectWidth * scaleRatio,
+                        absoluteRectHeight = highlighted.relativeRectHeight * scaleRatio;
 
-            if (pageIndex === highlightPageIndex)
-            {
-                // Calculates where the highlights should be drawn as a function of the whole webpage coordinates
-                // (to make it look like it is on top of a page in Diva)
-                var highlightXOffset = renderer._getImageOffset(pageIndex).left - renderer._viewport.left + viewportPaddingX + relativeRectOriginX,
-                    highlightYOffset = renderer._getImageOffset(pageIndex).top - renderer._viewport.top + viewportPaddingY + relativeRectOriginY;
+                    // This indicates the page on top of which the highlights are supposed to be drawn
+                    let highlightPageIndex = highlighted.pageIndex;
 
-                //Draw the rectangle
-                renderer._ctx.fillStyle = "rgba(255, 255, 0, 0.25)";
-                renderer._ctx.fillRect(highlightXOffset, highlightYOffset,relativeRectWidth,relativeRectHeight);
-            }
+                    if (pageIndex === highlightPageIndex)
+                    {
+                        // Calculates where the highlights should be drawn as a function of the whole webpage coordinates
+                        // (to make it look like it is on top of a page in Diva)
+                        let highlightXOffset = renderer._getImageOffset(pageIndex).left - renderer._viewport.left + viewportPaddingX + absoluteRectOriginX,
+                            highlightYOffset = renderer._getImageOffset(pageIndex).top - renderer._viewport.top + viewportPaddingY + absoluteRectOriginY;
+
+                        //Draw the rectangle
+                        let rgba = null;
+                        switch (highlighted.layerType){
+                            case 0:
+                                rgba = "rgba(51, 102, 255, " + opacity + ")";
+                                break;
+                            case 1:
+                                rgba = "rgba(255, 51, 102, " + opacity + ")";
+                                break;
+                            case 2:
+                                rgba = "rgba(255, 255, 10, " + opacity + ")";
+                                break;
+                            case 3:
+                                rgba = "rgba(10, 255, 10, " + opacity + ")";
+                                break;
+                            case 4:
+                                rgba = "rgba(120, 0, 120, " + opacity + ")";
+                                break;
+                            default:
+                                rgba = "rgba(255, 0, 0, " + opacity + ")";
+                        }
+                        renderer._ctx.fillStyle = rgba;
+                        renderer._ctx.fillRect(highlightXOffset, highlightYOffset,absoluteRectWidth,absoluteRectHeight);
+                    }
+                }
+            )
         });
         return handle;
     }
@@ -72,14 +100,22 @@ export default class PixelPlugin
     {
         if (!this.activated)
         {
-            this.handle = this.drawHighlights();
-            this.core.getSettings().renderer._paint();
+            // Create the array of plugins to pass to drawHighlights function
+            let highlight1 = new HighlightArea(23, 42, 24, 24, 0, 0),
+                highlight2 = new HighlightArea(48, 50, 57, 5, 0, 1),
+                highlight3 = new HighlightArea(75, 80, 30, 10, 0, 2),
+                highlight4 = new HighlightArea(21, 77, 12, 13.5, 0, 3),
+                highlight5 = new HighlightArea(50, 120, 50, 10, 0, 4),
+                highlight6 = new HighlightArea(30, 180, 60, 20, 0, 5),
+                highlighted = [highlight1, highlight2, highlight3, highlight4, highlight5, highlight6];
+            this.handle = this.drawHighlights(highlighted);
+            this.core.getSettings().renderer._paint();  // Repaint the tiles to retrigger VisibleTilesDidLoad
             this.activated = true;
         }
         else
         {
             Diva.Events.unsubscribe(this.handle);
-            this.core.getSettings().renderer._paint();
+            this.core.getSettings().renderer._paint(); // Repaint the tiles to make the highlights disappear off the page
             this.activated = false;
         }
     }
@@ -115,6 +151,20 @@ export default class PixelPlugin
         return pageToolsIcon;
     }
 }
+
+export class HighlightArea
+{
+    constructor (relativeRectOriginX, relativeRectOriginY, relativeRectWidth, relativeRectHeight, pageIndex, layerType)
+    {
+        this.relativeRectOriginX = relativeRectOriginX;
+        this.relativeRectOriginY = relativeRectOriginY;
+        this.relativeRectWidth = relativeRectWidth;
+        this.relativeRectHeight = relativeRectHeight;
+        this.pageIndex = pageIndex;
+        this.layerType = layerType;
+    }
+}
+
 
 PixelPlugin.prototype.pluginName = "pixel";
 PixelPlugin.prototype.isPageTool = true;
