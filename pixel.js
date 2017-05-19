@@ -14,7 +14,6 @@ export default class PixelPlugin
         this.core = core;
         this.activated = false;
         this.pageToolsIcon = this.createIcon();
-        this.activated = false;
         this.handle = null;
     }
 
