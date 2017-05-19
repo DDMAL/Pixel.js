@@ -35,19 +35,19 @@ export default class PixelPlugin
 
             highlights.forEach((highlighted) =>
                 {
-                    let opacity = 0.25,
-                        renderer = core.getSettings().renderer,
-                        scaleRatio = Math.pow(2,zoomLevel);
+                    let opacity = 0.25;
+                    let renderer = core.getSettings().renderer;
+                    let scaleRatio = Math.pow(2,zoomLevel);
 
-                    const viewportPaddingX = Math.max(0, (renderer._viewport.width - renderer.layout.dimensions.width) / 2),
-                        viewportPaddingY = Math.max(0, (renderer._viewport.height - renderer.layout.dimensions.height) / 2);
+                    const viewportPaddingX = Math.max(0, (renderer._viewport.width - renderer.layout.dimensions.width) / 2);
+                    const viewportPaddingY = Math.max(0, (renderer._viewport.height - renderer.layout.dimensions.height) / 2);
 
                     // The following absolute values are experimental values to highlight the square on the first page of Salzinnes, CDN-Hsmu M2149.L4
                     // The relative values are used to scale the highlights according to the zoom level on the page itself
-                    let absoluteRectOriginX = highlighted.relativeRectOriginX * scaleRatio,
-                        absoluteRectOriginY = highlighted.relativeRectOriginY * scaleRatio,
-                        absoluteRectWidth = highlighted.relativeRectWidth * scaleRatio,
-                        absoluteRectHeight = highlighted.relativeRectHeight * scaleRatio;
+                    let absoluteRectOriginX = highlighted.relativeRectOriginX * scaleRatio;
+                    let absoluteRectOriginY = highlighted.relativeRectOriginY * scaleRatio;
+                    let absoluteRectWidth = highlighted.relativeRectWidth * scaleRatio;
+                    let absoluteRectHeight = highlighted.relativeRectHeight * scaleRatio;
 
                     // This indicates the page on top of which the highlights are supposed to be drawn
                     let highlightPageIndex = highlighted.pageIndex;
@@ -56,8 +56,8 @@ export default class PixelPlugin
                     {
                         // Calculates where the highlights should be drawn as a function of the whole webpage coordinates
                         // (to make it look like it is on top of a page in Diva)
-                        let highlightXOffset = renderer._getImageOffset(pageIndex).left - renderer._viewport.left + viewportPaddingX + absoluteRectOriginX,
-                            highlightYOffset = renderer._getImageOffset(pageIndex).top - renderer._viewport.top + viewportPaddingY + absoluteRectOriginY;
+                        let highlightXOffset = renderer._getImageOffset(pageIndex).left - renderer._viewport.left + viewportPaddingX + absoluteRectOriginX;
+                        let highlightYOffset = renderer._getImageOffset(pageIndex).top - renderer._viewport.top + viewportPaddingY + absoluteRectOriginY;
 
                         //Draw the rectangle
                         let rgba = null;
@@ -98,13 +98,13 @@ export default class PixelPlugin
         if (!this.activated)
         {
             // Create the array of highlights to pass to drawHighlights function
-            let highlight1 = new HighlightArea(23, 42, 24, 24, 0, 0),
-                highlight2 = new HighlightArea(48, 50, 57, 5, 0, 1),
-                highlight3 = new HighlightArea(75, 80, 30, 10, 0, 2),
-                highlight4 = new HighlightArea(21, 77, 12, 13.5, 0, 3),
-                highlight5 = new HighlightArea(50, 120, 50, 10, 0, 4),
-                highlight6 = new HighlightArea(30, 180, 60, 20, 0, 5),
-                highlighted = [highlight1, highlight2, highlight3, highlight4, highlight5, highlight6];
+            let highlight1 = new HighlightArea(23, 42, 24, 24, 0, 0);
+            let highlight2 = new HighlightArea(48, 50, 57, 5, 0, 1);
+            let highlight3 = new HighlightArea(75, 80, 30, 10, 0, 2);
+            let highlight4 = new HighlightArea(21, 77, 12, 13.5, 0, 3);
+            let highlight5 = new HighlightArea(50, 120, 50, 10, 0, 4);
+            let highlight6 = new HighlightArea(30, 180, 60, 20, 0, 5);
+            let highlighted = [highlight1, highlight2, highlight3, highlight4, highlight5, highlight6];
             this.handle = this.drawHighlights(highlighted);
             this.core.getSettings().renderer._paint();  // Repaint the tiles to retrigger VisibleTilesDidLoad
             this.activated = true;
