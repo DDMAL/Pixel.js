@@ -69,7 +69,7 @@ export default class PixelPlugin
      **/
     handleClick (event, settings, publicInstance, pageIndex)
     {
-        if(!this.activated)
+        if (!this.activated)
         {
             this.handle = this.drawHighlights();
             this.core.getSettings().renderer._paint();
