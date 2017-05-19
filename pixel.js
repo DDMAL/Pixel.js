@@ -30,8 +30,8 @@ export default class PixelPlugin
         // This function is only called once (drawHighlights) so it will store the info that were passed the first time drawHighlights was called (Need a fix)
         var handle = Diva.Events.subscribe('VisibleTilesDidLoad', function (args)
         {
-            var pageIndex = args[0];
-            var zoomLevel = args[1];
+            var pageIndex = args[0],
+                zoomLevel = args[1];
 
             highlights.forEach((highlighted) =>
                 {
