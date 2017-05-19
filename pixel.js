@@ -35,16 +35,16 @@ export default class PixelPlugin
 
             // Setup the rectangle to draw (These will be passed in an array afterwards)
             // The following absolute values are experimental values to highlight the square on the first page of Salzinnes, CDN-Hsmu M2149.L4
-            var absoluteRectWidth = 24;
-            var absoluteRectHeight = 24;
-            var absoluteRectOriginX = 23;
-            var absoluteRectOriginY = 42;
+            var absoluteRectWidth = 24,
+                absoluteRectHeight = 24,
+                absoluteRectOriginX = 23,
+                absoluteRectOriginY = 42;
 
             // The relative values are used to scale the highlights according to the zoom level on the page itself
-            var relativeRectWidth = absoluteRectWidth * scaleRatio;
-            var relativeRectHeight = absoluteRectHeight * scaleRatio;
-            var relativeRectOriginX = absoluteRectOriginX * scaleRatio;
-            var relativeRectOriginY = absoluteRectOriginY * scaleRatio;
+            var relativeRectWidth = absoluteRectWidth * scaleRatio,
+                relativeRectHeight = absoluteRectHeight * scaleRatio,
+                relativeRectOriginX = absoluteRectOriginX * scaleRatio,
+                relativeRectOriginY = absoluteRectOriginY * scaleRatio;
 
             // This indicates the page on top of which the highlights are supposed to be drawn
             var highlightPageIndex = 0;
@@ -53,8 +53,8 @@ export default class PixelPlugin
             {
                 // Calculates where the highlights should be drawn as a function of the whole webpage coordinates
                 // (to make it look like it is on top of a page in Diva)
-                var highlightXOffset = renderer._getImageOffset(pageIndex).left - renderer._viewport.left + viewportPaddingX + relativeRectOriginX;
-                var highlightYOffset = renderer._getImageOffset(pageIndex).top - renderer._viewport.top + viewportPaddingY + relativeRectOriginY;
+                var highlightXOffset = renderer._getImageOffset(pageIndex).left - renderer._viewport.left + viewportPaddingX + relativeRectOriginX,
+                    highlightYOffset = renderer._getImageOffset(pageIndex).top - renderer._viewport.top + viewportPaddingY + relativeRectOriginY;
 
                 //Draw the rectangle
                 renderer._ctx.fillStyle = "rgba(255, 255, 0, 0.25)";
@@ -63,6 +63,7 @@ export default class PixelPlugin
         });
         return handle;
     }
+
     /**
      * Enables the layering plugin and stops it from being repetitively called.
      *
