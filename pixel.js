@@ -5,8 +5,6 @@
  *
  * {string} pluginName - Added to the class prototype. Defines the name for the plugin.
  *
- * @method drawHighlights - Used to highlight pages after the tiles are visible
- *
  *
  **/
 export default class PixelPlugin
@@ -100,7 +98,7 @@ export default class PixelPlugin
     {
         if (!this.activated)
         {
-            // Create the array of plugins to pass to drawHighlights function
+            // Create the array of highlights to pass to drawHighlights function
             let highlight1 = new HighlightArea(23, 42, 24, 24, 0, 0),
                 highlight2 = new HighlightArea(48, 50, 57, 5, 0, 1),
                 highlight3 = new HighlightArea(75, 80, 30, 10, 0, 2),
