@@ -43,35 +43,32 @@ export default class PixelPlugin
 
     createPluginElements(layer)
     {
-        var x = global.document.createElement("INPUT");
+        var x = document.createElement("INPUT");
         x.setAttribute("id", "layer " + layer.layerType);
         x.setAttribute("type", "range");
         x.setAttribute('max', 100);
         x.setAttribute('min', 0);
         x.setAttribute('value', layer.opacity*100);
-        global.document.body.appendChild(x);
+        document.body.appendChild(x);
 
         var rangeInput = document.getElementById("layer " + layer.layerType);
 
-        var instance = this;
-        rangeInput.addEventListener("input", function()
+        rangeInput.addEventListener("input", () =>
         {
             layer.opacity = rangeInput.value/100;
-            instance.core.getSettings().renderer._paint();
+            this.core.getSettings().renderer._paint();
         });
     }
 
     destroyPluginElements(layer){
         var rangeInput = document.getElementById("layer " + layer.layerType);
-        global.document.body.removeChild(rangeInput);
+        document.body.removeChild(rangeInput);
     }
 
     subscribeToEvent(layers){
-        let instance = this;
-
-        let handle = Diva.Events.subscribe('VisibleTilesDidLoad', function(args)
+        let handle = Diva.Events.subscribe('VisibleTilesDidLoad', (args) =>
         {
-            instance.drawHighlights(layers, args);
+            this.drawHighlights(layers, args);
         });
         return handle;
     }
@@ -136,9 +133,9 @@ export default class PixelPlugin
                         renderer._ctx.fillRect(highlightXOffset, highlightYOffset,absoluteRectWidth,absoluteRectHeight);
                     }
                 }
-            )
+            );
 
-        })
+        });
     }
 
     /**
@@ -148,18 +145,18 @@ export default class PixelPlugin
     handleClick (event, settings, publicInstance, pageIndex)
     {
         // Create the array of highlights to pass to drawHighlights function
-        let highlight1 = new HighlightArea(23, 42, 24, 24, 0);
-        let highlight2 = new HighlightArea(48, 50, 57, 5, 0);
-        let highlight3 = new HighlightArea(75, 80, 30, 10, 0);
-        let highlight4 = new HighlightArea(21, 77, 12, 13.5, 0);
-        let highlight5 = new HighlightArea(50, 120, 50, 10, 0);
-        let highlight6 = new HighlightArea(30, 180, 60, 20, 0);
-        let highlighted1 = [highlight1, highlight2];
-        let highlighted2 = [highlight3, highlight4];
-        let highlighted3 = [highlight5, highlight6];
-        let layer1 = new Layer(0,0.3, highlighted1);
-        let layer2 = new Layer(1,0.5, highlighted2);
-        let layer3 = new Layer(2,0.3, highlighted3);
+        let highlight1 = new HighlightArea(23, 42, 24, 24, 0),
+            highlight2 = new HighlightArea(48, 50, 57, 5, 0),
+            highlight3 = new HighlightArea(75, 80, 30, 10, 0),
+            highlight4 = new HighlightArea(21, 77, 12, 13.5, 0),
+            highlight5 = new HighlightArea(50, 120, 50, 10, 0),
+            highlight6 = new HighlightArea(30, 180, 60, 20, 0);
+        let highlighted1 = [highlight1, highlight2],
+            highlighted2 = [highlight3, highlight4],
+            highlighted3 = [highlight5, highlight6];
+        let layer1 = new Layer(0,0.3, highlighted1),
+            layer2 = new Layer(1,0.5, highlighted2),
+            layer3 = new Layer(2,0.3, highlighted3);
         let layers = [layer1, layer2, layer3];
 
         if (!this.activated)
