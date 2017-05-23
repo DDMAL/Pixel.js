@@ -16,6 +16,7 @@ export default class PixelPlugin
         this.pageToolsIcon = this.createIcon();
         this.handle = null;
         this.layers = null;
+        this.matrix = null;
     }
 
     // Subscribes to VisibleTilesDidLoad event to start drawing highlights.
@@ -162,10 +163,31 @@ export default class PixelPlugin
         if (!this.activated)
         {
             this.handle = this.activatePlugin(layers);
+            this.intializeMatrix();
         }
         else
         {
             this.deactivatePlugin(layers);
+        }
+    }
+
+    /**
+     * Initializes the base matrix that maps the real-size picture
+     **/
+    intializeMatrix()
+    {
+        if (this.matrix === null)
+        {
+            let pageIndex = this.core.getSettings().currentPageIndex;
+            let maxZoomLevel = this.core.getSettings().maxZoomLevel;
+            var height = this.core.publicInstance.getPageDimensionsAtZoomLevel(pageIndex, maxZoomLevel).height,
+                width = this.core.publicInstance.getPageDimensionsAtZoomLevel(pageIndex, maxZoomLevel).width;
+
+            this.matrix = new Array(width).fill(null).map(() => new Array(height).fill(0));
+        }
+        else
+        {
+            console.log("Matrix already exits");
         }
     }
 
