@@ -64,12 +64,6 @@ export default class PixelPlugin
             let point = new Point(relativeCoords.x, relativeCoords.y, pageIndex);
             this.layers[0].createNewPath(point);
 
-
-            // var mousePos = this.getMousePos(canvas, evt);
-            // var relativeCoords = this.getRelativeCoordinates(mousePos.x, mousePos.y);
-            //let highlight = new HighlightArea(relativeCoords.x, relativeCoords.y, 1, 1, pageIndex);
-            // this.layers[0].addAreaToLayer(highlight);
-            //this.drawHighlight(this.layers[0], highlight, pageIndex, zoomLevel);
             this.drawPath(this.layers[0], point, pageIndex, zoomLevel, false);
         });
 
@@ -96,14 +90,6 @@ export default class PixelPlugin
                 let point = new Point(relativeCoords.x, relativeCoords.y, pageIndex);
                 this.layers[0].addToLastPath(point);
 
-                // let pageIndex = this.core.getSettings().currentPageIndex;
-                // let zoomLevel = this.core.getSettings().zoomLevel;
-                //
-                // var mousePos = this.getMousePos(canvas, evt);
-                // var relativeCoords = this.getRelativeCoordinates(mousePos.x, mousePos.y);
-                // let highlight = new HighlightArea(relativeCoords.x, relativeCoords.y, 1, 1, pageIndex);
-                // this.layers[0].addAreaToLayer(highlight);
-                //this.drawHighlight(this.layers[0], highlight, pageIndex, zoomLevel);
                 this.drawPath(this.layers[0], point, pageIndex, zoomLevel, true);
             }
         }, false);
@@ -124,6 +110,14 @@ export default class PixelPlugin
 
     createPluginElements(layer)
     {
+        var x = document.createElement("input");
+        x.setAttribute("id", "layer " + layer.layerType);
+        x.setAttribute("type", "range");
+        x.setAttribute('max', 100);
+        x.setAttribute('min', 0);
+        x.setAttribute('value', layer.opacity*100);
+        document.body.appendChild(x);
+
         var x = document.createElement("input");
         x.setAttribute("id", "layer " + layer.layerType);
         x.setAttribute("type", "range");
