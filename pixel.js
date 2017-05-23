@@ -185,10 +185,6 @@ export default class PixelPlugin
 
             this.matrix = new Array(width).fill(null).map(() => new Array(height).fill(0));
         }
-        else
-        {
-            console.log("Matrix already exits");
-        }
     }
 
     createIcon ()
