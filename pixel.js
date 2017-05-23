@@ -118,14 +118,6 @@ export default class PixelPlugin
         x.setAttribute('value', layer.opacity*100);
         document.body.appendChild(x);
 
-        var x = document.createElement("input");
-        x.setAttribute("id", "layer " + layer.layerType);
-        x.setAttribute("type", "range");
-        x.setAttribute('max', 100);
-        x.setAttribute('min', 0);
-        x.setAttribute('value', layer.opacity*100);
-        document.body.appendChild(x);
-
         var rangeInput = document.getElementById("layer " + layer.layerType);
 
         rangeInput.addEventListener("input", () =>
