@@ -15,28 +15,79 @@ export default class PixelPlugin
         this.activated = false;
         this.pageToolsIcon = this.createIcon();
         this.handle = null;
+        this.layers = null;
     }
 
-    /**
-     * Is called every time visible tiles are loaded to draw highlights on top of them
-     *
-     * @param highlights, an array of HighlightArea objects that indicate places on a page to highlight
-     * @returns A handle for the event subscription
-     */
-    drawHighlights(highlights)
+    // Subscribes to VisibleTilesDidLoad event to start drawing highlights.
+    // Takes an array of highlighted objects
+    activatePlugin(layers)
     {
-        let core = this.core;
+        let handle = this.subscribeToEvent(layers);
+        this.core.getSettings().renderer._paint();  // Repaint the tiles to retrigger VisibleTilesDidLoad
+        this.activated = true;
+        layers.forEach((layer) => {
+            this.createPluginElements(layer);
+        });
+        return handle;
+    }
 
-        // This function is only called once (drawHighlights) so it will store the info that were passed the first time drawHighlights was called (Need a fix)
-        var handle = Diva.Events.subscribe('VisibleTilesDidLoad', function (args)
+    deactivatePlugin(layers)
+    {
+        Diva.Events.unsubscribe(this.handle);
+        this.core.getSettings().renderer._paint(); // Repaint the tiles to make the highlights disappear off the page
+        this.activated = false;
+        layers.forEach((layer) => {
+            this.destroyPluginElements(layer);
+        });
+    }
+
+    createPluginElements(layer)
+    {
+        var x = global.document.createElement("INPUT");
+        x.setAttribute("id", "layer " + layer.layerType);
+        x.setAttribute("type", "range");
+        x.setAttribute('max', 100);
+        x.setAttribute('min', 0);
+        x.setAttribute('value', layer.opacity*100);
+        global.document.body.appendChild(x);
+
+        var rangeInput = document.getElementById("layer " + layer.layerType);
+
+        var instance = this;
+        rangeInput.addEventListener("input", function()
         {
-            var pageIndex = args[0],
-                zoomLevel = args[1];
+            layer.opacity = rangeInput.value/100;
+            instance.core.getSettings().renderer._paint();
+        });
+    }
+
+    destroyPluginElements(layer){
+        var rangeInput = document.getElementById("layer " + layer.layerType);
+        global.document.body.removeChild(rangeInput);
+    }
+
+    subscribeToEvent(layers){
+        let instance = this;
+
+        let handle = Diva.Events.subscribe('VisibleTilesDidLoad', function(args)
+        {
+            instance.drawHighlights(layers, args);
+        });
+        return handle;
+    }
+
+    drawHighlights(layers, args)
+    {
+        var pageIndex = args[0],
+            zoomLevel = args[1];
+
+        layers.forEach((layer) => {
+            var highlights = layer.highlights;
 
             highlights.forEach((highlighted) =>
                 {
-                    let opacity = 0.25;
-                    let renderer = core.getSettings().renderer;
+                    let opacity = layer.opacity;
+                    let renderer = this.core.getSettings().renderer;
                     let scaleRatio = Math.pow(2,zoomLevel);
 
                     const viewportPaddingX = Math.max(0, (renderer._viewport.width - renderer.layout.dimensions.width) / 2);
@@ -61,7 +112,8 @@ export default class PixelPlugin
 
                         //Draw the rectangle
                         let rgba = null;
-                        switch (highlighted.layerType){
+                        switch (layer.layerType)
+                        {
                             case 0:
                                 rgba = "rgba(51, 102, 255, " + opacity + ")";
                                 break;
@@ -85,8 +137,8 @@ export default class PixelPlugin
                     }
                 }
             )
-        });
-        return handle;
+
+        })
     }
 
     /**
@@ -95,25 +147,28 @@ export default class PixelPlugin
      **/
     handleClick (event, settings, publicInstance, pageIndex)
     {
+        // Create the array of highlights to pass to drawHighlights function
+        let highlight1 = new HighlightArea(23, 42, 24, 24, 0);
+        let highlight2 = new HighlightArea(48, 50, 57, 5, 0);
+        let highlight3 = new HighlightArea(75, 80, 30, 10, 0);
+        let highlight4 = new HighlightArea(21, 77, 12, 13.5, 0);
+        let highlight5 = new HighlightArea(50, 120, 50, 10, 0);
+        let highlight6 = new HighlightArea(30, 180, 60, 20, 0);
+        let highlighted1 = [highlight1, highlight2];
+        let highlighted2 = [highlight3, highlight4];
+        let highlighted3 = [highlight5, highlight6];
+        let layer1 = new Layer(0,0.3, highlighted1);
+        let layer2 = new Layer(1,0.5, highlighted2);
+        let layer3 = new Layer(2,0.3, highlighted3);
+        let layers = [layer1, layer2, layer3];
+
         if (!this.activated)
         {
-            // Create the array of highlights to pass to drawHighlights function
-            let highlight1 = new HighlightArea(23, 42, 24, 24, 0, 0);
-            let highlight2 = new HighlightArea(48, 50, 57, 5, 0, 1);
-            let highlight3 = new HighlightArea(75, 80, 30, 10, 0, 2);
-            let highlight4 = new HighlightArea(21, 77, 12, 13.5, 0, 3);
-            let highlight5 = new HighlightArea(50, 120, 50, 10, 0, 4);
-            let highlight6 = new HighlightArea(30, 180, 60, 20, 0, 5);
-            let highlighted = [highlight1, highlight2, highlight3, highlight4, highlight5, highlight6];
-            this.handle = this.drawHighlights(highlighted);
-            this.core.getSettings().renderer._paint();  // Repaint the tiles to retrigger VisibleTilesDidLoad
-            this.activated = true;
+            this.handle = this.activatePlugin(layers);
         }
         else
         {
-            Diva.Events.unsubscribe(this.handle);
-            this.core.getSettings().renderer._paint(); // Repaint the tiles to make the highlights disappear off the page
-            this.activated = false;
+            this.deactivatePlugin(layers);
         }
     }
 
@@ -151,17 +206,29 @@ export default class PixelPlugin
 
 export class HighlightArea
 {
-    constructor (relativeRectOriginX, relativeRectOriginY, relativeRectWidth, relativeRectHeight, pageIndex, layerType)
+    constructor (relativeRectOriginX, relativeRectOriginY, relativeRectWidth, relativeRectHeight, pageIndex)
     {
         this.relativeRectOriginX = relativeRectOriginX;
         this.relativeRectOriginY = relativeRectOriginY;
         this.relativeRectWidth = relativeRectWidth;
         this.relativeRectHeight = relativeRectHeight;
         this.pageIndex = pageIndex;
-        this.layerType = layerType;
     }
 }
 
+export class Layer
+{
+    constructor (layerType, opacity, highlights)
+    {
+        this.layerType = layerType;
+        this.opacity = opacity;
+        this.highlights = highlights;
+    }
+
+    addHighlightToLayer(highlight){
+        this.highlights.push(highlight);
+    }
+}
 
 PixelPlugin.prototype.pluginName = "pixel";
 PixelPlugin.prototype.isPageTool = true;
