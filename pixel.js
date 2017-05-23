@@ -61,12 +61,14 @@ export default class PixelPlugin
         });
     }
 
-    destroyPluginElements(layer){
+    destroyPluginElements(layer)
+    {
         var rangeInput = document.getElementById("layer " + layer.layerType);
         document.body.removeChild(rangeInput);
     }
 
-    subscribeToEvent(layers){
+    subscribeToEvent(layers)
+    {
         let handle = Diva.Events.subscribe('VisibleTilesDidLoad', (args) =>
         {
             this.drawHighlights(layers, args);
@@ -79,7 +81,8 @@ export default class PixelPlugin
         var pageIndex = args[0],
             zoomLevel = args[1];
 
-        layers.forEach((layer) => {
+        layers.forEach((layer) =>
+        {
             var highlights = layer.highlights;
 
             highlights.forEach((highlighted) =>
@@ -178,8 +181,8 @@ export default class PixelPlugin
     {
         if (this.matrix === null)
         {
-            let pageIndex = this.core.getSettings().currentPageIndex;
-            let maxZoomLevel = this.core.getSettings().maxZoomLevel;
+            let pageIndex = this.core.getSettings().currentPageIndex,
+                maxZoomLevel = this.core.getSettings().maxZoomLevel;
             var height = this.core.publicInstance.getPageDimensionsAtZoomLevel(pageIndex, maxZoomLevel).height,
                 width = this.core.publicInstance.getPageDimensionsAtZoomLevel(pageIndex, maxZoomLevel).width;
 
