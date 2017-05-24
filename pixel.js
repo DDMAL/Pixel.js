@@ -31,11 +31,13 @@ export default class PixelPlugin
             let layer1 = new Layer(0, 0.3);
             let layer2 = new Layer(1, 0.5);
             let layer3 = new Layer(2, 0.8);
+            let layer4 = new Layer(3, 0.8);
+            let layer5 = new Layer(4, 0.8);
             layer1.addShapeToLayer(new Rectangle(23, 42, 24, 24, 0));
             layer2.addShapeToLayer(new Rectangle(48, 50, 57, 5, 0));
             layer3.addShapeToLayer(new Rectangle(50, 120, 50, 10, 0));
 
-            this.layers = [layer1, layer2, layer3];
+            this.layers = [layer1, layer2, layer3, layer4, layer5];
         }
 
         let handle = this.subscribeToEvent();
@@ -51,14 +53,14 @@ export default class PixelPlugin
     {
         window.onkeyup = (e) =>
         {
+            let numberOfLayers = this.layers.length;
             let key = e.keyCode ? e.keyCode : e.which;
-            if (key === 49)
+
+            if (key > 48 && key < 49 + numberOfLayers && key < 57)
             {
-                this.selectedLayer = 0;
-            }
-            else if (key === 50)
-            {
-                this.selectedLayer = 1;
+                this.selectedLayer = key - 49;
+                let radio = document.getElementById("layer " + this.selectedLayer);
+                radio.checked = true;
             }
         };
     }
@@ -191,7 +193,7 @@ export default class PixelPlugin
             }
             form.appendChild(radio);
 
-            var content = document.createTextNode("Layer " + layer.layerType);
+            var content = document.createTextNode("Layer " + (layer.layerType + 1));
             form.appendChild(content);
 
             var br = document.createElement("br");
@@ -213,9 +215,6 @@ export default class PixelPlugin
 
     createBrushSizeSelector()
     {
-        var content = document.createTextNode("Brush Size");
-        document.body.appendChild(content);
-
         var brushSizeSelector = document.createElement("input");
         brushSizeSelector.setAttribute("id", "brush size selector");
         brushSizeSelector.setAttribute("type", "range");
@@ -223,9 +222,6 @@ export default class PixelPlugin
         brushSizeSelector.setAttribute('min', 1);
         brushSizeSelector.setAttribute('value', 30);
         document.body.appendChild(brushSizeSelector);
-
-        var br = document.createElement("br");
-        document.body.appendChild(br);
     }
 
     destroyBrushSizeSelector()
