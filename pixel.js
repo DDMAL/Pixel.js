@@ -48,9 +48,7 @@ export default class PixelPlugin
         let handle = this.subscribeToEvent();
         this.core.getSettings().renderer._paint();  // Repaint the tiles to retrigger VisibleTilesDidLoad
         this.activated = true;
-        this.layers.forEach((layer) => {
-            this.createPluginElements(layer);
-        });
+        this.createPluginElements(this.layers);
 
         var canvas = document.getElementById("diva-1-outer");
 
@@ -146,12 +144,11 @@ export default class PixelPlugin
         Diva.Events.unsubscribe(this.handle);
         this.core.getSettings().renderer._paint(); // Repaint the tiles to make the highlights disappear off the page
         this.activated = false;
-        this.layers.forEach((layer) => {
-            this.destroyPluginElements(layer);
-        });
+        this.destroyPluginElements(this.layers);
     }
 
-    createPluginElements(layer)
+
+    createOpacitySlider(layer)
     {
         var x = document.createElement("input");
         x.setAttribute("id", "layer " + layer.layerType);
@@ -170,9 +167,23 @@ export default class PixelPlugin
         });
     }
 
-    destroyPluginElements(layer){
+    destroyOpacitySlider(layer)
+    {
         var rangeInput = document.getElementById("layer " + layer.layerType);
         document.body.removeChild(rangeInput);
+    }
+
+    createPluginElements(layers)
+    {
+        layers.forEach((layer) => {
+            this.createOpacitySlider(layer);
+        });
+    }
+
+    destroyPluginElements(layers){
+        layers.forEach((layer) => {
+            this.destroyOpacitySlider(layer);
+        });
     }
 
     subscribeToEvent(){
