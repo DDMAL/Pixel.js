@@ -26,16 +26,14 @@ export default class PixelPlugin
     // Takes an array of highlighted objects
     activatePlugin()
     {
-        //this.core.disableScrollable();
-
         if(this.layers === null){
             // Start by creating layers
             let layer1 = new Layer(0, 0.3);
             let layer2 = new Layer(1, 0.5);
             let layer3 = new Layer(2, 0.8);
-            layer1.addAreaToLayer(new HighlightArea(23, 42, 24, 24, 0));
-            layer2.addAreaToLayer(new HighlightArea(48, 50, 57, 5, 0));
-            layer3.addAreaToLayer(new HighlightArea(50, 120, 50, 10, 0));
+            layer1.addShapeToLayer(new Rectangle(23, 42, 24, 24, 0));
+            layer2.addShapeToLayer(new Rectangle(48, 50, 57, 5, 0));
+            layer3.addShapeToLayer(new Rectangle(50, 120, 50, 10, 0));
 
             this.layers = [layer1, layer2, layer3];
         }
@@ -65,7 +63,6 @@ export default class PixelPlugin
         };
     }
 
-
     // This will allow drawing on mouse hold
     handleMouseEvents()
     {
@@ -76,20 +73,13 @@ export default class PixelPlugin
             this.mousePressed = true;
             let pageIndex = this.core.getSettings().currentPageIndex;
             let zoomLevel = this.core.getSettings().zoomLevel;
-
-            var mousePos = this.getMousePos(canvas, evt);
-            var relativeCoords = this.getRelativeCoordinates(mousePos.x, mousePos.y);
+            let mousePos = this.getMousePos(canvas, evt);
+            let relativeCoords = this.getRelativeCoordinates(mousePos.x, mousePos.y);
 
             if (this.isInPageBounds(relativeCoords.x, relativeCoords.y))
             {
                 let point = new Point(relativeCoords.x, relativeCoords.y, pageIndex);
-
-
-                // FIXME: Create new path using the brush size from an element
                 let brushSizeSelector = document.getElementById("brush size selector");
-                console.log(brushSizeSelector.value/10);
-
-
                 this.layers[this.selectedLayer].createNewPath(brushSizeSelector.value/10);
                 this.layers[this.selectedLayer].addToCurrentPath(point);
                 let brushSize = this.layers[this.selectedLayer].getCurrentPath().brushSize;
@@ -170,7 +160,6 @@ export default class PixelPlugin
         document.body.appendChild(x);
 
         var rangeInput = document.getElementById("layer " + layer.layerType + " opacity");
-
         rangeInput.addEventListener("input", () =>
         {
             layer.opacity = rangeInput.value/100;
@@ -278,7 +267,6 @@ export default class PixelPlugin
     {
         let pageIndex = this.core.getSettings().currentPageIndex;
         let zoomLevel = this.core.getSettings().zoomLevel;
-
         let renderer = this.core.getSettings().renderer;
         let scaleRatio = Math.pow(2,zoomLevel);
 
@@ -322,7 +310,7 @@ export default class PixelPlugin
     }
 
 
-    drawHighlight(layer, highlighted, pageIndex, zoomLevel)
+    drawShape(layer, shape, pageIndex, zoomLevel)
     {
         let opacity = layer.opacity;
         let renderer = this.core.getSettings().renderer;
@@ -333,13 +321,13 @@ export default class PixelPlugin
 
         // The following absolute values are experimental values to highlight the square on the first page of Salzinnes, CDN-Hsmu M2149.L4
         // The relative values are used to scale the highlights according to the zoom level on the page itself
-        let absoluteRectOriginX = highlighted.relativeRectOriginX * scaleRatio;
-        let absoluteRectOriginY = highlighted.relativeRectOriginY * scaleRatio;
-        let absoluteRectWidth = highlighted.relativeRectWidth * scaleRatio;
-        let absoluteRectHeight = highlighted.relativeRectHeight * scaleRatio;
+        let absoluteRectOriginX = shape.relativeRectOriginX * scaleRatio;
+        let absoluteRectOriginY = shape.relativeRectOriginY * scaleRatio;
+        let absoluteRectWidth = shape.relativeRectWidth * scaleRatio;
+        let absoluteRectHeight = shape.relativeRectHeight * scaleRatio;
 
         // This indicates the page on top of which the highlights are supposed to be drawn
-        let highlightPageIndex = highlighted.pageIndex;
+        let highlightPageIndex = shape.pageIndex;
 
         if (pageIndex === highlightPageIndex)
         {
@@ -440,27 +428,24 @@ export default class PixelPlugin
         }
     }
 
-
-
     drawHighlights(args)
     {
-        var pageIndex = args[0],
+        let pageIndex = args[0],
             zoomLevel = args[1];
 
         this.layers.forEach((layer) => {
-            var highlights = layer.areas;
+            let shapes = layer.shapes;
 
-            highlights.forEach((highlighted) =>
+            shapes.forEach((shape) =>
                 {
-                    this.drawHighlight(layer, highlighted, pageIndex, zoomLevel);
+                    this.drawShape(layer, shape, pageIndex, zoomLevel);
                 }
             );
 
-
-            var paths = layer.paths;
+            let paths = layer.paths;
             paths.forEach((path) =>
                 {
-                    var isDown = false;
+                    let isDown = false;
                     path.points.forEach((point) =>
                     {
                         this.drawPath(layer, point, pageIndex, zoomLevel, path.brushSize, isDown);
@@ -496,7 +481,7 @@ export default class PixelPlugin
         {
             let pageIndex = this.core.getSettings().currentPageIndex,
                 maxZoomLevel = this.core.getSettings().maxZoomLevel;
-            var height = this.core.publicInstance.getPageDimensionsAtZoomLevel(pageIndex, maxZoomLevel).height,
+            let height = this.core.publicInstance.getPageDimensionsAtZoomLevel(pageIndex, maxZoomLevel).height,
                 width = this.core.publicInstance.getPageDimensionsAtZoomLevel(pageIndex, maxZoomLevel).width;
             this.matrix = new Array(width).fill(null).map(() => new Array(height).fill(0));
         }
@@ -551,7 +536,7 @@ export default class PixelPlugin
     }
 }
 
-export class HighlightArea
+export class Rectangle
 {
     constructor (relativeRectOriginX, relativeRectOriginY, relativeRectWidth, relativeRectHeight, pageIndex)
     {
@@ -593,13 +578,13 @@ export class Layer
     {
         this.layerType = layerType;
         this.opacity = opacity;
-        this.areas = [];
+        this.shapes = [];
         this.paths = [];
     }
 
-    addAreaToLayer(area)
+    addShapeToLayer(shape)
     {
-        this.areas.push(area);
+        this.shapes.push(shape);
     }
 
     addPathToLayer(path)
