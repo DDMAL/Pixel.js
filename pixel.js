@@ -37,7 +37,7 @@ export default class PixelPlugin
             // highlight5 = new HighlightArea(50, 120, 50, 10, 0),
             // highlight6 = new HighlightArea(30, 180, 60, 20, 0);
             let highlighted1 = [highlight1];
-            // highlighted2 = [highlight3, highlight4],
+            let highlighted2 = [highlight3, highlight4];
             // highlighted3 = [highlight5, highlight6];
             let layer1 = new Layer(0,0.3, highlighted1);
             let layer2 = new Layer(1,0.5, highlighted2);
@@ -62,7 +62,19 @@ export default class PixelPlugin
 
             var mousePos = this.getMousePos(canvas, evt);
             var relativeCoords = this.getRelativeCoordinates(mousePos.x, mousePos.y);
-            let point = new Point(relativeCoords.x, relativeCoords.y, pageIndex);
+
+            if (this.isInPageBounds(relativeCoords.x, relativeCoords.y))
+            {
+                let point = new Point(relativeCoords.x, relativeCoords.y, pageIndex);
+                this.layers[this.selectedLayer].createNewPath();
+                this.layers[this.selectedLayer].addToLastPath(point);
+                this.drawPath(this.layers[this.selectedLayer], point, pageIndex, zoomLevel, false);
+            }
+            else
+            {
+                this.mousePressed = false;
+            }
+
 
         });
 
@@ -83,17 +95,51 @@ export default class PixelPlugin
                 this.mousePressed = true;
                 let pageIndex = this.core.getSettings().currentPageIndex;
                 let zoomLevel = this.core.getSettings().zoomLevel;
-
                 var mousePos = this.getMousePos(canvas, evt);
                 var relativeCoords = this.getRelativeCoordinates(mousePos.x, mousePos.y);
 
+                if (this.isInPageBounds(relativeCoords.x, relativeCoords.y))
+                {
+                    let point = new Point(relativeCoords.x, relativeCoords.y, pageIndex);
+                    this.layers[this.selectedLayer].addToLastPath(point);
+                    this.drawPath(this.layers[this.selectedLayer], point, pageIndex, zoomLevel, true);
+                }
+                else
+                {
+                    this.mousePressed = false;
+                }
             }
         }, false);
 
+        window.onkeyup = (e) =>
+        {
+            var key = e.keyCode ? e.keyCode : e.which;
+            if (key === 49)
+            {
+                this.selectedLayer = 0;
+            }
+            else if (key === 50)
+            {
+                this.selectedLayer = 1;
+            }
         }
         return handle;
     }
 
+    isInPageBounds(relativeX, relativeY)
+    {
+        let pageDimensions = this.core.publicInstance.getCurrentPageDimensionsAtCurrentZoomLevel();
+        let absolutePageOrigin = this.getabsoluteCoordinates(0,0);
+        let absolutePageWidthOffset = pageDimensions.width + absolutePageOrigin.x;
+        let absolutePageHeightOffset = pageDimensions.height + absolutePageOrigin.y;
+        var relativeBounds = this.getRelativeCoordinates(absolutePageWidthOffset, absolutePageHeightOffset);
+
+        if(relativeX < 0 || relativeY < 0 || relativeX > relativeBounds.x || relativeY > relativeBounds.y)
+        {
+            return false;
+        }
+        return true;
+    }
 
     deactivatePlugin()
     {
@@ -166,6 +212,32 @@ export default class PixelPlugin
             y: absoluteRectOriginY/scaleRatio
         };
     }
+
+    getabsoluteCoordinates(relativeX, relativeY)
+    {
+        let pageIndex = this.core.getSettings().currentPageIndex;
+        let zoomLevel = this.core.getSettings().zoomLevel;
+
+        let renderer = this.core.getSettings().renderer;
+        let scaleRatio = Math.pow(2,zoomLevel);
+
+        const viewportPaddingX = Math.max(0, (renderer._viewport.width - renderer.layout.dimensions.width) / 2);
+        const viewportPaddingY = Math.max(0, (renderer._viewport.height - renderer.layout.dimensions.height) / 2);
+
+        let absoluteX = relativeX * scaleRatio;
+        let absoluteY = relativeY * scaleRatio;
+
+        // Calculates where the highlights should be drawn as a function of the whole webpage coordinates
+        // (to make it look like it is on top of a page in Diva)
+        let absoluteOffsetX = renderer._getImageOffset(pageIndex).left - renderer._viewport.left + viewportPaddingX + absoluteX;
+        let absoluteOffsetY = renderer._getImageOffset(pageIndex).top - renderer._viewport.top + viewportPaddingY + absoluteY;
+
+        return {
+            x: absoluteOffsetX,
+            y: absoluteOffsetY
+        };
+    }
+
 
     drawHighlight(layer, highlighted, pageIndex, zoomLevel)
     {
@@ -444,7 +516,7 @@ export class Layer
         }
     }
 
-    createNewPath(point)
+    createNewPath()
     {
         this.paths.push(new Path());
     }
