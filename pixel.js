@@ -218,9 +218,9 @@ export default class PixelPlugin
         var brushSizeSelector = document.createElement("input");
         brushSizeSelector.setAttribute("id", "brush size selector");
         brushSizeSelector.setAttribute("type", "range");
-        brushSizeSelector.setAttribute('max', 250);
+        brushSizeSelector.setAttribute('max', 20);
         brushSizeSelector.setAttribute('min', 1);
-        brushSizeSelector.setAttribute('value', 30);
+        brushSizeSelector.setAttribute('value', 10);
         document.body.appendChild(brushSizeSelector);
     }
 
@@ -415,7 +415,7 @@ export default class PixelPlugin
             {
                 renderer._ctx.beginPath();
                 renderer._ctx.strokeStyle = rgba;
-                renderer._ctx.lineWidth = brushSize;
+                renderer._ctx.lineWidth = brushSize * scaleRatio;
                 renderer._ctx.lineJoin = "round";
                 renderer._ctx.moveTo(this.lastX, this.lastY);
                 renderer._ctx.lineTo(highlightXOffset, highlightYOffset);
