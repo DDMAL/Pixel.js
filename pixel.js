@@ -26,30 +26,49 @@ export default class PixelPlugin
     // Takes an array of highlighted objects
     activatePlugin()
     {
-        this.core.disableScrollable();
+        //this.core.disableScrollable();
         
         if(this.layers === null){
-            // Create the array of highlights to pass to drawHighlights function
-            let highlight1 = new HighlightArea(23, 42, 24, 24, 0);
-            // highlight2 = new HighlightArea(48, 50, 57, 5, 0),
-            let highlight3 = new HighlightArea(75, 80, 30, 10, 0),
-                highlight4 = new HighlightArea(21, 77, 12, 13.5, 0);
-            // highlight5 = new HighlightArea(50, 120, 50, 10, 0),
-            // highlight6 = new HighlightArea(30, 180, 60, 20, 0);
-            let highlighted1 = [highlight1];
-            let highlighted2 = [highlight3, highlight4];
-            // highlighted3 = [highlight5, highlight6];
-            let layer1 = new Layer(0,0.3, highlighted1);
-            let layer2 = new Layer(1,0.5, highlighted2);
-            // layer3 = new Layer(2,0.3, highlighted3);
-            this.layers = [layer1, layer2];
+            // Start by creating layers
+            let layer1 = new Layer(0, 0.3);
+            let layer2 = new Layer(1, 0.5);
+            let layer3 = new Layer(2, 0.8);
+            layer1.addAreaToLayer(new HighlightArea(23, 42, 24, 24, 0));
+            layer2.addAreaToLayer(new HighlightArea(48, 50, 57, 5, 0));
+            layer3.addAreaToLayer(new HighlightArea(50, 120, 50, 10, 0));
+
+            this.layers = [layer1, layer2, layer3];
         }
 
         let handle = this.subscribeToEvent();
         this.core.getSettings().renderer._paint();  // Repaint the tiles to retrigger VisibleTilesDidLoad
         this.activated = true;
         this.createPluginElements(this.layers);
+        this.handleMouseEvents();
+        this.handleKeyboardEvents();
+        return handle;
+    }
 
+    handleKeyboardEvents()
+    {
+        window.onkeyup = (e) =>
+        {
+            let key = e.keyCode ? e.keyCode : e.which;
+            if (key === 49)
+            {
+                this.selectedLayer = 0;
+            }
+            else if (key === 50)
+            {
+                this.selectedLayer = 1;
+            }
+        };
+    }
+
+
+    // This will allow drawing on mouse hold
+    handleMouseEvents()
+    {
         var canvas = document.getElementById("diva-1-outer");
 
         canvas.addEventListener('mousedown', (evt) =>
@@ -72,8 +91,6 @@ export default class PixelPlugin
             {
                 this.mousePressed = false;
             }
-
-
         });
 
         canvas.addEventListener('mouseup', (evt) =>
@@ -93,8 +110,8 @@ export default class PixelPlugin
                 this.mousePressed = true;
                 let pageIndex = this.core.getSettings().currentPageIndex;
                 let zoomLevel = this.core.getSettings().zoomLevel;
-                var mousePos = this.getMousePos(canvas, evt);
-                var relativeCoords = this.getRelativeCoordinates(mousePos.x, mousePos.y);
+                let mousePos = this.getMousePos(canvas, evt);
+                let relativeCoords = this.getRelativeCoordinates(mousePos.x, mousePos.y);
 
                 if (this.isInPageBounds(relativeCoords.x, relativeCoords.y))
                 {
@@ -108,27 +125,13 @@ export default class PixelPlugin
                 }
             }
         }, false);
-
-        window.onkeyup = (e) =>
-        {
-            var key = e.keyCode ? e.keyCode : e.which;
-            if (key === 49)
-            {
-                this.selectedLayer = 0;
-            }
-            else if (key === 50)
-            {
-                this.selectedLayer = 1;
-            }
-        }
-        return handle;
     }
 
     isInPageBounds(relativeX, relativeY)
     {
         let pageDimensions = this.core.publicInstance.getCurrentPageDimensionsAtCurrentZoomLevel();
         let absolutePageOrigin = this.getabsoluteCoordinates(0,0);
-        let absolutePageWidthOffset = pageDimensions.width + absolutePageOrigin.x;
+        let absolutePageWidthOffset = pageDimensions.width + absolutePageOrigin.x;  //Taking into account the padding, etc...
         let absolutePageHeightOffset = pageDimensions.height + absolutePageOrigin.y;
         var relativeBounds = this.getRelativeCoordinates(absolutePageWidthOffset, absolutePageHeightOffset);
 
@@ -147,18 +150,17 @@ export default class PixelPlugin
         this.destroyPluginElements(this.layers);
     }
 
-
     createOpacitySlider(layer)
     {
         var x = document.createElement("input");
-        x.setAttribute("id", "layer " + layer.layerType);
+        x.setAttribute("id", "layer " + layer.layerType + " opacity");
         x.setAttribute("type", "range");
         x.setAttribute('max', 100);
         x.setAttribute('min', 0);
         x.setAttribute('value', layer.opacity*100);
         document.body.appendChild(x);
 
-        var rangeInput = document.getElementById("layer " + layer.layerType);
+        var rangeInput = document.getElementById("layer " + layer.layerType + " opacity");
 
         rangeInput.addEventListener("input", () =>
         {
@@ -169,18 +171,54 @@ export default class PixelPlugin
 
     destroyOpacitySlider(layer)
     {
-        var rangeInput = document.getElementById("layer " + layer.layerType);
+        var rangeInput = document.getElementById("layer " + layer.layerType + " opacity");
         document.body.removeChild(rangeInput);
+    }
+
+    createLayerSelectors(layers){
+        var form = document.createElement("form");
+        form.setAttribute("id", "layer selector");
+        form.setAttribute("action", "");
+
+        layers.forEach((layer) =>
+        {
+            var radio = document.createElement("input");
+            radio.setAttribute("id", "layer " + layer.layerType);
+            radio.setAttribute("type", "radio");
+            radio.setAttribute("value", layer.layerType);
+            radio.setAttribute("name", "layer selector");
+            var content = document.createTextNode("Layer " + layer.layerType);
+
+            form.appendChild(radio);
+            form.appendChild(content);
+
+            var br = document.createElement("br");
+            form.appendChild(br);
+
+            radio.onclick = () =>
+            {
+                this.selectedLayer = radio.value;
+            };
+        });
+        document.body.appendChild(form);
+    }
+
+    destroyLayerSelectors()
+    {
+        var form = document.getElementById("layer selector");
+        document.body.removeChild(form);
     }
 
     createPluginElements(layers)
     {
+        this.createLayerSelectors(layers);
         layers.forEach((layer) => {
             this.createOpacitySlider(layer);
         });
     }
 
     destroyPluginElements(layers){
+        this.destroyLayerSelectors();
         layers.forEach((layer) => {
             this.destroyOpacitySlider(layer);
         });
@@ -386,10 +424,10 @@ export default class PixelPlugin
 
 
             var paths = layer.paths;
-            paths.forEach((group) =>
+            paths.forEach((path) =>
                 {
                     var isDown = false;
-                    group.path.forEach((point) =>
+                    path.points.forEach((point) =>
                     {
                         this.drawPath(layer, point, pageIndex, zoomLevel, isDown);
                         isDown = true;
@@ -479,12 +517,12 @@ export class Path
 {
     constructor ()
     {
-        this.path = [];
+        this.points = [];
     }
 
     addPointToPath(point)
     {
-        this.path.push(point);
+        this.points.push(point);
     }
 }
 
@@ -500,11 +538,11 @@ export class Point
 
 export class Layer
 {
-    constructor (layerType, opacity, areas)
+    constructor (layerType, opacity)
     {
         this.layerType = layerType;
         this.opacity = opacity;
-        this.areas = areas;
+        this.areas = [];
         this.paths = [];
     }
 
