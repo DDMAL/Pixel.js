@@ -185,9 +185,13 @@ export default class PixelPlugin
             radio.setAttribute("type", "radio");
             radio.setAttribute("value", layer.layerType);
             radio.setAttribute("name", "layer selector");
-            var content = document.createTextNode("Layer " + layer.layerType);
-
+            if (layer.layerType === 0)
+            {
+                radio.checked = true;
+            }
             form.appendChild(radio);
+
+            var content = document.createTextNode("Layer " + layer.layerType);
             form.appendChild(content);
 
             var br = document.createElement("br");
