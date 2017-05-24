@@ -27,7 +27,7 @@ export default class PixelPlugin
     activatePlugin()
     {
         //this.core.disableScrollable();
-        
+
         if(this.layers === null){
             // Start by creating layers
             let layer1 = new Layer(0, 0.3);
@@ -479,7 +479,7 @@ export default class PixelPlugin
         if (!this.activated)
         {
             this.handle = this.activatePlugin();
-            this.intializeMatrix();
+            this.initializeMatrix();
         }
         else
         {
@@ -490,17 +490,33 @@ export default class PixelPlugin
     /**
      * Initializes the base matrix that maps the real-size picture
      **/
-    intializeMatrix()
+    initializeMatrix()
     {
         if (this.matrix === null)
         {
-            let pageIndex = this.core.getSettings().currentPageIndex;
-            let maxZoomLevel = this.core.getSettings().maxZoomLevel;
+            let pageIndex = this.core.getSettings().currentPageIndex,
+                maxZoomLevel = this.core.getSettings().maxZoomLevel;
             var height = this.core.publicInstance.getPageDimensionsAtZoomLevel(pageIndex, maxZoomLevel).height,
                 width = this.core.publicInstance.getPageDimensionsAtZoomLevel(pageIndex, maxZoomLevel).width;
-
             this.matrix = new Array(width).fill(null).map(() => new Array(height).fill(0));
         }
+    }
+
+    /**
+     * Fills the base matrix with type data outlined by the layer drawings
+     * @param path object containing points
+     * @param layer The targeted layer containing the pixels to map
+     */
+    fillMatrix(path, layer)
+    {
+        let maxZoomLevel = this.core.getSettings().maxZoomLevel;
+        var scaleRatio = Math.pow(2, maxZoomLevel);
+        path.points.forEach((point) =>
+        {
+            let absoluteOriginX = point.relativeRectOriginX * scaleRatio,
+                absoluteOriginY = point.relativeRectOriginY * scaleRatio;
+            this.matrix[absoluteOriginX][absoluteOriginY] = layer.layerType;
+        });
     }
 
     createIcon ()
