@@ -19,6 +19,7 @@ export default class PixelPlugin
         this.matrix = null;
         this.mousePressed = false;
         this.lastX, this.lastY;
+        this.selectedLayer = 0;
     }
 
     // Subscribes to VisibleTilesDidLoad event to start drawing highlights.
@@ -31,17 +32,17 @@ export default class PixelPlugin
             // Create the array of highlights to pass to drawHighlights function
             let highlight1 = new HighlightArea(23, 42, 24, 24, 0);
             // highlight2 = new HighlightArea(48, 50, 57, 5, 0),
-            // highlight3 = new HighlightArea(75, 80, 30, 10, 0),
-            // highlight4 = new HighlightArea(21, 77, 12, 13.5, 0),
+            let highlight3 = new HighlightArea(75, 80, 30, 10, 0),
+                highlight4 = new HighlightArea(21, 77, 12, 13.5, 0);
             // highlight5 = new HighlightArea(50, 120, 50, 10, 0),
             // highlight6 = new HighlightArea(30, 180, 60, 20, 0);
             let highlighted1 = [highlight1];
             // highlighted2 = [highlight3, highlight4],
             // highlighted3 = [highlight5, highlight6];
             let layer1 = new Layer(0,0.3, highlighted1);
-            // layer2 = new Layer(1,0.5, highlighted2),
+            let layer2 = new Layer(1,0.5, highlighted2);
             // layer3 = new Layer(2,0.3, highlighted3);
-            this.layers = [layer1];
+            this.layers = [layer1, layer2];
         }
 
         let handle = this.subscribeToEvent();
@@ -62,9 +63,7 @@ export default class PixelPlugin
             var mousePos = this.getMousePos(canvas, evt);
             var relativeCoords = this.getRelativeCoordinates(mousePos.x, mousePos.y);
             let point = new Point(relativeCoords.x, relativeCoords.y, pageIndex);
-            this.layers[0].createNewPath(point);
 
-            this.drawPath(this.layers[0], point, pageIndex, zoomLevel, false);
         });
 
         canvas.addEventListener('mouseup', (evt) =>
@@ -87,13 +86,11 @@ export default class PixelPlugin
 
                 var mousePos = this.getMousePos(canvas, evt);
                 var relativeCoords = this.getRelativeCoordinates(mousePos.x, mousePos.y);
-                let point = new Point(relativeCoords.x, relativeCoords.y, pageIndex);
-                this.layers[0].addToLastPath(point);
 
-                this.drawPath(this.layers[0], point, pageIndex, zoomLevel, true);
             }
         }, false);
 
+        }
         return handle;
     }
 
