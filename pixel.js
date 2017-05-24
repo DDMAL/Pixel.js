@@ -83,9 +83,17 @@ export default class PixelPlugin
             if (this.isInPageBounds(relativeCoords.x, relativeCoords.y))
             {
                 let point = new Point(relativeCoords.x, relativeCoords.y, pageIndex);
-                this.layers[this.selectedLayer].createNewPath();
-                this.layers[this.selectedLayer].addToLastPath(point);
-                this.drawPath(this.layers[this.selectedLayer], point, pageIndex, zoomLevel, false);
+
+
+                // FIXME: Create new path using the brush size from an element
+                let brushSizeSelector = document.getElementById("brush size selector");
+                console.log(brushSizeSelector.value/10);
+
+
+                this.layers[this.selectedLayer].createNewPath(brushSizeSelector.value/10);
+                this.layers[this.selectedLayer].addToCurrentPath(point);
+                let brushSize = this.layers[this.selectedLayer].getCurrentPath().brushSize;
+                this.drawPath(this.layers[this.selectedLayer], point, pageIndex, zoomLevel, brushSize, false);
             }
             else
             {
@@ -116,8 +124,9 @@ export default class PixelPlugin
                 if (this.isInPageBounds(relativeCoords.x, relativeCoords.y))
                 {
                     let point = new Point(relativeCoords.x, relativeCoords.y, pageIndex);
-                    this.layers[this.selectedLayer].addToLastPath(point);
-                    this.drawPath(this.layers[this.selectedLayer], point, pageIndex, zoomLevel, true);
+                    this.layers[this.selectedLayer].addToCurrentPath(point);
+                    let brushSize = this.layers[this.selectedLayer].getCurrentPath().brushSize;
+                    this.drawPath(this.layers[this.selectedLayer], point, pageIndex, zoomLevel, brushSize, true);
                 }
                 else
                 {
@@ -130,7 +139,7 @@ export default class PixelPlugin
     isInPageBounds(relativeX, relativeY)
     {
         let pageDimensions = this.core.publicInstance.getCurrentPageDimensionsAtCurrentZoomLevel();
-        let absolutePageOrigin = this.getabsoluteCoordinates(0,0);
+        let absolutePageOrigin = this.getAbsoluteCoordinates(0,0);
         let absolutePageWidthOffset = pageDimensions.width + absolutePageOrigin.x;  //Taking into account the padding, etc...
         let absolutePageHeightOffset = pageDimensions.height + absolutePageOrigin.y;
         var relativeBounds = this.getRelativeCoordinates(absolutePageWidthOffset, absolutePageHeightOffset);
@@ -209,9 +218,33 @@ export default class PixelPlugin
         document.body.removeChild(form);
     }
 
+    createBrushSizeSelector()
+    {
+        var content = document.createTextNode("Brush Size");
+        document.body.appendChild(content);
+
+        var brushSizeSelector = document.createElement("input");
+        brushSizeSelector.setAttribute("id", "brush size selector");
+        brushSizeSelector.setAttribute("type", "range");
+        brushSizeSelector.setAttribute('max', 250);
+        brushSizeSelector.setAttribute('min', 1);
+        brushSizeSelector.setAttribute('value', 30);
+        document.body.appendChild(brushSizeSelector);
+
+        var br = document.createElement("br");
+        document.body.appendChild(br);
+    }
+
+    destroyBrushSizeSelector()
+    {
+        var brushSizeSelector = document.getElementById("brush size selector");
+        document.body.removeChild(brushSizeSelector);
+    }
+
     createPluginElements(layers)
     {
         this.createLayerSelectors(layers);
+        this.createBrushSizeSelector();
         layers.forEach((layer) => {
             this.createOpacitySlider(layer);
         });
@@ -219,6 +252,7 @@ export default class PixelPlugin
 
     destroyPluginElements(layers){
         this.destroyLayerSelectors();
+        this.destroyBrushSizeSelector();
         layers.forEach((layer) => {
             this.destroyOpacitySlider(layer);
         });
@@ -262,7 +296,7 @@ export default class PixelPlugin
         };
     }
 
-    getabsoluteCoordinates(relativeX, relativeY)
+    getAbsoluteCoordinates(relativeX, relativeY)
     {
         let pageIndex = this.core.getSettings().currentPageIndex;
         let zoomLevel = this.core.getSettings().zoomLevel;
@@ -342,7 +376,7 @@ export default class PixelPlugin
         }
     }
 
-    drawPath(layer, point, pageIndex, zoomLevel, isDown)
+    drawPath(layer, point, pageIndex, zoomLevel, brushSize, isDown)
     {
         let opacity = layer.opacity;
         let renderer = this.core.getSettings().renderer;
@@ -393,7 +427,7 @@ export default class PixelPlugin
             {
                 renderer._ctx.beginPath();
                 renderer._ctx.strokeStyle = rgba;
-                renderer._ctx.lineWidth = 3;
+                renderer._ctx.lineWidth = brushSize;
                 renderer._ctx.lineJoin = "round";
                 renderer._ctx.moveTo(this.lastX, this.lastY);
                 renderer._ctx.lineTo(highlightXOffset, highlightYOffset);
@@ -429,7 +463,7 @@ export default class PixelPlugin
                     var isDown = false;
                     path.points.forEach((point) =>
                     {
-                        this.drawPath(layer, point, pageIndex, zoomLevel, isDown);
+                        this.drawPath(layer, point, pageIndex, zoomLevel, path.brushSize, isDown);
                         isDown = true;
                     });
                 }
@@ -515,9 +549,10 @@ export class HighlightArea
 
 export class Path
 {
-    constructor ()
+    constructor (brushSize)
     {
         this.points = [];
+        this.brushSize = brushSize;
     }
 
     addPointToPath(point)
@@ -556,7 +591,7 @@ export class Layer
         this.paths.push(path);
     }
 
-    addToLastPath(point)
+    addToCurrentPath(point)
     {
         // FIXME: Need to check that the list of paths is not empty
         if (this.paths !== null)
@@ -565,9 +600,14 @@ export class Layer
         }
     }
 
-    createNewPath()
+    getCurrentPath()
     {
-        this.paths.push(new Path());
+        return this.paths[this.paths.length - 1];
+    }
+
+    createNewPath(brushSize)
+    {
+        this.paths.push(new Path(brushSize));
     }
 }
 
