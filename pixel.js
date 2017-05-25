@@ -97,7 +97,7 @@ export default class PixelPlugin
         let canvas = document.getElementById("diva-1-outer");
 
         this.boundInitializeNewPath = (evt) => { this.initializeNewPath(canvas, evt); };
-        this.disableMousePressed = () => { this.mousePressed = false; };
+        this.disableMousePressed = () => { this.endPath() };
         this.setupPainting = (evt) => { this.setupPointPainting(canvas, evt); };
 
         canvas.addEventListener('mousedown', this.boundInitializeNewPath);
@@ -310,8 +310,6 @@ export default class PixelPlugin
             selectedLayer.addToCurrentPath(point);
 
             this.actions.push(new Action(selectedLayer.getCurrentPath(), selectedLayer));
-            console.log(this.actions);
-
             this.drawPath(selectedLayer, point, pageIndex, zoomLevel, brushSize, false);
         }
         else
@@ -357,6 +355,12 @@ export default class PixelPlugin
             this.actions.splice(this.actions.length-1);
             this.repaint();
         }
+    }
+
+    endPath ()
+    {
+        this.mousePressed = false;
+        this.repaint();
     }
 
     repaint()
@@ -742,8 +746,6 @@ export class Layer
     {
         let index = this.paths.indexOf(path);
         this.paths.splice(index, 1);
-
-        console.log(this.paths);
     }
 }
 
