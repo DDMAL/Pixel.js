@@ -146,7 +146,22 @@ export default class PixelPlugin
                 this.shiftDown = false;
             }
         };
+
+
+        let handleKeyDown = (e) =>
+        {
+            if (e.code === "KeyZ" && e.shiftKey === false)
+            {
+                this.undoFunction();
+            }
+            else if (e.code === "KeyZ" && e.shiftKey === true)
+            {
+                this.redoFunction();
+            }
+        }
+
         document.addEventListener("keyup", handle);
+        document.addEventListener("keydown", handleKeyDown);
 
         return handle;
     }
@@ -269,19 +284,11 @@ export default class PixelPlugin
         let undoButton = document.createElement("button");
         let text = document.createTextNode("Undo");
 
-        this.undoFunction = () => {
-
-            if (this.actions.length > 0)
-            {
-                let actionToRemove = this.actions[this.actions.length - 1];
-                this.undoneActions.push(actionToRemove);
-                this.removeAction(this.actions.length - 1);
-            }
-        };
+        this.undo = () => { this.undoFunction(); };
 
         undoButton.setAttribute("id", "undo button");
         undoButton.appendChild(text);
-        undoButton.addEventListener("click", this.undoFunction);
+        undoButton.addEventListener("click", this.undo);
 
         document.body.appendChild(undoButton);
     }
@@ -301,22 +308,12 @@ export default class PixelPlugin
         let text = document.createTextNode("Redo");
         let br = document.createElement("br");
 
-        this.redoFunction = () => {
-            if (this.undoneActions.length > 0)
-            {
-                let actionToRedo = this.undoneActions[this.undoneActions.length - 1];
-
-                actionToRedo.layer.addPathToLayer(actionToRedo.path);
-                this.actions.push(actionToRedo);
-                this.undoneActions.splice(this.undoneActions.length - 1,1);
-                this.repaint();
-            }
-        };
+        this.redo = () => { this.redoFunction(); };
 
         br.setAttribute("id", "redo button break");
         redoButton.setAttribute("id", "redo button");
         redoButton.appendChild(text);
-        redoButton.addEventListener("click", this.redoFunction);
+        redoButton.addEventListener("click", this.redo);
 
         document.body.appendChild(redoButton);
         document.body.appendChild(br);
@@ -380,6 +377,30 @@ export default class PixelPlugin
                     this.drawPath(this.layers[this.selectedLayer], point, pageIndex, zoomLevel, brushSize, true);
                 }
             }
+        }
+    }
+
+    redoFunction ()
+    {
+        if (this.undoneActions.length > 0)
+        {
+            let actionToRedo = this.undoneActions[this.undoneActions.length - 1];
+
+            actionToRedo.layer.addPathToLayer(actionToRedo.path);
+            this.actions.push(actionToRedo);
+            this.undoneActions.splice(this.undoneActions.length - 1,1);
+            this.repaint();
+        }
+    }
+
+
+    undoFunction ()
+    {
+        if (this.actions.length > 0)
+        {
+            let actionToRemove = this.actions[this.actions.length - 1];
+            this.undoneActions.push(actionToRemove);
+            this.removeAction(this.actions.length - 1);
         }
     }
 
