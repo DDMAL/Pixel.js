@@ -265,7 +265,7 @@ export default class PixelPlugin
         let text = document.createTextNode("Undo");
         let br = document.createElement("br");
 
-        this.undoFunction = () => { this.removeAction(1); };
+        this.undoFunction = () => { this.removeAction(this.actions.length - 1); };
 
         br.setAttribute("id", "undo button break");
         undoButton.setAttribute("id", "undo button");
