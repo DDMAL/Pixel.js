@@ -42,7 +42,8 @@ export default class PixelPlugin
 
     activatePlugin()
     {
-        if(this.layers === null){
+        if(this.layers === null)
+        {
             // Start by creating layers
             let layer1 = new Layer(0, 0.3);
             let layer2 = new Layer(1, 0.5);
@@ -253,6 +254,33 @@ export default class PixelPlugin
      * ===============================================
      **/
 
+    initializeNewPath(canvas, evt)
+    {
+        this.mousePressed = true;
+
+        let pageIndex = this.core.getSettings().currentPageIndex;
+        let zoomLevel = this.core.getSettings().zoomLevel;
+        let mousePos = this.getMousePos(canvas, evt);
+        let relativeCoords = this.getRelativeCoordinates(mousePos.x, mousePos.y);
+
+        if (this.isInPageBounds(relativeCoords.x, relativeCoords.y))
+        {
+            let selectedLayer = this.layers[this.selectedLayer];
+            let point = new Point(relativeCoords.x, relativeCoords.y, pageIndex);
+            let brushSize = document.getElementById("brush size selector").value/10;
+
+            selectedLayer.createNewPath(brushSize);
+            selectedLayer.addToCurrentPath(point);
+
+            this.actions.push(new Action(selectedLayer.getCurrentPath(), selectedLayer));
+            this.drawPath(selectedLayer, point, pageIndex, zoomLevel, brushSize, false);
+        }
+        else
+        {
+            this.mousePressed = false;
+        }
+    }
+
     setupPointPainting (canvas, evt)
     {
         if (this.mousePressed)
@@ -281,33 +309,6 @@ export default class PixelPlugin
         }
     }
 
-    initializeNewPath(canvas, evt)
-    {
-        this.mousePressed = true;
-
-        let pageIndex = this.core.getSettings().currentPageIndex;
-        let zoomLevel = this.core.getSettings().zoomLevel;
-        let mousePos = this.getMousePos(canvas, evt);
-        let relativeCoords = this.getRelativeCoordinates(mousePos.x, mousePos.y);
-
-        if (this.isInPageBounds(relativeCoords.x, relativeCoords.y))
-        {
-            let selectedLayer = this.layers[this.selectedLayer];
-            let point = new Point(relativeCoords.x, relativeCoords.y, pageIndex);
-            let brushSize = document.getElementById("brush size selector").value/10;
-
-            selectedLayer.createNewPath(brushSize);
-            selectedLayer.addToCurrentPath(point);
-
-            this.actions.push(new Action(selectedLayer.getCurrentPath(), selectedLayer));
-            this.drawPath(selectedLayer, point, pageIndex, zoomLevel, brushSize, false);
-        }
-        else
-        {
-            this.mousePressed = false;
-        }
-    }
-
     isInPageBounds(relativeX, relativeY)
     {
         let pageDimensions = this.core.publicInstance.getCurrentPageDimensionsAtCurrentZoomLevel();
@@ -316,7 +317,7 @@ export default class PixelPlugin
         let absolutePageHeightOffset = pageDimensions.height + absolutePageOrigin.y;
         var relativeBounds = this.getRelativeCoordinates(absolutePageWidthOffset, absolutePageHeightOffset);
 
-        if(relativeX < 0 || relativeY < 0 || relativeX > relativeBounds.x || relativeY > relativeBounds.y)
+        if (relativeX < 0 || relativeY < 0 || relativeX > relativeBounds.x || relativeY > relativeBounds.y)
         {
             return false;
         }
@@ -324,7 +325,8 @@ export default class PixelPlugin
         return true;
     }
 
-    getMousePos(canvas, evt) {
+    getMousePos(canvas, evt)
+    {
         var rect = canvas.getBoundingClientRect();
 
         return {
@@ -348,7 +350,7 @@ export default class PixelPlugin
         let absoluteRectOriginX = highlightXOffset - renderer._getImageOffset(pageIndex).left + renderer._viewport.left -  viewportPaddingX;
         let absoluteRectOriginY = highlightYOffset - renderer._getImageOffset(pageIndex).top + renderer._viewport.top - viewportPaddingY;
 
-        return {
+        return{
             x: absoluteRectOriginX/scaleRatio,
             y: absoluteRectOriginY/scaleRatio
         };
@@ -373,12 +375,11 @@ export default class PixelPlugin
         let absoluteOffsetX = renderer._getImageOffset(pageIndex).left - renderer._viewport.left + viewportPaddingX + absoluteX;
         let absoluteOffsetY = renderer._getImageOffset(pageIndex).top - renderer._viewport.top + viewportPaddingY + absoluteY;
 
-        return {
+        return{
             x: absoluteOffsetX,
             y: absoluteOffsetY
         };
     }
-
 
     drawShape(layer, shape, pageIndex, zoomLevel)
     {
