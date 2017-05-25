@@ -20,6 +20,7 @@ export default class PixelPlugin
         this.mousePressed = false;
         this.lastX, this.lastY;
         this.selectedLayer = 0;
+        this.actions = [];
     }
 
     // Subscribes to VisibleTilesDidLoad event to start drawing highlights.
@@ -85,6 +86,9 @@ export default class PixelPlugin
                 this.layers[this.selectedLayer].createNewPath(brushSizeSelector.value/10);
                 this.layers[this.selectedLayer].addToCurrentPath(point);
                 let brushSize = this.layers[this.selectedLayer].getCurrentPath().brushSize;
+
+                this.actions.push(new Action(this.layers[this.selectedLayer].getCurrentPath(), this.layers[this.selectedLayer]));
+
                 this.drawPath(this.layers[this.selectedLayer], point, pageIndex, zoomLevel, brushSize, false);
             }
             else
@@ -218,7 +222,7 @@ export default class PixelPlugin
         var brushSizeSelector = document.createElement("input");
         brushSizeSelector.setAttribute("id", "brush size selector");
         brushSizeSelector.setAttribute("type", "range");
-        brushSizeSelector.setAttribute('max', 20);
+        brushSizeSelector.setAttribute('max', 50);
         brushSizeSelector.setAttribute('min', 1);
         brushSizeSelector.setAttribute('value', 10);
         document.body.appendChild(brushSizeSelector);
@@ -572,6 +576,15 @@ export class Point
     }
 }
 
+export class Action
+{
+    constructor (path, layer)
+    {
+        this.path = path;
+        this.layer = layer;
+    }
+}
+
 export class Layer
 {
     constructor (layerType, opacity)
@@ -594,11 +607,12 @@ export class Layer
 
     addToCurrentPath(point)
     {
-        // FIXME: Need to check that the list of paths is not empty
-        if (this.paths !== null)
+        if (this.paths.length === 0)
         {
-            this.paths[this.paths.length - 1].addPointToPath(point);
+            let brushSizeSelector = document.getElementById("brush size selector");
+            this.createNewPath(brushSizeSelector.value/10);
         }
+        this.paths[this.paths.length - 1].addPointToPath(point);
     }
 
     getCurrentPath()
