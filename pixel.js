@@ -129,7 +129,7 @@ export default class PixelPlugin
                 this.selectedLayer = key - key1;
                 document.getElementById("layer " + this.selectedLayer).checked = true;
 
-                if (lastLayer !== this.selectedLayer)
+                if (lastLayer !== this.selectedLayer && this.mousePressed)
                     this.keyboardChangingLayers = true;
             }
 
