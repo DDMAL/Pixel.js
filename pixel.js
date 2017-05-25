@@ -46,8 +46,8 @@ export default class PixelPlugin
         if(this.layers === null)
         {
             // Start by creating layers
-            let layer1 = new Layer(0, 0.3);
-            let layer2 = new Layer(1, 0.5);
+            let layer1 = new Layer(0, 0.8);
+            let layer2 = new Layer(1, 0.8);
             let layer3 = new Layer(2, 0.8);
             let layer4 = new Layer(3, 0.8);
             let layer5 = new Layer(4, 0.8);
@@ -63,7 +63,7 @@ export default class PixelPlugin
         this.mouseHandles = this.subscribeToMouseEvents();
         this.keyboardHandles = this.subscribeToKeyboardEvents();
         this.createPluginElements(this.layers);
-        this.core.getSettings().renderer._paint();  // Repaint the tiles to retrigger VisibleTilesDidLoad
+        this.repaint();  // Repaint the tiles to retrigger VisibleTilesDidLoad
         this.activated = true;
     }
 
@@ -72,7 +72,7 @@ export default class PixelPlugin
         Diva.Events.unsubscribe(this.visibleTilesHandle);
         this.unsubscribeFromMouseEvents();
         this.unsubscribeFromKeyboardEvents();
-        this.core.getSettings().renderer._paint(); // Repaint the tiles to make the highlights disappear off the page
+        this.repaint(); // Repaint the tiles to make the highlights disappear off the page
         this.destroyPluginElements(this.layers);
         this.activated = false;
     }
@@ -170,23 +170,19 @@ export default class PixelPlugin
 
     createPluginElements(layers)
     {
+        this.createUndoButton();
         this.createLayerSelectors(layers);
         this.createBrushSizeSelector();
-        layers.forEach((layer) => {
-            this.createOpacitySlider(layer);
-        });
     }
 
     destroyPluginElements(layers)
     {
         this.destroyLayerSelectors();
         this.destroyBrushSizeSelector();
-        layers.forEach((layer) => {
-            this.destroyOpacitySlider(layer);
-        });
+        this.destroyUndoButton();
     }
 
-    createOpacitySlider(layer)
+    createOpacitySlider(layer, parentElement)
     {
         var opacitySlider = document.createElement("input");
 
@@ -198,10 +194,10 @@ export default class PixelPlugin
         opacitySlider.addEventListener("input", () =>
         {
             layer.opacity = opacitySlider.value/100;
-            this.core.getSettings().renderer._paint();
+            this.repaint();
         });
 
-        document.body.appendChild(opacitySlider);
+        parentElement.appendChild(opacitySlider);
     }
 
     destroyOpacitySlider(layer)
@@ -234,6 +230,7 @@ export default class PixelPlugin
 
             form.appendChild(radio);
             form.appendChild(content);
+            this.createOpacitySlider(layer, form);
             form.appendChild(br);
         });
         document.body.appendChild(form);
@@ -262,6 +259,32 @@ export default class PixelPlugin
         document.body.removeChild(brushSizeSelector);
     }
 
+    createUndoButton()
+    {
+        let undoButton = document.createElement("button");
+        let text = document.createTextNode("Undo");
+        let br = document.createElement("br");
+
+        this.undoFunction = () => { this.handleUndo(); };
+
+        br.setAttribute("id", "undo button break");
+        undoButton.setAttribute("id", "undo button");
+        undoButton.appendChild(text);
+        undoButton.addEventListener("click", this.undoFunction);
+
+        document.body.appendChild(undoButton);
+        document.body.appendChild(br);
+    }
+
+    destroyUndoButton()
+    {
+        let undoButton = document.getElementById("undo button");
+        document.body.removeChild(undoButton);
+
+        let br = document.getElementById("undo button break");
+        document.body.removeChild(br);
+    }
+
     /**
      * ===============================================
      *                   Drawing
@@ -287,6 +310,8 @@ export default class PixelPlugin
             selectedLayer.addToCurrentPath(point);
 
             this.actions.push(new Action(selectedLayer.getCurrentPath(), selectedLayer));
+            console.log(this.actions);
+
             this.drawPath(selectedLayer, point, pageIndex, zoomLevel, brushSize, false);
         }
         else
@@ -323,13 +348,29 @@ export default class PixelPlugin
         }
     }
 
+    handleUndo ()
+    {
+        if(this.actions.length > 0)
+        {
+            let lastAction = this.actions[this.actions.length - 1];
+            lastAction.layer.removePathFromLayer(lastAction.path);
+            this.actions.splice(this.actions.length-1);
+            this.repaint();
+        }
+    }
+
+    repaint()
+    {
+        this.core.getSettings().renderer._paint();
+    }
+
     isInPageBounds(relativeX, relativeY)
     {
         let pageDimensions = this.core.publicInstance.getCurrentPageDimensionsAtCurrentZoomLevel();
         let absolutePageOrigin = this.getAbsoluteCoordinates(0,0);
         let absolutePageWidthOffset = pageDimensions.width + absolutePageOrigin.x;  //Taking into account the padding, etc...
         let absolutePageHeightOffset = pageDimensions.height + absolutePageOrigin.y;
-        var relativeBounds = this.getRelativeCoordinates(absolutePageWidthOffset, absolutePageHeightOffset);
+        let relativeBounds = this.getRelativeCoordinates(absolutePageWidthOffset, absolutePageHeightOffset);
 
         if (relativeX < 0 || relativeY < 0 || relativeX > relativeBounds.x || relativeY > relativeBounds.y)
         {
@@ -341,7 +382,7 @@ export default class PixelPlugin
 
     getMousePos(canvas, evt)
     {
-        var rect = canvas.getBoundingClientRect();
+        let rect = canvas.getBoundingClientRect();
 
         return {
             x: evt.clientX - rect.left,
@@ -695,6 +736,14 @@ export class Layer
     createNewPath(brushSize)
     {
         this.paths.push(new Path(brushSize));
+    }
+
+    removePathFromLayer(path)
+    {
+        let index = this.paths.indexOf(path);
+        this.paths.splice(index, 1);
+
+        console.log(this.paths);
     }
 }
 
