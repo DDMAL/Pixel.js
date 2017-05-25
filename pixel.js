@@ -24,6 +24,7 @@ export default class PixelPlugin
         this.selectedLayer = 0;
         this.keyboardChangingLayers = false;
         this.actions = [];
+        this.undoneActions = [];
         this.shiftDown = false;
     }
 
@@ -96,7 +97,10 @@ export default class PixelPlugin
     {
         let canvas = document.getElementById("diva-1-outer");
 
-        this.boundInitializeNewPath = (evt) => { this.initializeNewPath(canvas, evt); };
+        this.boundInitializeNewPath = (evt) => {
+            this.initializeNewPath(canvas, evt);
+            this.undoneActions = [];
+        };
         this.disableMousePressed = () => { this.endPath() };
         this.setupPainting = (evt) => { this.setupPointPainting(canvas, evt); };
 
@@ -171,6 +175,7 @@ export default class PixelPlugin
     createPluginElements(layers)
     {
         this.createUndoButton();
+        this.createRedoButton();
         this.createLayerSelectors(layers);
         this.createBrushSizeSelector();
     }
@@ -263,17 +268,22 @@ export default class PixelPlugin
     {
         let undoButton = document.createElement("button");
         let text = document.createTextNode("Undo");
-        let br = document.createElement("br");
 
-        this.undoFunction = () => { this.removeAction(this.actions.length - 1); };
+        this.undoFunction = () => {
 
-        br.setAttribute("id", "undo button break");
+            if (this.actions.length > 0)
+            {
+                let actionToRemove = this.actions[this.actions.length - 1];
+                this.undoneActions.push(actionToRemove);
+                this.removeAction(this.actions.length - 1);
+            }
+        };
+
         undoButton.setAttribute("id", "undo button");
         undoButton.appendChild(text);
         undoButton.addEventListener("click", this.undoFunction);
 
         document.body.appendChild(undoButton);
-        document.body.appendChild(br);
     }
 
     destroyUndoButton()
@@ -283,6 +293,33 @@ export default class PixelPlugin
 
         let br = document.getElementById("undo button break");
         document.body.removeChild(br);
+    }
+
+    createRedoButton()
+    {
+        let redoButton = document.createElement("button");
+        let text = document.createTextNode("Redo");
+        let br = document.createElement("br");
+
+        this.redoFunction = () => {
+            if (this.undoneActions.length > 0)
+            {
+                let actionToRedo = this.undoneActions[this.undoneActions.length - 1];
+
+                actionToRedo.layer.addPathToLayer(actionToRedo.path);
+                this.actions.push(actionToRedo);
+                this.undoneActions.splice(this.undoneActions.length - 1,1);
+                this.repaint();
+            }
+        };
+
+        br.setAttribute("id", "redo button break");
+        redoButton.setAttribute("id", "redo button");
+        redoButton.appendChild(text);
+        redoButton.addEventListener("click", this.redoFunction);
+
+        document.body.appendChild(redoButton);
+        document.body.appendChild(br);
     }
 
     /**
