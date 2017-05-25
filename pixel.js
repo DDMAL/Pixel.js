@@ -265,7 +265,7 @@ export default class PixelPlugin
         let text = document.createTextNode("Undo");
         let br = document.createElement("br");
 
-        this.undoFunction = () => { this.handleUndo(); };
+        this.undoFunction = () => { this.removeAction(1); };
 
         br.setAttribute("id", "undo button break");
         undoButton.setAttribute("id", "undo button");
@@ -346,13 +346,13 @@ export default class PixelPlugin
         }
     }
 
-    handleUndo ()
+    removeAction (index)
     {
-        if(this.actions.length > 0)
+        if(this.actions.length > 0 && this.actions.length >= index)
         {
-            let lastAction = this.actions[this.actions.length - 1];
-            lastAction.layer.removePathFromLayer(lastAction.path);
-            this.actions.splice(this.actions.length-1);
+            let actionToRemove = this.actions[index];
+            actionToRemove.layer.removePathFromLayer(actionToRemove.path);
+            this.actions.splice(index, 1);
             this.repaint();
         }
     }
