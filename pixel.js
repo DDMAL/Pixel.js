@@ -14,7 +14,9 @@ export default class PixelPlugin
         this.core = core;
         this.activated = false;
         this.pageToolsIcon = this.createIcon();
-        this.handle = null;
+        this.visibleTilesHandle = null;
+        this.mouseHandles = null;
+        this.keyboardHandles = null;
         this.layers = null;
         this.matrix = null;
         this.mousePressed = false;
@@ -24,8 +26,20 @@ export default class PixelPlugin
         this.actions = [];
     }
 
-    // Subscribes to VisibleTilesDidLoad event to start drawing highlights.
-    // Takes an array of highlighted objects
+    /**
+     * ===============================================
+     *         Plugin Activation/Deactivation
+     * ===============================================
+     **/
+
+    handleClick (event, settings, publicInstance, pageIndex)
+    {
+        if (!this.activated)
+            this.activatePlugin();
+        else
+            this.deactivatePlugin();
+    }
+
     activatePlugin()
     {
         if(this.layers === null){
@@ -42,256 +56,104 @@ export default class PixelPlugin
             this.layers = [layer1, layer2, layer3, layer4, layer5];
         }
 
-        let handle = this.subscribeToEvent();
+        this.initializeMatrix();
+        this.visibleTilesHandle = this.subscribeToVisibleTilesEvent();
+        this.mouseHandles = this.subscribeToMouseEvents();
+        this.keyboardHandles = this.subscribeToKeyboardEvents();
+        this.createPluginElements(this.layers);
         this.core.getSettings().renderer._paint();  // Repaint the tiles to retrigger VisibleTilesDidLoad
         this.activated = true;
-        this.createPluginElements(this.layers);
-        this.subscribeToMouseEvents();
-        this.handleKeyboardEvents();
+    }
+
+    deactivatePlugin()
+    {
+        Diva.Events.unsubscribe(this.visibleTilesHandle);
+        this.unsubscribeFromMouseEvents();
+        this.unsubscribeFromKeyboardEvents();
+        this.core.getSettings().renderer._paint(); // Repaint the tiles to make the highlights disappear off the page
+        this.destroyPluginElements(this.layers);
+        this.activated = false;
+    }
+
+    /**
+     * ===============================================
+     *        Event Subscription/Unsubscription
+     * ===============================================
+     **/
+
+    subscribeToVisibleTilesEvent(){
+        let handle = Diva.Events.subscribe('VisibleTilesDidLoad', (args) =>
+        {
+            this.drawHighlights(args);
+        });
         return handle;
     }
 
-    handleKeyboardEvents()
+    subscribeToMouseEvents()
     {
-        const key1 = 49;
-        const key9 = 56;
+        let canvas = document.getElementById("diva-1-outer");
 
-        window.onkeyup = (e) =>
+        this.boundInitializeNewPath = (evt) => { this.initializeNewPath(canvas, evt); };
+        this.disableMousePressed = () => { this.mousePressed = false; };
+        this.setupPainting = (evt) => { this.setupPointPainting(canvas, evt); };
+
+        canvas.addEventListener('mousedown', this.boundInitializeNewPath);
+        canvas.addEventListener('mouseup', this.disableMousePressed);
+        canvas.addEventListener('mouseleave', this.disableMousePressed);
+        canvas.addEventListener('mousemove', this.setupPainting, false);
+
+        return{
+            mouthDownHandle: this.boundInitializeNewPath,
+            mouseMoveHandle: this.setupPainting,
+            mouseUpHandle: this.disableMousePressed
+        };
+    }
+
+    subscribeToKeyboardEvents()
+    {
+        let handle = (e) =>
         {
+            const key1 = 49;
+            const key9 = 56;
+
             let lastLayer = this.selectedLayer;
             let numberOfLayers = this.layers.length;
             let key = e.keyCode ? e.keyCode : e.which;
 
             if (key >= key1 && key < key1 + numberOfLayers && key <= key9)
             {
-                this.selectedLayer = key - 49;
-                let radio = document.getElementById("layer " + this.selectedLayer);
-                radio.checked = true;
+                this.selectedLayer = key - key1;
+                document.getElementById("layer " + this.selectedLayer).checked = true;
 
                 if (lastLayer !== this.selectedLayer)
-                {
                     this.keyboardChangingLayers = true;
-                }
-
             }
         };
-    }
+        document.addEventListener("keyup", handle);
 
-    // This will allow drawing on mouse hold
-    subscribeToMouseEvents()
-    {
-        var canvas = document.getElementById("diva-1-outer");
-
-        canvas.addEventListener('mousedown', (evt) =>
-        {
-            this.initializeNewPath(canvas, evt);
-        });
-
-        canvas.addEventListener('mouseup', (evt) =>
-        {
-            this.mousePressed = false;
-        });
-
-        canvas.addEventListener('mouseleave', (evt) =>
-        {
-            this.mousePressed = false;
-        });
-
-        canvas.addEventListener('mousemove', (evt) =>
-        {
-            this.paintPath(canvas, evt);
-        }, false);
+        return handle;
     }
 
     unsubscribeFromMouseEvents()
     {
         var canvas = document.getElementById("diva-1-outer");
 
-        canvas.removeEventListener('mousedown', (evt) =>
-        {
-            this.initializeNewPath(canvas, evt);
-        });
-
-        canvas.removeEventListener('mouseup', (evt) =>
-        {
-            this.mousePressed = false;
-        });
-
-        canvas.removeEventListener('mouseleave', (evt) =>
-        {
-            this.mousePressed = false;
-        });
-
-        canvas.removeEventListener('mousemove', (evt) =>
-        {
-            this.paintPath(canvas, evt);
-        }, false);
+        canvas.removeEventListener('mousedown', this.mouseHandles.mouthDownHandle);
+        canvas.removeEventListener('mouseup', this.mouseHandles.mouseUpHandle);
+        canvas.removeEventListener('mouseleave', this.mouseHandles.mouseUpHandle);
+        canvas.removeEventListener('mousemove', this.mouseHandles.mouseMoveHandle);
     }
 
-    paintPath (canvas, evt)
+    unsubscribeFromKeyboardEvents()
     {
-        if (this.mousePressed)
-        {
-            if (this.keyboardChangingLayers)
-            {
-                this.initializeNewPath(canvas, evt);
-                this.keyboardChangingLayers = false;
-            }
-            else
-            {
-                this.mousePressed = true;
-                let pageIndex = this.core.getSettings().currentPageIndex;
-                let zoomLevel = this.core.getSettings().zoomLevel;
-                let mousePos = this.getMousePos(canvas, evt);
-                let relativeCoords = this.getRelativeCoordinates(mousePos.x, mousePos.y);
-
-                if (this.isInPageBounds(relativeCoords.x, relativeCoords.y))
-                {
-                    let point = new Point(relativeCoords.x, relativeCoords.y, pageIndex);
-                    this.layers[this.selectedLayer].addToCurrentPath(point);
-                    let brushSize = this.layers[this.selectedLayer].getCurrentPath().brushSize;
-                    this.drawPath(this.layers[this.selectedLayer], point, pageIndex, zoomLevel, brushSize, true);
-                }
-                else
-                {
-                    this.mousePressed = false;
-                }
-            }
-        }
+        document.removeEventListener("keyup", this.keyboardHandles);
     }
 
-
-    initializeNewPath(canvas, evt)
-    {
-        this.mousePressed = true;
-        let pageIndex = this.core.getSettings().currentPageIndex;
-        let zoomLevel = this.core.getSettings().zoomLevel;
-        let mousePos = this.getMousePos(canvas, evt);
-        let relativeCoords = this.getRelativeCoordinates(mousePos.x, mousePos.y);
-
-        if (this.isInPageBounds(relativeCoords.x, relativeCoords.y))
-        {
-            let point = new Point(relativeCoords.x, relativeCoords.y, pageIndex);
-            let brushSizeSelector = document.getElementById("brush size selector");
-            this.layers[this.selectedLayer].createNewPath(brushSizeSelector.value/10);
-            this.layers[this.selectedLayer].addToCurrentPath(point);
-            let brushSize = this.layers[this.selectedLayer].getCurrentPath().brushSize;
-
-            this.actions.push(new Action(this.layers[this.selectedLayer].getCurrentPath(), this.layers[this.selectedLayer]));
-
-            this.drawPath(this.layers[this.selectedLayer], point, pageIndex, zoomLevel, brushSize, false);
-        }
-        else
-        {
-            this.mousePressed = false;
-        }
-    }
-
-
-    isInPageBounds(relativeX, relativeY)
-    {
-        let pageDimensions = this.core.publicInstance.getCurrentPageDimensionsAtCurrentZoomLevel();
-        let absolutePageOrigin = this.getAbsoluteCoordinates(0,0);
-        let absolutePageWidthOffset = pageDimensions.width + absolutePageOrigin.x;  //Taking into account the padding, etc...
-        let absolutePageHeightOffset = pageDimensions.height + absolutePageOrigin.y;
-        var relativeBounds = this.getRelativeCoordinates(absolutePageWidthOffset, absolutePageHeightOffset);
-
-        if(relativeX < 0 || relativeY < 0 || relativeX > relativeBounds.x || relativeY > relativeBounds.y)
-        {
-            return false;
-        }
-        return true;
-    }
-
-    deactivatePlugin()
-    {
-        Diva.Events.unsubscribe(this.handle);
-
-        this.unsubscribeFromMouseEvents();
-
-        this.core.getSettings().renderer._paint(); // Repaint the tiles to make the highlights disappear off the page
-        this.activated = false;
-        this.destroyPluginElements(this.layers);
-    }
-
-    createOpacitySlider(layer)
-    {
-        var x = document.createElement("input");
-        x.setAttribute("id", "layer " + layer.layerType + " opacity");
-        x.setAttribute("type", "range");
-        x.setAttribute('max', 100);
-        x.setAttribute('min', 0);
-        x.setAttribute('value', layer.opacity*100);
-        document.body.appendChild(x);
-
-        var rangeInput = document.getElementById("layer " + layer.layerType + " opacity");
-        rangeInput.addEventListener("input", () =>
-        {
-            layer.opacity = rangeInput.value/100;
-            this.core.getSettings().renderer._paint();
-        });
-    }
-
-    destroyOpacitySlider(layer)
-    {
-        var rangeInput = document.getElementById("layer " + layer.layerType + " opacity");
-        document.body.removeChild(rangeInput);
-    }
-
-    createLayerSelectors(layers){
-        var form = document.createElement("form");
-        form.setAttribute("id", "layer selector");
-        form.setAttribute("action", "");
-
-        layers.forEach((layer) =>
-        {
-            var radio = document.createElement("input");
-            radio.setAttribute("id", "layer " + layer.layerType);
-            radio.setAttribute("type", "radio");
-            radio.setAttribute("value", layer.layerType);
-            radio.setAttribute("name", "layer selector");
-            if (layer.layerType === 0)
-            {
-                radio.checked = true;
-            }
-            form.appendChild(radio);
-
-            var content = document.createTextNode("Layer " + (layer.layerType + 1));
-            form.appendChild(content);
-
-            var br = document.createElement("br");
-            form.appendChild(br);
-
-            radio.onclick = () =>
-            {
-                this.selectedLayer = radio.value;
-            };
-        });
-        document.body.appendChild(form);
-    }
-
-    destroyLayerSelectors()
-    {
-        var form = document.getElementById("layer selector");
-        document.body.removeChild(form);
-    }
-
-    createBrushSizeSelector()
-    {
-        var brushSizeSelector = document.createElement("input");
-        brushSizeSelector.setAttribute("id", "brush size selector");
-        brushSizeSelector.setAttribute("type", "range");
-        brushSizeSelector.setAttribute('max', 50);
-        brushSizeSelector.setAttribute('min', 1);
-        brushSizeSelector.setAttribute('value', 10);
-        document.body.appendChild(brushSizeSelector);
-    }
-
-    destroyBrushSizeSelector()
-    {
-        var brushSizeSelector = document.getElementById("brush size selector");
-        document.body.removeChild(brushSizeSelector);
-    }
+    /**
+     * ===============================================
+     *                HTML UI Elements
+     * ===============================================
+     **/
 
     createPluginElements(layers)
     {
@@ -310,16 +172,161 @@ export default class PixelPlugin
         });
     }
 
-    subscribeToEvent(){
-        let handle = Diva.Events.subscribe('VisibleTilesDidLoad', (args) =>
+    createOpacitySlider(layer)
+    {
+        var opacitySlider = document.createElement("input");
+
+        opacitySlider.setAttribute("id", "layer " + layer.layerType + " opacity");
+        opacitySlider.setAttribute("type", "range");
+        opacitySlider.setAttribute('max', 100);
+        opacitySlider.setAttribute('min', 0);
+        opacitySlider.setAttribute('value', layer.opacity*100);
+        opacitySlider.addEventListener("input", () =>
         {
-            this.drawHighlights(args);
+            layer.opacity = opacitySlider.value/100;
+            this.core.getSettings().renderer._paint();
         });
-        return handle;
+
+        document.body.appendChild(opacitySlider);
+    }
+
+    destroyOpacitySlider(layer)
+    {
+        let opacitySlider = document.getElementById("layer " + layer.layerType + " opacity");
+        document.body.removeChild(opacitySlider);
+    }
+
+    createLayerSelectors(layers){
+        let form = document.createElement("form");
+
+        form.setAttribute("id", "layer selector");
+        form.setAttribute("action", "");
+
+        layers.forEach((layer) =>
+        {
+            let radio = document.createElement("input");
+            let content = document.createTextNode("Layer " + (layer.layerType + 1));
+            let br = document.createElement("br");
+
+            radio.setAttribute("id", "layer " + layer.layerType);
+            radio.setAttribute("type", "radio");
+            radio.setAttribute("value", layer.layerType);
+            radio.setAttribute("name", "layer selector");
+            radio.onclick = () => { this.selectedLayer = radio.value; };
+
+            if (layer.layerType === 0)      // Layer 0 is checked by default
+                radio.checked = true;
+
+            form.appendChild(radio);
+            form.appendChild(content);
+            form.appendChild(br);
+        });
+        document.body.appendChild(form);
+    }
+
+    destroyLayerSelectors()
+    {
+        let form = document.getElementById("layer selector");
+        document.body.removeChild(form);
+    }
+
+    createBrushSizeSelector()
+    {
+        let brushSizeSelector = document.createElement("input");
+        brushSizeSelector.setAttribute("id", "brush size selector");
+        brushSizeSelector.setAttribute("type", "range");
+        brushSizeSelector.setAttribute('max', 50);
+        brushSizeSelector.setAttribute('min', 1);
+        brushSizeSelector.setAttribute('value', 10);
+        document.body.appendChild(brushSizeSelector);
+    }
+
+    destroyBrushSizeSelector()
+    {
+        let brushSizeSelector = document.getElementById("brush size selector");
+        document.body.removeChild(brushSizeSelector);
+    }
+
+    /**
+     * ===============================================
+     *                   Drawing
+     * ===============================================
+     **/
+
+    setupPointPainting (canvas, evt)
+    {
+        if (this.mousePressed)
+        {
+            if (this.keyboardChangingLayers)
+            {
+                this.initializeNewPath(canvas, evt);
+                this.keyboardChangingLayers = false;
+            }
+            else
+            {
+                let pageIndex = this.core.getSettings().currentPageIndex;
+                let zoomLevel = this.core.getSettings().zoomLevel;
+                let mousePos = this.getMousePos(canvas, evt);
+                let relativeCoords = this.getRelativeCoordinates(mousePos.x, mousePos.y);
+
+                if (this.isInPageBounds(relativeCoords.x, relativeCoords.y))
+                {
+                    let point = new Point(relativeCoords.x, relativeCoords.y, pageIndex);
+                    let brushSize = this.layers[this.selectedLayer].getCurrentPath().brushSize;
+
+                    this.layers[this.selectedLayer].addToCurrentPath(point);
+                    this.drawPath(this.layers[this.selectedLayer], point, pageIndex, zoomLevel, brushSize, true);
+                }
+            }
+        }
+    }
+
+    initializeNewPath(canvas, evt)
+    {
+        this.mousePressed = true;
+
+        let pageIndex = this.core.getSettings().currentPageIndex;
+        let zoomLevel = this.core.getSettings().zoomLevel;
+        let mousePos = this.getMousePos(canvas, evt);
+        let relativeCoords = this.getRelativeCoordinates(mousePos.x, mousePos.y);
+
+        if (this.isInPageBounds(relativeCoords.x, relativeCoords.y))
+        {
+            let selectedLayer = this.layers[this.selectedLayer];
+            let point = new Point(relativeCoords.x, relativeCoords.y, pageIndex);
+            let brushSize = document.getElementById("brush size selector").value/10;
+
+            selectedLayer.createNewPath(brushSize);
+            selectedLayer.addToCurrentPath(point);
+
+            this.actions.push(new Action(selectedLayer.getCurrentPath(), selectedLayer));
+            this.drawPath(selectedLayer, point, pageIndex, zoomLevel, brushSize, false);
+        }
+        else
+        {
+            this.mousePressed = false;
+        }
+    }
+
+    isInPageBounds(relativeX, relativeY)
+    {
+        let pageDimensions = this.core.publicInstance.getCurrentPageDimensionsAtCurrentZoomLevel();
+        let absolutePageOrigin = this.getAbsoluteCoordinates(0,0);
+        let absolutePageWidthOffset = pageDimensions.width + absolutePageOrigin.x;  //Taking into account the padding, etc...
+        let absolutePageHeightOffset = pageDimensions.height + absolutePageOrigin.y;
+        var relativeBounds = this.getRelativeCoordinates(absolutePageWidthOffset, absolutePageHeightOffset);
+
+        if(relativeX < 0 || relativeY < 0 || relativeX > relativeBounds.x || relativeY > relativeBounds.y)
+        {
+            return false;
+        }
+
+        return true;
     }
 
     getMousePos(canvas, evt) {
         var rect = canvas.getBoundingClientRect();
+
         return {
             x: evt.clientX - rect.left,
             y: evt.clientY - rect.top
@@ -520,20 +527,10 @@ export default class PixelPlugin
     }
 
     /**
-     * Enables the layering plugin and stops it from being repetitively called.
+     * ===============================================
+     *                    Backend
+     * ===============================================
      **/
-    handleClick (event, settings, publicInstance, pageIndex)
-    {
-        if (!this.activated)
-        {
-            this.handle = this.activatePlugin();
-            this.initializeMatrix();
-        }
-        else
-        {
-            this.deactivatePlugin();
-        }
-    }
 
     /**
      * Initializes the base matrix that maps the real-size picture
@@ -558,7 +555,7 @@ export default class PixelPlugin
     fillMatrix(path, layer)
     {
         let maxZoomLevel = this.core.getSettings().maxZoomLevel;
-        var scaleRatio = Math.pow(2, maxZoomLevel);
+        let scaleRatio = Math.pow(2, maxZoomLevel);
         path.points.forEach((point) =>
         {
             let absoluteOriginX = point.relativeRectOriginX * scaleRatio,
