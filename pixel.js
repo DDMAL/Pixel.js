@@ -28,7 +28,8 @@ export default class PixelPlugin
     // Takes an array of highlighted objects
     activatePlugin()
     {
-        if(this.layers === null){
+        if(this.layers === null)
+        {
             // Start by creating layers
             let layer1 = new Layer(0, 0.3);
             let layer2 = new Layer(1, 0.5);
@@ -196,7 +197,7 @@ export default class PixelPlugin
         let absolutePageHeightOffset = pageDimensions.height + absolutePageOrigin.y;
         var relativeBounds = this.getRelativeCoordinates(absolutePageWidthOffset, absolutePageHeightOffset);
 
-        if(relativeX < 0 || relativeY < 0 || relativeX > relativeBounds.x || relativeY > relativeBounds.y)
+        if (relativeX < 0 || relativeY < 0 || relativeX > relativeBounds.x || relativeY > relativeBounds.y)
         {
             return false;
         }
@@ -238,7 +239,8 @@ export default class PixelPlugin
         document.body.removeChild(rangeInput);
     }
 
-    createLayerSelectors(layers){
+    createLayerSelectors(layers)
+    {
         var form = document.createElement("form");
         form.setAttribute("id", "layer selector");
         form.setAttribute("action", "");
@@ -297,20 +299,24 @@ export default class PixelPlugin
     {
         this.createLayerSelectors(layers);
         this.createBrushSizeSelector();
-        layers.forEach((layer) => {
+        layers.forEach((layer) =>
+        {
             this.createOpacitySlider(layer);
         });
     }
 
-    destroyPluginElements(layers){
+    destroyPluginElements(layers)
+    {
         this.destroyLayerSelectors();
         this.destroyBrushSizeSelector();
-        layers.forEach((layer) => {
+        layers.forEach((layer) =>
+        {
             this.destroyOpacitySlider(layer);
         });
     }
 
-    subscribeToEvent(){
+    subscribeToEvent()
+    {
         let handle = Diva.Events.subscribe('VisibleTilesDidLoad', (args) =>
         {
             this.drawHighlights(args);
@@ -318,9 +324,11 @@ export default class PixelPlugin
         return handle;
     }
 
-    getMousePos(canvas, evt) {
+    getMousePos(canvas, evt)
+    {
         var rect = canvas.getBoundingClientRect();
-        return {
+        return
+        {
             x: evt.clientX - rect.left,
             y: evt.clientY - rect.top
         };
@@ -341,7 +349,8 @@ export default class PixelPlugin
         let absoluteRectOriginX = highlightXOffset - renderer._getImageOffset(pageIndex).left + renderer._viewport.left -  viewportPaddingX;
         let absoluteRectOriginY = highlightYOffset - renderer._getImageOffset(pageIndex).top + renderer._viewport.top - viewportPaddingY;
 
-        return {
+        return
+        {
             x: absoluteRectOriginX/scaleRatio,
             y: absoluteRectOriginY/scaleRatio
         };
@@ -366,7 +375,8 @@ export default class PixelPlugin
         let absoluteOffsetX = renderer._getImageOffset(pageIndex).left - renderer._viewport.left + viewportPaddingX + absoluteX;
         let absoluteOffsetY = renderer._getImageOffset(pageIndex).top - renderer._viewport.top + viewportPaddingY + absoluteY;
 
-        return {
+        return
+        {
             x: absoluteOffsetX,
             y: absoluteOffsetY
         };
