@@ -20,6 +20,7 @@ export default class PixelPlugin
         this.mousePressed = false;
         this.lastX, this.lastY;
         this.selectedLayer = 0;
+        this.keyboardChangingLayers = false;
         this.actions = [];
     }
 
@@ -45,56 +46,45 @@ export default class PixelPlugin
         this.core.getSettings().renderer._paint();  // Repaint the tiles to retrigger VisibleTilesDidLoad
         this.activated = true;
         this.createPluginElements(this.layers);
-        this.handleMouseEvents();
+        this.subscribeToMouseEvents();
         this.handleKeyboardEvents();
         return handle;
     }
 
     handleKeyboardEvents()
     {
+        const key1 = 49;
+        const key9 = 56;
+
         window.onkeyup = (e) =>
         {
+            let lastLayer = this.selectedLayer;
             let numberOfLayers = this.layers.length;
             let key = e.keyCode ? e.keyCode : e.which;
 
-            if (key > 48 && key < 49 + numberOfLayers && key < 57)
+            if (key >= key1 && key < key1 + numberOfLayers && key <= key9)
             {
                 this.selectedLayer = key - 49;
                 let radio = document.getElementById("layer " + this.selectedLayer);
                 radio.checked = true;
+
+                if (lastLayer !== this.selectedLayer)
+                {
+                    this.keyboardChangingLayers = true;
+                }
+
             }
         };
     }
 
     // This will allow drawing on mouse hold
-    handleMouseEvents()
+    subscribeToMouseEvents()
     {
         var canvas = document.getElementById("diva-1-outer");
 
         canvas.addEventListener('mousedown', (evt) =>
         {
-            this.mousePressed = true;
-            let pageIndex = this.core.getSettings().currentPageIndex;
-            let zoomLevel = this.core.getSettings().zoomLevel;
-            let mousePos = this.getMousePos(canvas, evt);
-            let relativeCoords = this.getRelativeCoordinates(mousePos.x, mousePos.y);
-
-            if (this.isInPageBounds(relativeCoords.x, relativeCoords.y))
-            {
-                let point = new Point(relativeCoords.x, relativeCoords.y, pageIndex);
-                let brushSizeSelector = document.getElementById("brush size selector");
-                this.layers[this.selectedLayer].createNewPath(brushSizeSelector.value/10);
-                this.layers[this.selectedLayer].addToCurrentPath(point);
-                let brushSize = this.layers[this.selectedLayer].getCurrentPath().brushSize;
-
-                this.actions.push(new Action(this.layers[this.selectedLayer].getCurrentPath(), this.layers[this.selectedLayer]));
-
-                this.drawPath(this.layers[this.selectedLayer], point, pageIndex, zoomLevel, brushSize, false);
-            }
-            else
-            {
-                this.mousePressed = false;
-            }
+            this.initializeNewPath(canvas, evt);
         });
 
         canvas.addEventListener('mouseup', (evt) =>
@@ -109,7 +99,45 @@ export default class PixelPlugin
 
         canvas.addEventListener('mousemove', (evt) =>
         {
-            if (this.mousePressed)
+            this.paintPath(canvas, evt);
+        }, false);
+    }
+
+    unsubscribeFromMouseEvents()
+    {
+        var canvas = document.getElementById("diva-1-outer");
+
+        canvas.removeEventListener('mousedown', (evt) =>
+        {
+            this.initializeNewPath(canvas, evt);
+        });
+
+        canvas.removeEventListener('mouseup', (evt) =>
+        {
+            this.mousePressed = false;
+        });
+
+        canvas.removeEventListener('mouseleave', (evt) =>
+        {
+            this.mousePressed = false;
+        });
+
+        canvas.removeEventListener('mousemove', (evt) =>
+        {
+            this.paintPath(canvas, evt);
+        }, false);
+    }
+
+    paintPath (canvas, evt)
+    {
+        if (this.mousePressed)
+        {
+            if (this.keyboardChangingLayers)
+            {
+                this.initializeNewPath(canvas, evt);
+                this.keyboardChangingLayers = false;
+            }
+            else
             {
                 this.mousePressed = true;
                 let pageIndex = this.core.getSettings().currentPageIndex;
@@ -129,8 +157,36 @@ export default class PixelPlugin
                     this.mousePressed = false;
                 }
             }
-        }, false);
+        }
     }
+
+
+    initializeNewPath(canvas, evt)
+    {
+        this.mousePressed = true;
+        let pageIndex = this.core.getSettings().currentPageIndex;
+        let zoomLevel = this.core.getSettings().zoomLevel;
+        let mousePos = this.getMousePos(canvas, evt);
+        let relativeCoords = this.getRelativeCoordinates(mousePos.x, mousePos.y);
+
+        if (this.isInPageBounds(relativeCoords.x, relativeCoords.y))
+        {
+            let point = new Point(relativeCoords.x, relativeCoords.y, pageIndex);
+            let brushSizeSelector = document.getElementById("brush size selector");
+            this.layers[this.selectedLayer].createNewPath(brushSizeSelector.value/10);
+            this.layers[this.selectedLayer].addToCurrentPath(point);
+            let brushSize = this.layers[this.selectedLayer].getCurrentPath().brushSize;
+
+            this.actions.push(new Action(this.layers[this.selectedLayer].getCurrentPath(), this.layers[this.selectedLayer]));
+
+            this.drawPath(this.layers[this.selectedLayer], point, pageIndex, zoomLevel, brushSize, false);
+        }
+        else
+        {
+            this.mousePressed = false;
+        }
+    }
+
 
     isInPageBounds(relativeX, relativeY)
     {
@@ -150,6 +206,9 @@ export default class PixelPlugin
     deactivatePlugin()
     {
         Diva.Events.unsubscribe(this.handle);
+
+        this.unsubscribeFromMouseEvents();
+
         this.core.getSettings().renderer._paint(); // Repaint the tiles to make the highlights disappear off the page
         this.activated = false;
         this.destroyPluginElements(this.layers);
