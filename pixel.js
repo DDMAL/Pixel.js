@@ -20,6 +20,7 @@ export default class PixelPlugin
         this.layers = null;
         this.matrix = null;
         this.mousePressed = false;
+        this.keyboardPress = false;
         this.lastX, this.lastY;
         this.selectedLayer = 0;
         this.keyboardChangingLayers = false;
@@ -62,6 +63,7 @@ export default class PixelPlugin
         this.visibleTilesHandle = this.subscribeToVisibleTilesEvent();
         this.mouseHandles = this.subscribeToMouseEvents();
         this.keyboardHandles = this.subscribeToKeyboardEvents();
+        this.keyboardPress = this.subscribeToKeyboardPress();
         this.createPluginElements(this.layers);
         this.repaint();  // Repaint the tiles to retrigger VisibleTilesDidLoad
         this.activated = true;
@@ -72,6 +74,7 @@ export default class PixelPlugin
         Diva.Events.unsubscribe(this.visibleTilesHandle);
         this.unsubscribeFromMouseEvents();
         this.unsubscribeFromKeyboardEvents();
+        this.unsubscribeFromKeyboardPress();
         this.repaint(); // Repaint the tiles to make the highlights disappear off the page
         this.destroyPluginElements(this.layers);
         this.activated = false;
@@ -112,6 +115,7 @@ export default class PixelPlugin
         };
     }
 
+    //Deals with keyboard button release
     subscribeToKeyboardEvents()
     {
         let handle = (e) =>
@@ -132,19 +136,32 @@ export default class PixelPlugin
                 if (lastLayer !== this.selectedLayer && this.mousePressed)
                     this.keyboardChangingLayers = true;
             }
-
             if (key === shiftKey)
-            {
-                this.shiftDown = true;
-            }
-            else
             {
                 this.shiftDown = false;
             }
         };
         document.addEventListener("keyup", handle);
-
         return handle;
+
+    }
+
+    //Deals with keyboard button down press
+    subscribeToKeyboardPress()
+    {
+        let handle = (e) =>
+        {
+            const shiftKey = 16;
+            let key = e.keyCode ? e.keyCode : e.which;
+
+            if (key === shiftKey)
+            {
+                this.shiftDown = true;
+            }
+        };
+        document.addEventListener("keydown", handle);
+        return handle;
+
     }
 
     unsubscribeFromMouseEvents()
@@ -160,6 +177,11 @@ export default class PixelPlugin
     unsubscribeFromKeyboardEvents()
     {
         document.removeEventListener("keyup", this.keyboardHandles);
+    }
+
+    unsubscribeFromKeyboardPress()
+    {
+        document.removeEventListener("keydown", this.keyboardHandles);
     }
 
     /**
