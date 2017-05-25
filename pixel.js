@@ -24,6 +24,7 @@ export default class PixelPlugin
         this.selectedLayer = 0;
         this.keyboardChangingLayers = false;
         this.actions = [];
+        this.shiftDown = false;
     }
 
     /**
@@ -82,7 +83,8 @@ export default class PixelPlugin
      * ===============================================
      **/
 
-    subscribeToVisibleTilesEvent(){
+    subscribeToVisibleTilesEvent()
+    {
         let handle = Diva.Events.subscribe('VisibleTilesDidLoad', (args) =>
         {
             this.drawHighlights(args);
@@ -116,6 +118,7 @@ export default class PixelPlugin
         {
             const key1 = 49;
             const key9 = 56;
+            const shiftKey = 16;
 
             let lastLayer = this.selectedLayer;
             let numberOfLayers = this.layers.length;
@@ -128,6 +131,15 @@ export default class PixelPlugin
 
                 if (lastLayer !== this.selectedLayer)
                     this.keyboardChangingLayers = true;
+            }
+
+            if (key === shiftKey)
+            {
+                this.shiftDown = true;
+            }
+            else
+            {
+                this.shiftDown = false;
             }
         };
         document.addEventListener("keyup", handle);
@@ -165,7 +177,8 @@ export default class PixelPlugin
         });
     }
 
-    destroyPluginElements(layers){
+    destroyPluginElements(layers)
+    {
         this.destroyLayerSelectors();
         this.destroyBrushSizeSelector();
         layers.forEach((layer) => {
@@ -197,7 +210,8 @@ export default class PixelPlugin
         document.body.removeChild(opacitySlider);
     }
 
-    createLayerSelectors(layers){
+    createLayerSelectors(layers)
+    {
         let form = document.createElement("form");
 
         form.setAttribute("id", "layer selector");
@@ -504,7 +518,8 @@ export default class PixelPlugin
         let pageIndex = args[0],
             zoomLevel = args[1];
 
-        this.layers.forEach((layer) => {
+        this.layers.forEach((layer) =>
+        {
             let shapes = layer.shapes;
 
             shapes.forEach((shape) =>
