@@ -200,6 +200,7 @@ export default class PixelPlugin
         this.destroyLayerSelectors();
         this.destroyBrushSizeSelector();
         this.destroyUndoButton();
+        this.destroyRedoButton();
     }
 
     createOpacitySlider(layer, parentElement)
@@ -297,9 +298,6 @@ export default class PixelPlugin
     {
         let undoButton = document.getElementById("undo button");
         document.body.removeChild(undoButton);
-
-        let br = document.getElementById("undo button break");
-        document.body.removeChild(br);
     }
 
     createRedoButton()
@@ -317,6 +315,15 @@ export default class PixelPlugin
 
         document.body.appendChild(redoButton);
         document.body.appendChild(br);
+    }
+
+    destroyRedoButton()
+    {
+        let redoButton = document.getElementById("redo button");
+        document.body.removeChild(redoButton);
+
+        let br = document.getElementById("redo button break");
+        document.body.removeChild(br);
     }
 
     /**
