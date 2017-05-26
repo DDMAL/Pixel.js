@@ -52,10 +52,12 @@ export default class PixelPlugin
             let layer3 = new Layer(2, 0.8);
             let layer4 = new Layer(3, 0.8);
             let layer5 = new Layer(4, 0.8);
-            
-            layer1.addShapeToLayer(new Rectangle(23, 42, 24, 24, 0));
-            layer2.addShapeToLayer(new Rectangle(48, 50, 57, 5, 0));
-            layer3.addShapeToLayer(new Rectangle(50, 120, 50, 10, 0));
+
+            layer1.addShapeToLayer(new Rectangle(new Point(23, 42, 0), 24, 24));
+            layer2.addShapeToLayer(new Rectangle(new Point(48, 50, 0), 57, 5));
+            layer3.addShapeToLayer(new Rectangle(new Point(50,120, 0), 50, 10));
+
+            console.log(new Rectangle(new Point(23, 42, 0), 24, 24));
 
             this.layers = [layer1, layer2, layer3, layer4, layer5];
         }
@@ -676,11 +678,9 @@ export default class PixelPlugin
 
 export class Shape
 {
-    constructor (relativeOriginX, relativeOriginY, pageIndex)
+    constructor (point)
     {
-        this.relativeOriginX = relativeOriginX;
-        this.relativeOriginY = relativeOriginY;
-        this.pageIndex = pageIndex;
+        this.origin = point
     }
 
     draw()
@@ -692,8 +692,8 @@ export class Shape
 
 export class Rectangle extends Shape
 {
-    constructor(relativeOriginX, relativeOriginY, relativeRectWidth, relativeRectHeight, pageIndex) {
-        super(relativeOriginX, relativeOriginY, pageIndex);
+    constructor(point, relativeRectWidth, relativeRectHeight) {
+        super(point);
         this.relativeRectWidth = relativeRectWidth;
         this.relativeRectHeight = relativeRectHeight;
     }
@@ -708,12 +708,12 @@ export class Rectangle extends Shape
 
         // The following absolute values are experimental values to highlight the square on the first page of Salzinnes, CDN-Hsmu M2149.L4
         // The relative values are used to scale the highlights according to the zoom level on the page itself
-        let absoluteRectOriginX = this.relativeOriginX * scaleRatio;
-        let absoluteRectOriginY = this.relativeOriginY * scaleRatio;
+        let absoluteRectOriginX = this.origin.relativeOriginX * scaleRatio;
+        let absoluteRectOriginY = this.origin.relativeOriginY * scaleRatio;
         let absoluteRectWidth = this.relativeRectWidth * scaleRatio;
         let absoluteRectHeight = this.relativeRectHeight * scaleRatio;
 
-        if (pageIndex === this.pageIndex)
+        if (pageIndex === this.origin.pageIndex)
         {
             // Calculates where the highlights should be drawn as a function of the whole webpage coordinates
             // (to make it look like it is on top of a page in Diva)
