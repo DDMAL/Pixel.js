@@ -52,6 +52,7 @@ export default class PixelPlugin
             let layer3 = new Layer(2, 0.8);
             let layer4 = new Layer(3, 0.8);
             let layer5 = new Layer(4, 0.8);
+            
             layer1.addShapeToLayer(new Rectangle(23, 42, 24, 24, 0));
             layer2.addShapeToLayer(new Rectangle(48, 50, 57, 5, 0));
             layer3.addShapeToLayer(new Rectangle(50, 120, 50, 10, 0));
@@ -507,56 +508,7 @@ export default class PixelPlugin
 
     drawShape(layer, shape, pageIndex, zoomLevel)
     {
-        let opacity = layer.opacity;
-        let renderer = this.core.getSettings().renderer;
-        let scaleRatio = Math.pow(2,zoomLevel);
 
-        const viewportPaddingX = Math.max(0, (renderer._viewport.width - renderer.layout.dimensions.width) / 2);
-        const viewportPaddingY = Math.max(0, (renderer._viewport.height - renderer.layout.dimensions.height) / 2);
-
-        // The following absolute values are experimental values to highlight the square on the first page of Salzinnes, CDN-Hsmu M2149.L4
-        // The relative values are used to scale the highlights according to the zoom level on the page itself
-        let absoluteRectOriginX = shape.relativeRectOriginX * scaleRatio;
-        let absoluteRectOriginY = shape.relativeRectOriginY * scaleRatio;
-        let absoluteRectWidth = shape.relativeRectWidth * scaleRatio;
-        let absoluteRectHeight = shape.relativeRectHeight * scaleRatio;
-
-        // This indicates the page on top of which the highlights are supposed to be drawn
-        let highlightPageIndex = shape.pageIndex;
-
-        if (pageIndex === highlightPageIndex)
-        {
-            // Calculates where the highlights should be drawn as a function of the whole webpage coordinates
-            // (to make it look like it is on top of a page in Diva)
-            let highlightXOffset = renderer._getImageOffset(pageIndex).left - renderer._viewport.left + viewportPaddingX + absoluteRectOriginX;
-            let highlightYOffset = renderer._getImageOffset(pageIndex).top - renderer._viewport.top + viewportPaddingY + absoluteRectOriginY;
-
-            //Draw the rectangle
-            let rgba = null;
-            switch (layer.layerType)
-            {
-                case 0:
-                    rgba = "rgba(51, 102, 255, " + opacity + ")";
-                    break;
-                case 1:
-                    rgba = "rgba(255, 51, 102, " + opacity + ")";
-                    break;
-                case 2:
-                    rgba = "rgba(255, 255, 10 , " + opacity + ")";
-                    break;
-                case 3:
-                    rgba = "rgba(10, 255, 10, " + opacity + ")";
-                    break;
-                case 4:
-                    rgba = "rgba(120, 0, 120, " + opacity + ")";
-                    break;
-                default:
-                    rgba = "rgba(255, 0, 0, " + opacity + ")";
-            }
-
-            renderer._ctx.fillStyle = rgba;
-            renderer._ctx.fillRect(highlightXOffset, highlightYOffset,absoluteRectWidth,absoluteRectHeight);
-        }
     }
 
     drawPath(layer, point, pageIndex, zoomLevel, brushSize, isDown)
@@ -634,7 +586,7 @@ export default class PixelPlugin
 
             shapes.forEach((shape) =>
                 {
-                    this.drawShape(layer, shape, pageIndex, zoomLevel);
+                    shape.draw(layer, pageIndex, zoomLevel, this.core.getSettings().renderer);
                 }
             );
 
@@ -722,15 +674,78 @@ export default class PixelPlugin
     }
 }
 
-export class Rectangle
+export class Shape
 {
-    constructor (relativeRectOriginX, relativeRectOriginY, relativeRectWidth, relativeRectHeight, pageIndex)
+    constructor (relativeOriginX, relativeOriginY, pageIndex)
     {
-        this.relativeRectOriginX = relativeRectOriginX;
-        this.relativeRectOriginY = relativeRectOriginY;
+        this.relativeOriginX = relativeOriginX;
+        this.relativeOriginY = relativeOriginY;
+        this.pageIndex = pageIndex;
+    }
+
+    draw()
+    {
+
+    }
+}
+
+
+export class Rectangle extends Shape
+{
+    constructor(relativeOriginX, relativeOriginY, relativeRectWidth, relativeRectHeight, pageIndex) {
+        super(relativeOriginX, relativeOriginY, pageIndex);
         this.relativeRectWidth = relativeRectWidth;
         this.relativeRectHeight = relativeRectHeight;
-        this.pageIndex = pageIndex;
+    }
+
+    draw(layer, pageIndex, zoomLevel, renderer)
+    {
+        let opacity = layer.opacity;
+        let scaleRatio = Math.pow(2,zoomLevel);
+
+        const viewportPaddingX = Math.max(0, (renderer._viewport.width - renderer.layout.dimensions.width) / 2);
+        const viewportPaddingY = Math.max(0, (renderer._viewport.height - renderer.layout.dimensions.height) / 2);
+
+        // The following absolute values are experimental values to highlight the square on the first page of Salzinnes, CDN-Hsmu M2149.L4
+        // The relative values are used to scale the highlights according to the zoom level on the page itself
+        let absoluteRectOriginX = this.relativeOriginX * scaleRatio;
+        let absoluteRectOriginY = this.relativeOriginY * scaleRatio;
+        let absoluteRectWidth = this.relativeRectWidth * scaleRatio;
+        let absoluteRectHeight = this.relativeRectHeight * scaleRatio;
+
+        if (pageIndex === this.pageIndex)
+        {
+            // Calculates where the highlights should be drawn as a function of the whole webpage coordinates
+            // (to make it look like it is on top of a page in Diva)
+            let highlightXOffset = renderer._getImageOffset(pageIndex).left - renderer._viewport.left + viewportPaddingX + absoluteRectOriginX;
+            let highlightYOffset = renderer._getImageOffset(pageIndex).top - renderer._viewport.top + viewportPaddingY + absoluteRectOriginY;
+
+            //Draw the rectangle
+            let rgba = null;
+            switch (layer.layerType)
+            {
+                case 0:
+                    rgba = "rgba(51, 102, 255, " + opacity + ")";
+                    break;
+                case 1:
+                    rgba = "rgba(255, 51, 102, " + opacity + ")";
+                    break;
+                case 2:
+                    rgba = "rgba(255, 255, 10 , " + opacity + ")";
+                    break;
+                case 3:
+                    rgba = "rgba(10, 255, 10, " + opacity + ")";
+                    break;
+                case 4:
+                    rgba = "rgba(120, 0, 120, " + opacity + ")";
+                    break;
+                default:
+                    rgba = "rgba(255, 0, 0, " + opacity + ")";
+            }
+
+            renderer._ctx.fillStyle = rgba;
+            renderer._ctx.fillRect(highlightXOffset, highlightYOffset,absoluteRectWidth,absoluteRectHeight);
+        }
     }
 }
 
