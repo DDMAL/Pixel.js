@@ -355,7 +355,7 @@ export default class PixelPlugin
                 break;
             case "rectangle":
                 this.mousePressed = true;
-                this.rectangleShapePreview(canvas, evt);
+                this.initializeRectanglePreview(canvas, evt);
                 break;
             default:
                 this.mousePressed = true;
@@ -448,7 +448,7 @@ export default class PixelPlugin
     }
 
 
-    rectangleShapePreview (canvas, evt)
+    initializeRectanglePreview (canvas, evt)
     {
         let pageIndex = this.core.getSettings().currentPageIndex;
         let zoomLevel = this.core.getSettings().zoomLevel;
@@ -457,7 +457,10 @@ export default class PixelPlugin
 
         if (this.isInPageBounds(relativeCoords.x, relativeCoords.y))
         {
-            this.layers[this.selectedLayer].addShapeToLayer(new Rectangle(new Point(relativeCoords.x,relativeCoords.y,pageIndex), 0, 0));
+            let selectedLayer = this.layers[this.selectedLayer];
+            selectedLayer.addShapeToLayer(new Rectangle(new Point(relativeCoords.x,relativeCoords.y,pageIndex), 0, 0));
+            this.actions.push(new Action(selectedLayer.getCurrentShape(), selectedLayer));
+
             this.repaint();
         }
     }
@@ -470,7 +473,7 @@ export default class PixelPlugin
             let zoomLevel = this.core.getSettings().zoomLevel;
             let mousePos = this.getMousePos(canvas, evt);
             let relativeCoords = this.getRelativeCoordinates(mousePos.x, mousePos.y);
-            let lastShape = this.layers[this.selectedLayer].getLastShape();
+            let lastShape = this.layers[this.selectedLayer].getCurrentShape();
 
             if (this.isInPageBounds(relativeCoords.x, relativeCoords.y))
             {
@@ -487,9 +490,19 @@ export default class PixelPlugin
         {
             let actionToRedo = this.undoneActions[this.undoneActions.length - 1];
 
-            actionToRedo.layer.addPathToLayer(actionToRedo.path);
-            this.actions.push(actionToRedo);
-            this.undoneActions.splice(this.undoneActions.length - 1,1);
+            if (actionToRedo.action.type === "path")
+            {
+                actionToRedo.layer.addPathToLayer(actionToRedo.action);
+                this.actions.push(actionToRedo);
+                this.undoneActions.splice(this.undoneActions.length - 1,1);
+            }
+
+            else if (actionToRedo.action.type === "shape")
+            {
+                actionToRedo.layer.addShapeToLayer(actionToRedo.action);
+                this.actions.push(actionToRedo);
+                this.undoneActions.splice(this.undoneActions.length - 1,1);
+            }
             this.repaint();
         }
     }
@@ -510,8 +523,16 @@ export default class PixelPlugin
         if(this.actions.length > 0 && this.actions.length >= index)
         {
             let actionToRemove = this.actions[index];
-            actionToRemove.layer.removePathFromLayer(actionToRemove.path);
-            this.actions.splice(index, 1);
+            if (actionToRemove.action.type === "path")
+            {
+                actionToRemove.layer.removePathFromLayer(actionToRemove.action);
+                this.actions.splice(index, 1);
+            }
+            else if (actionToRemove.action.type === "shape")
+            {
+                actionToRemove.layer.removeShapeFromLayer(actionToRemove.action);
+                this.actions.splice(index, 1);
+            }
             this.repaint();
         }
     }
@@ -737,6 +758,7 @@ export class Shape
     constructor (point)
     {
         this.origin = point
+        this.type = "shape";
     }
 
     draw()
@@ -788,6 +810,7 @@ export class Path
     {
         this.points = [];
         this.brushSize = brushSize;
+        this.type = "path";
     }
 
     addPointToPath(point)
@@ -808,9 +831,9 @@ export class Point
 
 export class Action
 {
-    constructor (path, layer)
+    constructor (action, layer)
     {
-        this.path = path;
+        this.action = action;
         this.layer = layer;
     }
 }
@@ -884,6 +907,12 @@ export class Layer
         this.paths.splice(index, 1);
     }
 
+    removeShapeFromLayer(shape)
+    {
+        let index = this.shapes.indexOf(shape);
+        this.shapes.splice(index, 1);
+    }
+
     setOpacity(opacity)
     {
         this.colour.opacity = opacity;
@@ -894,7 +923,7 @@ export class Layer
         return this.colour.opacity;
     }
 
-    getLastShape()
+    getCurrentShape()
     {
         if(this.shapes.length > 0)
         {
