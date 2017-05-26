@@ -26,6 +26,8 @@ export default class PixelPlugin
         this.keyboardChangingLayers = false;
         this.actions = [];
         this.shiftDown = false;
+        this.lastRelCoordsX = null;
+        this.lastRelCoordsY = null;
     }
 
     /**
@@ -328,11 +330,14 @@ export default class PixelPlugin
             let point = new Point(relativeCoords.x, relativeCoords.y, pageIndex);
             let brushSize = document.getElementById("brush size selector").value/10;
 
+            this.lastRelCoordsX = relativeCoords.x;
+            this.lastRelCoordsY = relativeCoords.y;
+
             selectedLayer.createNewPath(brushSize);
             selectedLayer.addToCurrentPath(point);
 
             this.actions.push(new Action(selectedLayer.getCurrentPath(), selectedLayer));
-            this.drawPath(selectedLayer, point, pageIndex, zoomLevel, brushSize, false);
+            this.drawPath(selectedLayer, point, pageIndex, zoomLevel, brushSize, false, this.shiftDown);
         }
         else
         {
@@ -342,6 +347,15 @@ export default class PixelPlugin
 
     setupPointPainting (canvas, evt)
     {
+        var point,
+            horizontalMove = false,
+            mousePos = this.getMousePos(canvas, evt),
+            relativeCoords = this.getRelativeCoordinates(mousePos.x, mousePos.y);
+
+        if (Math.abs(relativeCoords.x - this.lastRelCoordsX) > Math.abs(relativeCoords.y - this.lastRelCoordsY))
+        {
+            horizontalMove = true;
+        }
         if (this.mousePressed)
         {
             if (this.keyboardChangingLayers)
@@ -353,16 +367,27 @@ export default class PixelPlugin
             {
                 let pageIndex = this.core.getSettings().currentPageIndex;
                 let zoomLevel = this.core.getSettings().zoomLevel;
-                let mousePos = this.getMousePos(canvas, evt);
-                let relativeCoords = this.getRelativeCoordinates(mousePos.x, mousePos.y);
 
                 if (this.isInPageBounds(relativeCoords.x, relativeCoords.y))
                 {
-                    let point = new Point(relativeCoords.x, relativeCoords.y, pageIndex);
+                    if (this.mousePressed && this.shiftDown)
+                    {
+                        if (!horizontalMove)
+                        {
+                            point = new Point(this.lastRelCoordsX, relativeCoords.y, pageIndex);
+                        }
+                        else
+                        {
+                            point = new Point(relativeCoords.x, this.lastRelCoordsY, pageIndex);
+                        }
+                    }
+                    else
+                    {
+                        point = new Point(relativeCoords.x, relativeCoords.y, pageIndex);
+                    }
                     let brushSize = this.layers[this.selectedLayer].getCurrentPath().brushSize;
-
                     this.layers[this.selectedLayer].addToCurrentPath(point);
-                    this.drawPath(this.layers[this.selectedLayer], point, pageIndex, zoomLevel, brushSize, true);
+                    this.drawPath(this.layers[this.selectedLayer], point, pageIndex, zoomLevel, brushSize, true, this.shiftDown);
                 }
             }
         }
@@ -516,7 +541,7 @@ export default class PixelPlugin
         }
     }
 
-    drawPath(layer, point, pageIndex, zoomLevel, brushSize, isDown)
+    drawPath(layer, point, pageIndex, zoomLevel, brushSize, isDown, shiftDown)
     {
         let opacity = layer.opacity;
         let renderer = this.core.getSettings().renderer;
@@ -563,7 +588,7 @@ export default class PixelPlugin
                     rgba = "rgba(255, 0, 0, " + opacity + ")";
             }
 
-            if(isDown)
+            if (isDown)
             {
                 renderer._ctx.beginPath();
                 renderer._ctx.strokeStyle = rgba;
@@ -580,7 +605,7 @@ export default class PixelPlugin
         }
     }
 
-    drawHighlights(args)
+    drawHighlights (args)
     {
         let pageIndex = args[0],
             zoomLevel = args[1];
@@ -601,7 +626,7 @@ export default class PixelPlugin
                     let isDown = false;
                     path.points.forEach((point) =>
                     {
-                        this.drawPath(layer, point, pageIndex, zoomLevel, path.brushSize, isDown);
+                        this.drawPath(layer, point, pageIndex, zoomLevel, path.brushSize, isDown, this.shiftDown);
                         isDown = true;
                     });
                 }
@@ -618,7 +643,7 @@ export default class PixelPlugin
     /**
      * Initializes the base matrix that maps the real-size picture
      **/
-    initializeMatrix()
+    initializeMatrix ()
     {
         if (this.matrix === null)
         {
@@ -635,7 +660,7 @@ export default class PixelPlugin
      * @param path object containing points
      * @param layer The targeted layer containing the pixels to map
      */
-    fillMatrix(path, layer)
+    fillMatrix (path, layer)
     {
         let maxZoomLevel = this.core.getSettings().maxZoomLevel;
         let scaleRatio = Math.pow(2, maxZoomLevel);
@@ -699,7 +724,7 @@ export class Path
         this.brushSize = brushSize;
     }
 
-    addPointToPath(point)
+    addPointToPath (point)
     {
         this.points.push(point);
     }
@@ -734,17 +759,17 @@ export class Layer
         this.paths = [];
     }
 
-    addShapeToLayer(shape)
+    addShapeToLayer (shape)
     {
         this.shapes.push(shape);
     }
 
-    addPathToLayer(path)
+    addPathToLayer (path)
     {
         this.paths.push(path);
     }
 
-    addToCurrentPath(point)
+    addToCurrentPath (point)
     {
         if (this.paths.length === 0)
         {
@@ -754,17 +779,17 @@ export class Layer
         this.paths[this.paths.length - 1].addPointToPath(point);
     }
 
-    getCurrentPath()
+    getCurrentPath ()
     {
         return this.paths[this.paths.length - 1];
     }
 
-    createNewPath(brushSize)
+    createNewPath (brushSize)
     {
         this.paths.push(new Path(brushSize));
     }
 
-    removePathFromLayer(path)
+    removePathFromLayer (path)
     {
         let index = this.paths.indexOf(path);
         this.paths.splice(index, 1);
