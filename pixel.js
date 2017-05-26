@@ -47,17 +47,19 @@ export default class PixelPlugin
         if(this.layers === null)
         {
             // Start by creating layers
-            let layer1 = new Layer(0, 0.8);
-            let layer2 = new Layer(1, 0.8);
-            let layer3 = new Layer(2, 0.8);
-            let layer4 = new Layer(3, 0.8);
-            let layer5 = new Layer(4, 0.8);
+            let layer1 = new Layer(0, new Colour(51, 102, 255, 0.8));
+            let layer2 = new Layer(1, new Colour(255, 51, 102, 0.8));
+            let layer3 = new Layer(2, new Colour(255, 255, 10, 0.8));
+            let layer4 = new Layer(3, new Colour(10, 255, 10, 0.8));
+            let layer5 = new Layer(4, new Colour(255, 137, 0, 0.8));
 
             layer1.addShapeToLayer(new Rectangle(new Point(23, 42, 0), 24, 24));
             layer2.addShapeToLayer(new Rectangle(new Point(48, 50, 0), 57, 5));
             layer3.addShapeToLayer(new Rectangle(new Point(50,120, 0), 50, 10));
 
             console.log(new Rectangle(new Point(23, 42, 0), 24, 24));
+            console.log(new Colour(25, 255, 100, 0.8).toString());
+
 
             this.layers = [layer1, layer2, layer3, layer4, layer5];
         }
@@ -214,10 +216,10 @@ export default class PixelPlugin
         opacitySlider.setAttribute("type", "range");
         opacitySlider.setAttribute('max', 100);
         opacitySlider.setAttribute('min', 0);
-        opacitySlider.setAttribute('value', layer.opacity*100);
+        opacitySlider.setAttribute('value', layer.getOpacity()*100);
         opacitySlider.addEventListener("input", () =>
         {
-            layer.opacity = opacitySlider.value/100;
+            layer.setOpacity(opacitySlider.value/100);
             this.repaint();
         });
 
@@ -508,14 +510,9 @@ export default class PixelPlugin
         };
     }
 
-    drawShape(layer, shape, pageIndex, zoomLevel)
-    {
-
-    }
-
     drawPath(layer, point, pageIndex, zoomLevel, brushSize, isDown)
     {
-        let opacity = layer.opacity;
+        let opacity = layer.getOpacity();
         let renderer = this.core.getSettings().renderer;
         let scaleRatio = Math.pow(2,zoomLevel);
 
@@ -537,33 +534,10 @@ export default class PixelPlugin
             let highlightXOffset = renderer._getImageOffset(pageIndex).left - renderer._viewport.left + viewportPaddingX + absoluteRectOriginX;
             let highlightYOffset = renderer._getImageOffset(pageIndex).top - renderer._viewport.top + viewportPaddingY + absoluteRectOriginY;
 
-            //Draw the rectangle
-            let rgba = null;
-            switch (layer.layerType)
-            {
-                case 0:
-                    rgba = "rgba(51, 102, 255, " + opacity + ")";
-                    break;
-                case 1:
-                    rgba = "rgba(255, 51, 102, " + opacity + ")";
-                    break;
-                case 2:
-                    rgba = "rgba(255, 255, 10 , " + opacity + ")";
-                    break;
-                case 3:
-                    rgba = "rgba(10, 255, 10, " + opacity + ")";
-                    break;
-                case 4:
-                    rgba = "rgba(120, 0, 120, " + opacity + ")";
-                    break;
-                default:
-                    rgba = "rgba(255, 0, 0, " + opacity + ")";
-            }
-
             if(isDown)
             {
                 renderer._ctx.beginPath();
-                renderer._ctx.strokeStyle = rgba;
+                renderer._ctx.strokeStyle = layer.colour.toString();
                 renderer._ctx.lineWidth = brushSize * scaleRatio;
                 renderer._ctx.lineJoin = "round";
                 renderer._ctx.moveTo(this.lastX, this.lastY);
@@ -700,7 +674,7 @@ export class Rectangle extends Shape
 
     draw(layer, pageIndex, zoomLevel, renderer)
     {
-        let opacity = layer.opacity;
+        let opacity = layer.getOpacity();
         let scaleRatio = Math.pow(2,zoomLevel);
 
         const viewportPaddingX = Math.max(0, (renderer._viewport.width - renderer.layout.dimensions.width) / 2);
@@ -721,29 +695,7 @@ export class Rectangle extends Shape
             let highlightYOffset = renderer._getImageOffset(pageIndex).top - renderer._viewport.top + viewportPaddingY + absoluteRectOriginY;
 
             //Draw the rectangle
-            let rgba = null;
-            switch (layer.layerType)
-            {
-                case 0:
-                    rgba = "rgba(51, 102, 255, " + opacity + ")";
-                    break;
-                case 1:
-                    rgba = "rgba(255, 51, 102, " + opacity + ")";
-                    break;
-                case 2:
-                    rgba = "rgba(255, 255, 10 , " + opacity + ")";
-                    break;
-                case 3:
-                    rgba = "rgba(10, 255, 10, " + opacity + ")";
-                    break;
-                case 4:
-                    rgba = "rgba(120, 0, 120, " + opacity + ")";
-                    break;
-                default:
-                    rgba = "rgba(255, 0, 0, " + opacity + ")";
-            }
-
-            renderer._ctx.fillStyle = rgba;
+            renderer._ctx.fillStyle = layer.colour.toString();
             renderer._ctx.fillRect(highlightXOffset, highlightYOffset,absoluteRectWidth,absoluteRectHeight);
         }
     }
@@ -782,14 +734,30 @@ export class Action
     }
 }
 
+export class Colour
+{
+    constructor (red, green, blue, opacity)
+    {
+        this.red = red;
+        this.green = green;
+        this.blue = blue;
+        this.opacity = opacity;
+    }
+
+    toString ()
+    {
+        return "rgba(" + this.red +  ", " + this.green + ", " + this.blue + ", " + this.opacity + ")";
+    }
+}
+
 export class Layer
 {
-    constructor (layerType, opacity)
+    constructor (layerType, colour)
     {
         this.layerType = layerType;
-        this.opacity = opacity;
         this.shapes = [];
         this.paths = [];
+        this.colour = colour;
     }
 
     addShapeToLayer(shape)
@@ -826,6 +794,16 @@ export class Layer
     {
         let index = this.paths.indexOf(path);
         this.paths.splice(index, 1);
+    }
+
+    setOpacity(opacity)
+    {
+        this.colour.opacity = opacity;
+    }
+
+    getOpacity()
+    {
+        return this.colour.opacity;
     }
 }
 
