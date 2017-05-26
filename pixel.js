@@ -26,6 +26,7 @@ export default class PixelPlugin
         this.actions = [];
         this.undoneActions = [];
         this.shiftDown = false;
+        this.currentTool = "brush";
     }
 
     /**
@@ -57,16 +58,12 @@ export default class PixelPlugin
             layer2.addShapeToLayer(new Rectangle(new Point(48, 50, 0), 57, 5));
             layer3.addShapeToLayer(new Rectangle(new Point(50,120, 0), 50, 10));
 
-            console.log(new Rectangle(new Point(23, 42, 0), 24, 24));
-            console.log(new Colour(25, 255, 100, 0.8).toString());
-
-
             this.layers = [layer1, layer2, layer3, layer4, layer5];
         }
 
         this.initializeMatrix();
         this.visibleTilesHandle = this.subscribeToVisibleTilesEvent();
-        this.mouseHandles = this.subscribeToMouseEvents();
+        this.subscribeToMouseEvents();
         this.keyboardHandles = this.subscribeToKeyboardEvents();
         this.createPluginElements(this.layers);
         this.repaint();  // Repaint the tiles to retrigger VisibleTilesDidLoad
@@ -102,22 +99,19 @@ export default class PixelPlugin
     {
         let canvas = document.getElementById("diva-1-outer");
 
-        this.boundInitializeNewPath = (evt) => {
-            this.initializeNewPath(canvas, evt);
-            this.undoneActions = [];
-        };
-        this.disableMousePressed = () => { this.endPath() };
-        this.setupPainting = (evt) => { this.setupPointPainting(canvas, evt); };
+        this.mouseDown = (evt) => { this.onMouseDown(evt); };
+        this.mouseUp = (evt) => { this.onMouseUp(evt); };
+        this.mouseMove = (evt) => { this.onMouseMove(evt); };
 
-        canvas.addEventListener('mousedown', this.boundInitializeNewPath);
-        canvas.addEventListener('mouseup', this.disableMousePressed);
-        canvas.addEventListener('mouseleave', this.disableMousePressed);
-        canvas.addEventListener('mousemove', this.setupPainting, false);
+        canvas.addEventListener('mousedown', this.mouseDown);
+        canvas.addEventListener('mouseup', this.mouseUp);
+        canvas.addEventListener('mouseleave', this.mouseUp);
+        canvas.addEventListener('mousemove', this.mouseMove);
 
-        return{
-            mouthDownHandle: this.boundInitializeNewPath,
-            mouseMoveHandle: this.setupPainting,
-            mouseUpHandle: this.disableMousePressed
+        this.mouseHandles = {
+            mouseDownHandle: this.mouseDown,
+            mouseMoveHandle: this.mouseMove,
+            mouseUpHandle: this.mouseUp
         };
     }
 
@@ -157,11 +151,23 @@ export default class PixelPlugin
         {
             if (e.code === "KeyZ" && e.shiftKey === false)
             {
-                this.undoFunction();
+                this.undoAction();
             }
             else if (e.code === "KeyZ" && e.shiftKey === true)
             {
-                this.redoFunction();
+                this.redoAction();
+            }
+            else if (e.key === "Shift")
+            {
+                console.log("SHIFT");
+            }
+            else if (e.key === "b")
+            {
+                this.currentTool = "brush";
+            }
+            else if (e.key === "r")
+            {
+                this.currentTool = "rectangle";
             }
         }
 
@@ -175,7 +181,7 @@ export default class PixelPlugin
     {
         var canvas = document.getElementById("diva-1-outer");
 
-        canvas.removeEventListener('mousedown', this.mouseHandles.mouthDownHandle);
+        canvas.removeEventListener('moubsedown', this.mouseHandles.mouseDownHandle);
         canvas.removeEventListener('mouseup', this.mouseHandles.mouseUpHandle);
         canvas.removeEventListener('mouseleave', this.mouseHandles.mouseUpHandle);
         canvas.removeEventListener('mousemove', this.mouseHandles.mouseMoveHandle);
@@ -290,7 +296,7 @@ export default class PixelPlugin
         let undoButton = document.createElement("button");
         let text = document.createTextNode("Undo");
 
-        this.undo = () => { this.undoFunction(); };
+        this.undo = () => { this.undoAction(); };
 
         undoButton.setAttribute("id", "undo button");
         undoButton.appendChild(text);
@@ -311,7 +317,7 @@ export default class PixelPlugin
         let text = document.createTextNode("Redo");
         let br = document.createElement("br");
 
-        this.redo = () => { this.redoFunction(); };
+        this.redo = () => { this.redoAction(); };
 
         br.setAttribute("id", "redo button break");
         redoButton.setAttribute("id", "redo button");
@@ -337,10 +343,59 @@ export default class PixelPlugin
      * ===============================================
      **/
 
+    onMouseDown(evt)
+    {
+        let canvas = document.getElementById("diva-1-outer");
+        switch (this.currentTool)
+        {
+            case "brush":
+                this.mousePressed = true;
+                this.initializeNewPath(canvas, evt);
+                this.undoneActions = [];
+                break;
+            case "rectangle":
+                this.mousePressed = true;
+                this.rectangleShapePreview(canvas, evt);
+                break;
+            default:
+                this.mousePressed = true;
+        }
+    }
+
+    onMouseMove(evt)
+    {
+        let canvas = document.getElementById("diva-1-outer");
+        switch (this.currentTool)
+        {
+            case "brush":
+                this.setupPointPainting(canvas, evt);
+                break;
+            case "rectangle":
+                this.rectanglePreview(canvas,evt);
+                break;
+            default:
+        }
+    }
+
+    onMouseUp(evt)
+    {
+        let canvas = document.getElementById("diva-1-outer");
+        switch (this.currentTool)
+        {
+            case "brush":
+                this.mousePressed = false;
+                this.repaint();
+                break;
+            case "rectangle":
+                this.mousePressed = false;
+                break;
+            default:
+                this.mousePressed = false;
+        }
+    }
+
     initializeNewPath(canvas, evt)
     {
-        this.mousePressed = true;
-
         let pageIndex = this.core.getSettings().currentPageIndex;
         let zoomLevel = this.core.getSettings().zoomLevel;
         let mousePos = this.getMousePos(canvas, evt);
@@ -392,7 +447,41 @@ export default class PixelPlugin
         }
     }
 
-    redoFunction ()
+
+    rectangleShapePreview (canvas, evt)
+    {
+        let pageIndex = this.core.getSettings().currentPageIndex;
+        let zoomLevel = this.core.getSettings().zoomLevel;
+        let mousePos = this.getMousePos(canvas, evt);
+        let relativeCoords = this.getRelativeCoordinates(mousePos.x, mousePos.y);
+
+        if (this.isInPageBounds(relativeCoords.x, relativeCoords.y))
+        {
+            this.layers[this.selectedLayer].addShapeToLayer(new Rectangle(new Point(relativeCoords.x,relativeCoords.y,pageIndex), 0, 0));
+            this.repaint();
+        }
+    }
+
+    rectanglePreview (canvas, evt)
+    {
+        if (this.mousePressed)
+        {
+            let pageIndex = this.core.getSettings().currentPageIndex;
+            let zoomLevel = this.core.getSettings().zoomLevel;
+            let mousePos = this.getMousePos(canvas, evt);
+            let relativeCoords = this.getRelativeCoordinates(mousePos.x, mousePos.y);
+            let lastShape = this.layers[this.selectedLayer].getLastShape();
+
+            if (this.isInPageBounds(relativeCoords.x, relativeCoords.y))
+            {
+                lastShape.relativeRectWidth = relativeCoords.x - lastShape.origin.relativeOriginX;
+                lastShape.relativeRectHeight = relativeCoords.y - lastShape.origin.relativeOriginY;
+                this.repaint();
+            }
+        }
+    }
+
+    redoAction ()
     {
         if (this.undoneActions.length > 0)
         {
@@ -406,7 +495,7 @@ export default class PixelPlugin
     }
 
 
-    undoFunction ()
+    undoAction ()
     {
         if (this.actions.length > 0)
         {
@@ -425,12 +514,6 @@ export default class PixelPlugin
             this.actions.splice(index, 1);
             this.repaint();
         }
-    }
-
-    endPath ()
-    {
-        this.mousePressed = false;
-        this.repaint();
     }
 
     repaint()
@@ -512,7 +595,6 @@ export default class PixelPlugin
 
     drawPath(layer, point, pageIndex, zoomLevel, brushSize, isDown)
     {
-        let opacity = layer.getOpacity();
         let renderer = this.core.getSettings().renderer;
         let scaleRatio = Math.pow(2,zoomLevel);
 
@@ -674,7 +756,6 @@ export class Rectangle extends Shape
 
     draw(layer, pageIndex, zoomLevel, renderer)
     {
-        let opacity = layer.getOpacity();
         let scaleRatio = Math.pow(2,zoomLevel);
 
         const viewportPaddingX = Math.max(0, (renderer._viewport.width - renderer.layout.dimensions.width) / 2);
@@ -782,7 +863,14 @@ export class Layer
 
     getCurrentPath()
     {
-        return this.paths[this.paths.length - 1];
+        if(this.paths.length > 0)
+        {
+            return this.paths[this.paths.length - 1];
+        }
+        else
+        {
+            return null;
+        }
     }
 
     createNewPath(brushSize)
@@ -804,6 +892,18 @@ export class Layer
     getOpacity()
     {
         return this.colour.opacity;
+    }
+
+    getLastShape()
+    {
+        if(this.shapes.length > 0)
+        {
+            return this.shapes[this.shapes.length - 1];
+        }
+        else
+        {
+            return null;
+        }
     }
 }
 
