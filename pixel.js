@@ -120,23 +120,23 @@ export default class PixelPlugin
     {
         let handle = (e) =>
         {
-            const key1 = 49;
-            const key9 = 56;
-            const shiftKey = 16;
+            const KEY_1 = 49;
+            const KEY_9 = 56;
+            const SHIFT_KEY = 16;
 
             let lastLayer = this.selectedLayer;
             let numberOfLayers = this.layers.length;
             let key = e.keyCode ? e.keyCode : e.which;
 
-            if (key >= key1 && key < key1 + numberOfLayers && key <= key9)
+            if (key >= KEY_1 && key < KEY_1 + numberOfLayers && key <= KEY_9)
             {
-                this.selectedLayer = key - key1;
+                this.selectedLayer = key - KEY_1;
                 document.getElementById("layer " + this.selectedLayer).checked = true;
 
                 if (lastLayer !== this.selectedLayer && this.mousePressed)
                     this.keyboardChangingLayers = true;
             }
-            if (key === shiftKey)
+            if (key === SHIFT_KEY)
             {
                 this.shiftDown = false;
             }
@@ -151,10 +151,10 @@ export default class PixelPlugin
     {
         let handle = (e) =>
         {
-            const shiftKey = 16;
+            const SHIFT_KEY = 16;
             let key = e.keyCode ? e.keyCode : e.which;
 
-            if (key === shiftKey)
+            if (key === SHIFT_KEY)
             {
                 this.shiftDown = true;
             }
