@@ -351,7 +351,6 @@ export default class PixelPlugin
             case "brush":
                 this.mousePressed = true;
                 this.initializeNewPath(canvas, evt);
-                this.undoneActions = [];
                 break;
             case "rectangle":
                 this.mousePressed = true;
@@ -360,6 +359,7 @@ export default class PixelPlugin
             default:
                 this.mousePressed = true;
         }
+        this.undoneActions = [];
     }
 
     onMouseMove(evt)
