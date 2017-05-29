@@ -257,7 +257,7 @@ export default class PixelPlugin
         layers.forEach((layer) =>
         {
             let radio = document.createElement("input");
-            let content = document.createTextNode("Layer " + (layer.layerType));
+            let content = document.createTextNode("Layer " + (layer.layerType + 1));
             let br = document.createElement("br");
 
             radio.setAttribute("id", "layer " + layer.layerType);
