@@ -68,7 +68,6 @@ export default class PixelPlugin
         this.visibleTilesHandle = this.subscribeToVisibleTilesEvent();
         this.subscribeToMouseEvents();
         this.keyboardHandles = this.subscribeToKeyboardEvents();
-        //this.keyboardPress = this.subscribeToKeyboardPress();
         this.createPluginElements(this.layers);
         this.repaint();  // Repaint the tiles to retrigger VisibleTilesDidLoad
         this.activated = true;
@@ -120,7 +119,6 @@ export default class PixelPlugin
         };
     }
 
-    //Deals with keyboard button release
     subscribeToKeyboardEvents ()
     {
         let handle = (e) =>
@@ -147,7 +145,6 @@ export default class PixelPlugin
             }
         };
 
-
         let handleKeyDown = (e) =>
         {
             if (e.code === "KeyZ" && e.shiftKey === false)
@@ -160,7 +157,6 @@ export default class PixelPlugin
             }
             else if (e.key === "Shift")
             {
-                console.log("Shift pressed");
                 this.shiftDown = true;
             }
             else if (e.key === "b")
@@ -176,6 +172,7 @@ export default class PixelPlugin
         document.addEventListener("keyup", handle);
         document.addEventListener("keydown", handleKeyDown);
         return handle;
+
     }
 
     unsubscribeFromMouseEvents ()
