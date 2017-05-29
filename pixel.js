@@ -20,11 +20,14 @@ export default class PixelPlugin
         this.layers = null;
         this.matrix = null;
         this.mousePressed = false;
+        this.keyboardPress = false;
         this.lastX, this.lastY;
         this.selectedLayer = 0;
         this.keyboardChangingLayers = false;
         this.actions = [];
         this.shiftDown = false;
+        this.lastRelCoordsX = null;
+        this.lastRelCoordsY = null;
     }
 
     /**
@@ -62,6 +65,7 @@ export default class PixelPlugin
         this.visibleTilesHandle = this.subscribeToVisibleTilesEvent();
         this.mouseHandles = this.subscribeToMouseEvents();
         this.keyboardHandles = this.subscribeToKeyboardEvents();
+        this.keyboardPress = this.subscribeToKeyboardPress();
         this.createPluginElements(this.layers);
         this.repaint();  // Repaint the tiles to retrigger VisibleTilesDidLoad
         this.activated = true;
@@ -72,6 +76,7 @@ export default class PixelPlugin
         Diva.Events.unsubscribe(this.visibleTilesHandle);
         this.unsubscribeFromMouseEvents();
         this.unsubscribeFromKeyboardEvents();
+        this.unsubscribeFromKeyboardPress();
         this.repaint(); // Repaint the tiles to make the highlights disappear off the page
         this.destroyPluginElements(this.layers);
         this.activated = false;
@@ -112,39 +117,53 @@ export default class PixelPlugin
         };
     }
 
+    //Deals with keyboard button release
     subscribeToKeyboardEvents()
     {
         let handle = (e) =>
         {
-            const key1 = 49;
-            const key9 = 56;
-            const shiftKey = 16;
+            const KEY_1 = 49;
+            const KEY_9 = 56;
+            const SHIFT_KEY = 16;
 
             let lastLayer = this.selectedLayer;
             let numberOfLayers = this.layers.length;
             let key = e.keyCode ? e.keyCode : e.which;
 
-            if (key >= key1 && key < key1 + numberOfLayers && key <= key9)
+            if (key >= KEY_1 && key < KEY_1 + numberOfLayers && key <= KEY_9)
             {
-                this.selectedLayer = key - key1;
+                this.selectedLayer = key - KEY_1;
                 document.getElementById("layer " + this.selectedLayer).checked = true;
 
                 if (lastLayer !== this.selectedLayer && this.mousePressed)
                     this.keyboardChangingLayers = true;
             }
-
-            if (key === shiftKey)
-            {
-                this.shiftDown = true;
-            }
-            else
+            if (key === SHIFT_KEY)
             {
                 this.shiftDown = false;
             }
         };
         document.addEventListener("keyup", handle);
-
         return handle;
+
+    }
+
+    //Deals with keyboard button down press
+    subscribeToKeyboardPress()
+    {
+        let handle = (e) =>
+        {
+            const SHIFT_KEY = 16;
+            let key = e.keyCode ? e.keyCode : e.which;
+
+            if (key === SHIFT_KEY)
+            {
+                this.shiftDown = true;
+            }
+        };
+        document.addEventListener("keydown", handle);
+        return handle;
+
     }
 
     unsubscribeFromMouseEvents()
@@ -160,6 +179,11 @@ export default class PixelPlugin
     unsubscribeFromKeyboardEvents()
     {
         document.removeEventListener("keyup", this.keyboardHandles);
+    }
+
+    unsubscribeFromKeyboardPress()
+    {
+        document.removeEventListener("keydown", this.keyboardHandles);
     }
 
     /**
@@ -306,11 +330,14 @@ export default class PixelPlugin
             let point = new Point(relativeCoords.x, relativeCoords.y, pageIndex);
             let brushSize = document.getElementById("brush size selector").value/10;
 
+            this.lastRelCoordsX = relativeCoords.x;
+            this.lastRelCoordsY = relativeCoords.y;
+
             selectedLayer.createNewPath(brushSize);
             selectedLayer.addToCurrentPath(point);
 
             this.actions.push(new Action(selectedLayer.getCurrentPath(), selectedLayer));
-            this.drawPath(selectedLayer, point, pageIndex, zoomLevel, brushSize, false);
+            this.drawPath(selectedLayer, point, pageIndex, zoomLevel, brushSize, false, this.shiftDown);
         }
         else
         {
@@ -320,6 +347,15 @@ export default class PixelPlugin
 
     setupPointPainting (canvas, evt)
     {
+        var point,
+            horizontalMove = false,
+            mousePos = this.getMousePos(canvas, evt),
+            relativeCoords = this.getRelativeCoordinates(mousePos.x, mousePos.y);
+
+        if (Math.abs(relativeCoords.x - this.lastRelCoordsX) > Math.abs(relativeCoords.y - this.lastRelCoordsY))
+        {
+            horizontalMove = true;
+        }
         if (this.mousePressed)
         {
             if (this.keyboardChangingLayers)
@@ -331,16 +367,27 @@ export default class PixelPlugin
             {
                 let pageIndex = this.core.getSettings().currentPageIndex;
                 let zoomLevel = this.core.getSettings().zoomLevel;
-                let mousePos = this.getMousePos(canvas, evt);
-                let relativeCoords = this.getRelativeCoordinates(mousePos.x, mousePos.y);
 
                 if (this.isInPageBounds(relativeCoords.x, relativeCoords.y))
                 {
-                    let point = new Point(relativeCoords.x, relativeCoords.y, pageIndex);
+                    if (this.mousePressed && this.shiftDown)
+                    {
+                        if (!horizontalMove)
+                        {
+                            point = new Point(this.lastRelCoordsX, relativeCoords.y, pageIndex);
+                        }
+                        else
+                        {
+                            point = new Point(relativeCoords.x, this.lastRelCoordsY, pageIndex);
+                        }
+                    }
+                    else
+                    {
+                        point = new Point(relativeCoords.x, relativeCoords.y, pageIndex);
+                    }
                     let brushSize = this.layers[this.selectedLayer].getCurrentPath().brushSize;
-
                     this.layers[this.selectedLayer].addToCurrentPath(point);
-                    this.drawPath(this.layers[this.selectedLayer], point, pageIndex, zoomLevel, brushSize, true);
+                    this.drawPath(this.layers[this.selectedLayer], point, pageIndex, zoomLevel, brushSize, true, this.shiftDown);
                 }
             }
         }
@@ -494,7 +541,7 @@ export default class PixelPlugin
         }
     }
 
-    drawPath(layer, point, pageIndex, zoomLevel, brushSize, isDown)
+    drawPath(layer, point, pageIndex, zoomLevel, brushSize, isDown, shiftDown)
     {
         let opacity = layer.opacity;
         let renderer = this.core.getSettings().renderer;
@@ -541,7 +588,7 @@ export default class PixelPlugin
                     rgba = "rgba(255, 0, 0, " + opacity + ")";
             }
 
-            if(isDown)
+            if (isDown)
             {
                 renderer._ctx.beginPath();
                 renderer._ctx.strokeStyle = rgba;
@@ -558,7 +605,7 @@ export default class PixelPlugin
         }
     }
 
-    drawHighlights(args)
+    drawHighlights (args)
     {
         let pageIndex = args[0],
             zoomLevel = args[1];
@@ -579,7 +626,7 @@ export default class PixelPlugin
                     let isDown = false;
                     path.points.forEach((point) =>
                     {
-                        this.drawPath(layer, point, pageIndex, zoomLevel, path.brushSize, isDown);
+                        this.drawPath(layer, point, pageIndex, zoomLevel, path.brushSize, isDown, this.shiftDown);
                         isDown = true;
                     });
                 }
@@ -596,7 +643,7 @@ export default class PixelPlugin
     /**
      * Initializes the base matrix that maps the real-size picture
      **/
-    initializeMatrix()
+    initializeMatrix ()
     {
         if (this.matrix === null)
         {
@@ -613,7 +660,7 @@ export default class PixelPlugin
      * @param path object containing points
      * @param layer The targeted layer containing the pixels to map
      */
-    fillMatrix(path, layer)
+    fillMatrix (path, layer)
     {
         let maxZoomLevel = this.core.getSettings().maxZoomLevel;
         let scaleRatio = Math.pow(2, maxZoomLevel);
@@ -677,7 +724,7 @@ export class Path
         this.brushSize = brushSize;
     }
 
-    addPointToPath(point)
+    addPointToPath (point)
     {
         this.points.push(point);
     }
@@ -712,17 +759,17 @@ export class Layer
         this.paths = [];
     }
 
-    addShapeToLayer(shape)
+    addShapeToLayer (shape)
     {
         this.shapes.push(shape);
     }
 
-    addPathToLayer(path)
+    addPathToLayer (path)
     {
         this.paths.push(path);
     }
 
-    addToCurrentPath(point)
+    addToCurrentPath (point)
     {
         if (this.paths.length === 0)
         {
@@ -732,17 +779,17 @@ export class Layer
         this.paths[this.paths.length - 1].addPointToPath(point);
     }
 
-    getCurrentPath()
+    getCurrentPath ()
     {
         return this.paths[this.paths.length - 1];
     }
 
-    createNewPath(brushSize)
+    createNewPath (brushSize)
     {
         this.paths.push(new Path(brushSize));
     }
 
-    removePathFromLayer(path)
+    removePathFromLayer (path)
     {
         let index = this.paths.indexOf(path);
         this.paths.splice(index, 1);
