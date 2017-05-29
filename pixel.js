@@ -57,7 +57,7 @@ export default class PixelPlugin
             let layer4 = new Layer(4, new Colour(10, 255, 10, 0.8));
             let layer5 = new Layer(5, new Colour(255, 137, 0, 0.8));
 
-            layer1.addShapeToLayer(new Rectangle(new Point(23, 42, 0), 24, 24));
+            layer1.addShapeToLayer(new Rectangle(new Point(23, 42, 0), 35, 35));
             layer2.addShapeToLayer(new Rectangle(new Point(48, 50, 0), 57, 5));
             layer3.addShapeToLayer(new Rectangle(new Point(50,120, 0), 50, 10));
 
@@ -211,6 +211,7 @@ export default class PixelPlugin
         this.createRedoButton();
         this.createLayerSelectors(layers);
         this.createBrushSizeSelector();
+        this.createExportButton();
     }
 
     destroyPluginElements (layers)
@@ -219,6 +220,7 @@ export default class PixelPlugin
         this.destroyBrushSizeSelector();
         this.destroyUndoButton();
         this.destroyRedoButton();
+        this.destroyExportButton();
     }
 
     createOpacitySlider (layer, parentElement)
@@ -255,7 +257,7 @@ export default class PixelPlugin
         layers.forEach((layer) =>
         {
             let radio = document.createElement("input");
-            let content = document.createTextNode("Layer " + (layer.layerType + 1));
+            let content = document.createTextNode("Layer " + (layer.layerType));
             let br = document.createElement("br");
 
             radio.setAttribute("id", "layer " + layer.layerType);
@@ -342,6 +344,26 @@ export default class PixelPlugin
 
         let br = document.getElementById("redo button break");
         document.body.removeChild(br);
+    }
+
+    createExportButton ()
+    {
+        let exportButton = document.createElement("button");
+        let text = document.createTextNode("Export as Matrix");
+
+        this.export = () => { this.populateMatrix(); };
+
+        exportButton.setAttribute("id", "export button");
+        exportButton.appendChild(text);
+        exportButton.addEventListener("click", this.export);
+
+        document.body.appendChild(exportButton);
+    }
+
+    destroyExportButton ()
+    {
+        let exportButton = document.getElementById("export button");
+        document.body.removeChild(exportButton);
     }
 
     /**
@@ -727,20 +749,18 @@ export default class PixelPlugin
      **/
     initializeMatrix ()
     {
-        if (this.matrix === null)
-        {
-            let pageIndex = this.core.getSettings().currentPageIndex,
-                maxZoomLevel = this.core.getSettings().maxZoomLevel;
-            let height = this.core.publicInstance.getPageDimensionsAtZoomLevel(pageIndex, maxZoomLevel).height,
-                width = this.core.publicInstance.getPageDimensionsAtZoomLevel(pageIndex, maxZoomLevel).width;
-            this.matrix = new Array(height).fill(null).map(() => new Array(width).fill(0));
-        }
-
-        this.populateMatrix();
+        let pageIndex = this.core.getSettings().currentPageIndex,
+            maxZoomLevel = this.core.getSettings().maxZoomLevel;
+        let height = this.core.publicInstance.getPageDimensionsAtZoomLevel(pageIndex, maxZoomLevel).height,
+            width = this.core.publicInstance.getPageDimensionsAtZoomLevel(pageIndex, maxZoomLevel).width;
+        this.matrix = new Array(height).fill(null).map(() => new Array(width).fill(0));
     }
 
     populateMatrix ()
     {
+
+        this.initializeMatrix();
+
         let pageIndex = this.core.getSettings().currentPageIndex,
             maxZoomLevel = this.core.getSettings().maxZoomLevel;
 
@@ -753,7 +773,21 @@ export default class PixelPlugin
                     shape.getPixels(layer, pageIndex, maxZoomLevel, this.core.getSettings().renderer, this.matrix);
                 }
             );
+
+            // let paths = layer.paths;
+            // paths.forEach((path) =>
+            //     {
+            //         let isDown = false;
+            //         path.points.forEach((point) =>
+            //         {
+            //             this.drawPath(layer, point, pageIndex, zoomLevel, path.brushSize, isDown, this.shiftDown);
+            //             isDown = true;
+            //         });
+            //     }
+            // );
         });
+
+        console.log("after", this.matrix);
     }
 
     /**
@@ -873,10 +907,12 @@ export class Rectangle extends Shape
 
         if (pageIndex === this.origin.pageIndex)
         {
+            console.log(absoluteRectOriginY, absoluteRectOriginX, absoluteRectOriginY + absoluteRectHeight, absoluteRectOriginX + absoluteRectWidth);
+
             // Want abs coord of start and finish
-            for(var row = absoluteRectOriginY; row <  absoluteRectOriginY + absoluteRectHeight; row++)
+            for(var row = Math.min(absoluteRectOriginY, absoluteRectOriginY + absoluteRectHeight); row <  Math.max(absoluteRectOriginY, absoluteRectOriginY + absoluteRectHeight); row++)
             {
-                for(var col = absoluteRectOriginX; col < absoluteRectOriginX + absoluteRectWidth; col++)
+                for(var col = Math.min(absoluteRectOriginX, absoluteRectOriginX + absoluteRectWidth); col < Math.max(absoluteRectOriginX, absoluteRectOriginX + absoluteRectWidth); col++)
                 {
                     matrix[row][col] = layer.layerType;
                 }
