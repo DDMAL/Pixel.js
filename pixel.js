@@ -25,7 +25,9 @@ export default class PixelPlugin
         this.selectedLayer = 0;
         this.keyboardChangingLayers = false;
         this.actions = [];
+        this.undoneActions = [];
         this.shiftDown = false;
+        this.currentTool = "brush";
         this.lastRelCoordsX = null;
         this.lastRelCoordsY = null;
     }
@@ -44,34 +46,34 @@ export default class PixelPlugin
             this.deactivatePlugin();
     }
 
-    activatePlugin()
+    activatePlugin ()
     {
-        if(this.layers === null)
+        if (this.layers === null)
         {
             // Start by creating layers
-            let layer1 = new Layer(0, 0.8);
-            let layer2 = new Layer(1, 0.8);
-            let layer3 = new Layer(2, 0.8);
-            let layer4 = new Layer(3, 0.8);
-            let layer5 = new Layer(4, 0.8);
-            layer1.addShapeToLayer(new Rectangle(23, 42, 24, 24, 0));
-            layer2.addShapeToLayer(new Rectangle(48, 50, 57, 5, 0));
-            layer3.addShapeToLayer(new Rectangle(50, 120, 50, 10, 0));
+            let layer1 = new Layer(0, new Colour(51, 102, 255, 0.8));
+            let layer2 = new Layer(1, new Colour(255, 51, 102, 0.8));
+            let layer3 = new Layer(2, new Colour(255, 255, 10, 0.8));
+            let layer4 = new Layer(3, new Colour(10, 255, 10, 0.8));
+            let layer5 = new Layer(4, new Colour(255, 137, 0, 0.8));
+
+            layer1.addShapeToLayer(new Rectangle(new Point(23, 42, 0), 24, 24));
+            layer2.addShapeToLayer(new Rectangle(new Point(48, 50, 0), 57, 5));
+            layer3.addShapeToLayer(new Rectangle(new Point(50,120, 0), 50, 10));
 
             this.layers = [layer1, layer2, layer3, layer4, layer5];
         }
 
         this.initializeMatrix();
         this.visibleTilesHandle = this.subscribeToVisibleTilesEvent();
-        this.mouseHandles = this.subscribeToMouseEvents();
+        this.subscribeToMouseEvents();
         this.keyboardHandles = this.subscribeToKeyboardEvents();
-        this.keyboardPress = this.subscribeToKeyboardPress();
         this.createPluginElements(this.layers);
         this.repaint();  // Repaint the tiles to retrigger VisibleTilesDidLoad
         this.activated = true;
     }
 
-    deactivatePlugin()
+    deactivatePlugin ()
     {
         Diva.Events.unsubscribe(this.visibleTilesHandle);
         this.unsubscribeFromMouseEvents();
@@ -88,7 +90,7 @@ export default class PixelPlugin
      * ===============================================
      **/
 
-    subscribeToVisibleTilesEvent()
+    subscribeToVisibleTilesEvent ()
     {
         let handle = Diva.Events.subscribe('VisibleTilesDidLoad', (args) =>
         {
@@ -97,28 +99,27 @@ export default class PixelPlugin
         return handle;
     }
 
-    subscribeToMouseEvents()
+    subscribeToMouseEvents ()
     {
         let canvas = document.getElementById("diva-1-outer");
 
-        this.boundInitializeNewPath = (evt) => { this.initializeNewPath(canvas, evt); };
-        this.disableMousePressed = () => { this.endPath() };
-        this.setupPainting = (evt) => { this.setupPointPainting(canvas, evt); };
+        this.mouseDown = (evt) => { this.onMouseDown(evt); };
+        this.mouseUp = (evt) => { this.onMouseUp(evt); };
+        this.mouseMove = (evt) => { this.onMouseMove(evt); };
 
-        canvas.addEventListener('mousedown', this.boundInitializeNewPath);
-        canvas.addEventListener('mouseup', this.disableMousePressed);
-        canvas.addEventListener('mouseleave', this.disableMousePressed);
-        canvas.addEventListener('mousemove', this.setupPainting, false);
+        canvas.addEventListener('mousedown', this.mouseDown);
+        canvas.addEventListener('mouseup', this.mouseUp);
+        canvas.addEventListener('mouseleave', this.mouseUp);
+        canvas.addEventListener('mousemove', this.mouseMove);
 
-        return{
-            mouthDownHandle: this.boundInitializeNewPath,
-            mouseMoveHandle: this.setupPainting,
-            mouseUpHandle: this.disableMousePressed
+        this.mouseHandles = {
+            mouseDownHandle: this.mouseDown,
+            mouseMoveHandle: this.mouseMove,
+            mouseUpHandle: this.mouseUp
         };
     }
 
-    //Deals with keyboard button release
-    subscribeToKeyboardEvents()
+    subscribeToKeyboardEvents ()
     {
         let handle = (e) =>
         {
@@ -143,45 +144,53 @@ export default class PixelPlugin
                 this.shiftDown = false;
             }
         };
-        document.addEventListener("keyup", handle);
-        return handle;
 
-    }
-
-    //Deals with keyboard button down press
-    subscribeToKeyboardPress()
-    {
-        let handle = (e) =>
+        let handleKeyDown = (e) =>
         {
-            const SHIFT_KEY = 16;
-            let key = e.keyCode ? e.keyCode : e.which;
-
-            if (key === SHIFT_KEY)
+            if (e.code === "KeyZ" && e.shiftKey === false)
+            {
+                this.undoAction();
+            }
+            else if (e.code === "KeyZ" && e.shiftKey === true)
+            {
+                this.redoAction();
+            }
+            else if (e.key === "Shift")
             {
                 this.shiftDown = true;
             }
-        };
-        document.addEventListener("keydown", handle);
+            else if (e.key === "b")
+            {
+                this.currentTool = "brush";
+            }
+            else if (e.key === "r")
+            {
+                this.currentTool = "rectangle";
+            }
+        }
+
+        document.addEventListener("keyup", handle);
+        document.addEventListener("keydown", handleKeyDown);
         return handle;
 
     }
 
-    unsubscribeFromMouseEvents()
+    unsubscribeFromMouseEvents ()
     {
         var canvas = document.getElementById("diva-1-outer");
 
-        canvas.removeEventListener('mousedown', this.mouseHandles.mouthDownHandle);
+        canvas.removeEventListener('moubsedown', this.mouseHandles.mouseDownHandle);
         canvas.removeEventListener('mouseup', this.mouseHandles.mouseUpHandle);
         canvas.removeEventListener('mouseleave', this.mouseHandles.mouseUpHandle);
         canvas.removeEventListener('mousemove', this.mouseHandles.mouseMoveHandle);
     }
 
-    unsubscribeFromKeyboardEvents()
+    unsubscribeFromKeyboardEvents ()
     {
         document.removeEventListener("keyup", this.keyboardHandles);
     }
 
-    unsubscribeFromKeyboardPress()
+    unsubscribeFromKeyboardPress ()
     {
         document.removeEventListener("keydown", this.keyboardHandles);
     }
@@ -192,21 +201,23 @@ export default class PixelPlugin
      * ===============================================
      **/
 
-    createPluginElements(layers)
+    createPluginElements (layers)
     {
         this.createUndoButton();
+        this.createRedoButton();
         this.createLayerSelectors(layers);
         this.createBrushSizeSelector();
     }
 
-    destroyPluginElements(layers)
+    destroyPluginElements (layers)
     {
         this.destroyLayerSelectors();
         this.destroyBrushSizeSelector();
         this.destroyUndoButton();
+        this.destroyRedoButton();
     }
 
-    createOpacitySlider(layer, parentElement)
+    createOpacitySlider (layer, parentElement)
     {
         var opacitySlider = document.createElement("input");
 
@@ -214,23 +225,23 @@ export default class PixelPlugin
         opacitySlider.setAttribute("type", "range");
         opacitySlider.setAttribute('max', 100);
         opacitySlider.setAttribute('min', 0);
-        opacitySlider.setAttribute('value', layer.opacity*100);
+        opacitySlider.setAttribute('value', layer.getOpacity()*100);
         opacitySlider.addEventListener("input", () =>
         {
-            layer.opacity = opacitySlider.value/100;
+            layer.setOpacity(opacitySlider.value/100);
             this.repaint();
         });
 
         parentElement.appendChild(opacitySlider);
     }
 
-    destroyOpacitySlider(layer)
+    destroyOpacitySlider (layer)
     {
         let opacitySlider = document.getElementById("layer " + layer.layerType + " opacity");
         document.body.removeChild(opacitySlider);
     }
 
-    createLayerSelectors(layers)
+    createLayerSelectors (layers)
     {
         let form = document.createElement("form");
 
@@ -260,13 +271,13 @@ export default class PixelPlugin
         document.body.appendChild(form);
     }
 
-    destroyLayerSelectors()
+    destroyLayerSelectors ()
     {
         let form = document.getElementById("layer selector");
         document.body.removeChild(form);
     }
 
-    createBrushSizeSelector()
+    createBrushSizeSelector ()
     {
         let brushSizeSelector = document.createElement("input");
         brushSizeSelector.setAttribute("id", "brush size selector");
@@ -277,35 +288,55 @@ export default class PixelPlugin
         document.body.appendChild(brushSizeSelector);
     }
 
-    destroyBrushSizeSelector()
+    destroyBrushSizeSelector ()
     {
         let brushSizeSelector = document.getElementById("brush size selector");
         document.body.removeChild(brushSizeSelector);
     }
 
-    createUndoButton()
+    createUndoButton ()
     {
         let undoButton = document.createElement("button");
         let text = document.createTextNode("Undo");
-        let br = document.createElement("br");
 
-        this.undoFunction = () => { this.removeAction(this.actions.length - 1); };
+        this.undo = () => { this.undoAction(); };
 
-        br.setAttribute("id", "undo button break");
         undoButton.setAttribute("id", "undo button");
         undoButton.appendChild(text);
-        undoButton.addEventListener("click", this.undoFunction);
+        undoButton.addEventListener("click", this.undo);
 
         document.body.appendChild(undoButton);
-        document.body.appendChild(br);
     }
 
-    destroyUndoButton()
+    destroyUndoButton ()
     {
         let undoButton = document.getElementById("undo button");
         document.body.removeChild(undoButton);
+    }
 
-        let br = document.getElementById("undo button break");
+    createRedoButton ()
+    {
+        let redoButton = document.createElement("button");
+        let text = document.createTextNode("Redo");
+        let br = document.createElement("br");
+
+        this.redo = () => { this.redoAction(); };
+
+        br.setAttribute("id", "redo button break");
+        redoButton.setAttribute("id", "redo button");
+        redoButton.appendChild(text);
+        redoButton.addEventListener("click", this.redo);
+
+        document.body.appendChild(redoButton);
+        document.body.appendChild(br);
+    }
+
+    destroyRedoButton ()
+    {
+        let redoButton = document.getElementById("redo button");
+        document.body.removeChild(redoButton);
+
+        let br = document.getElementById("redo button break");
         document.body.removeChild(br);
     }
 
@@ -315,10 +346,59 @@ export default class PixelPlugin
      * ===============================================
      **/
 
-    initializeNewPath(canvas, evt)
+    onMouseDown (evt)
     {
-        this.mousePressed = true;
+        let canvas = document.getElementById("diva-1-outer");
+        switch (this.currentTool)
+        {
+            case "brush":
+                this.mousePressed = true;
+                this.initializeNewPath(canvas, evt);
+                break;
+            case "rectangle":
+                this.mousePressed = true;
+                this.initializeRectanglePreview(canvas, evt);
+                break;
+            default:
+                this.mousePressed = true;
+        }
+        this.undoneActions = [];
+    }
 
+    onMouseMove (evt)
+    {
+        let canvas = document.getElementById("diva-1-outer");
+        switch (this.currentTool)
+        {
+            case "brush":
+                this.setupPointPainting(canvas, evt);
+                break;
+            case "rectangle":
+                this.rectanglePreview(canvas,evt);
+                break;
+            default:
+        }
+    }
+
+    onMouseUp (evt)
+    {
+        let canvas = document.getElementById("diva-1-outer");
+        switch (this.currentTool)
+        {
+            case "brush":
+                this.mousePressed = false;
+                this.repaint();
+                break;
+            case "rectangle":
+                this.mousePressed = false;
+                break;
+            default:
+                this.mousePressed = false;
+        }
+    }
+
+    initializeNewPath (canvas, evt)
+    {
         let pageIndex = this.core.getSettings().currentPageIndex;
         let zoomLevel = this.core.getSettings().zoomLevel;
         let mousePos = this.getMousePos(canvas, evt);
@@ -393,29 +473,102 @@ export default class PixelPlugin
         }
     }
 
-    removeAction (index)
+
+    initializeRectanglePreview (canvas, evt)
     {
-        if(this.actions.length > 0 && this.actions.length >= index)
+        let pageIndex = this.core.getSettings().currentPageIndex;
+        let zoomLevel = this.core.getSettings().zoomLevel;
+        let mousePos = this.getMousePos(canvas, evt);
+        let relativeCoords = this.getRelativeCoordinates(mousePos.x, mousePos.y);
+
+        if (this.isInPageBounds(relativeCoords.x, relativeCoords.y))
         {
-            let actionToRemove = this.actions[index];
-            actionToRemove.layer.removePathFromLayer(actionToRemove.path);
-            this.actions.splice(index, 1);
+            let selectedLayer = this.layers[this.selectedLayer];
+            selectedLayer.addShapeToLayer(new Rectangle(new Point(relativeCoords.x,relativeCoords.y,pageIndex), 0, 0));
+            this.actions.push(new Action(selectedLayer.getCurrentShape(), selectedLayer));
+
             this.repaint();
         }
     }
 
-    endPath ()
+    rectanglePreview (canvas, evt)
     {
-        this.mousePressed = false;
-        this.repaint();
+        if (this.mousePressed)
+        {
+            let pageIndex = this.core.getSettings().currentPageIndex;
+            let zoomLevel = this.core.getSettings().zoomLevel;
+            let mousePos = this.getMousePos(canvas, evt);
+            let relativeCoords = this.getRelativeCoordinates(mousePos.x, mousePos.y);
+            let lastShape = this.layers[this.selectedLayer].getCurrentShape();
+
+            if (this.isInPageBounds(relativeCoords.x, relativeCoords.y))
+            {
+                lastShape.relativeRectWidth = relativeCoords.x - lastShape.origin.relativeOriginX;
+                lastShape.relativeRectHeight = relativeCoords.y - lastShape.origin.relativeOriginY;
+                this.repaint();
+            }
+        }
     }
 
-    repaint()
+    redoAction ()
+    {
+        if (this.undoneActions.length > 0)
+        {
+            let actionToRedo = this.undoneActions[this.undoneActions.length - 1];
+
+            if (actionToRedo.action.type === "path")
+            {
+                actionToRedo.layer.addPathToLayer(actionToRedo.action);
+                this.actions.push(actionToRedo);
+                this.undoneActions.splice(this.undoneActions.length - 1,1);
+            }
+
+            else if (actionToRedo.action.type === "shape")
+            {
+                actionToRedo.layer.addShapeToLayer(actionToRedo.action);
+                this.actions.push(actionToRedo);
+                this.undoneActions.splice(this.undoneActions.length - 1,1);
+            }
+            this.repaint();
+        }
+    }
+
+
+    undoAction ()
+    {
+        if (this.actions.length > 0)
+        {
+            let actionToRemove = this.actions[this.actions.length - 1];
+            this.undoneActions.push(actionToRemove);
+            this.removeAction(this.actions.length - 1);
+        }
+    }
+
+    removeAction (index)
+    {
+        if (this.actions.length > 0 && this.actions.length >= index)
+        {
+            let actionToRemove = this.actions[index];
+            if (actionToRemove.action.type === "path")
+            {
+                actionToRemove.layer.removePathFromLayer(actionToRemove.action);
+                this.actions.splice(index, 1);
+            }
+            else if (actionToRemove.action.type === "shape")
+            {
+                actionToRemove.layer.removeShapeFromLayer(actionToRemove.action);
+                this.actions.splice(index, 1);
+            }
+            this.repaint();
+        }
+    }
+
+    repaint ()
     {
         this.core.getSettings().renderer._paint();
     }
 
-    isInPageBounds(relativeX, relativeY)
+    isInPageBounds (relativeX, relativeY)
     {
         let pageDimensions = this.core.publicInstance.getCurrentPageDimensionsAtCurrentZoomLevel();
         let absolutePageOrigin = this.getAbsoluteCoordinates(0,0);
@@ -431,7 +584,7 @@ export default class PixelPlugin
         return true;
     }
 
-    getMousePos(canvas, evt)
+    getMousePos (canvas, evt)
     {
         let rect = canvas.getBoundingClientRect();
 
@@ -441,7 +594,7 @@ export default class PixelPlugin
         };
     }
 
-    getRelativeCoordinates(highlightXOffset, highlightYOffset)
+    getRelativeCoordinates (highlightXOffset, highlightYOffset)
     {
         let pageIndex = this.core.getSettings().currentPageIndex;
         let zoomLevel = this.core.getSettings().zoomLevel;
@@ -462,7 +615,7 @@ export default class PixelPlugin
         };
     }
 
-    getAbsoluteCoordinates(relativeX, relativeY)
+    getAbsoluteCoordinates (relativeX, relativeY)
     {
         let pageIndex = this.core.getSettings().currentPageIndex;
         let zoomLevel = this.core.getSettings().zoomLevel;
@@ -487,63 +640,8 @@ export default class PixelPlugin
         };
     }
 
-    drawShape(layer, shape, pageIndex, zoomLevel)
+    drawPath (layer, point, pageIndex, zoomLevel, brushSize, isDown)
     {
-        let opacity = layer.opacity;
-        let renderer = this.core.getSettings().renderer;
-        let scaleRatio = Math.pow(2,zoomLevel);
-
-        const viewportPaddingX = Math.max(0, (renderer._viewport.width - renderer.layout.dimensions.width) / 2);
-        const viewportPaddingY = Math.max(0, (renderer._viewport.height - renderer.layout.dimensions.height) / 2);
-
-        // The following absolute values are experimental values to highlight the square on the first page of Salzinnes, CDN-Hsmu M2149.L4
-        // The relative values are used to scale the highlights according to the zoom level on the page itself
-        let absoluteRectOriginX = shape.relativeRectOriginX * scaleRatio;
-        let absoluteRectOriginY = shape.relativeRectOriginY * scaleRatio;
-        let absoluteRectWidth = shape.relativeRectWidth * scaleRatio;
-        let absoluteRectHeight = shape.relativeRectHeight * scaleRatio;
-
-        // This indicates the page on top of which the highlights are supposed to be drawn
-        let highlightPageIndex = shape.pageIndex;
-
-        if (pageIndex === highlightPageIndex)
-        {
-            // Calculates where the highlights should be drawn as a function of the whole webpage coordinates
-            // (to make it look like it is on top of a page in Diva)
-            let highlightXOffset = renderer._getImageOffset(pageIndex).left - renderer._viewport.left + viewportPaddingX + absoluteRectOriginX;
-            let highlightYOffset = renderer._getImageOffset(pageIndex).top - renderer._viewport.top + viewportPaddingY + absoluteRectOriginY;
-
-            //Draw the rectangle
-            let rgba = null;
-            switch (layer.layerType)
-            {
-                case 0:
-                    rgba = "rgba(51, 102, 255, " + opacity + ")";
-                    break;
-                case 1:
-                    rgba = "rgba(255, 51, 102, " + opacity + ")";
-                    break;
-                case 2:
-                    rgba = "rgba(255, 255, 10 , " + opacity + ")";
-                    break;
-                case 3:
-                    rgba = "rgba(10, 255, 10, " + opacity + ")";
-                    break;
-                case 4:
-                    rgba = "rgba(120, 0, 120, " + opacity + ")";
-                    break;
-                default:
-                    rgba = "rgba(255, 0, 0, " + opacity + ")";
-            }
-
-            renderer._ctx.fillStyle = rgba;
-            renderer._ctx.fillRect(highlightXOffset, highlightYOffset,absoluteRectWidth,absoluteRectHeight);
-        }
-    }
-
-    drawPath(layer, point, pageIndex, zoomLevel, brushSize, isDown, shiftDown)
-    {
-        let opacity = layer.opacity;
         let renderer = this.core.getSettings().renderer;
         let scaleRatio = Math.pow(2,zoomLevel);
 
@@ -565,33 +663,10 @@ export default class PixelPlugin
             let highlightXOffset = renderer._getImageOffset(pageIndex).left - renderer._viewport.left + viewportPaddingX + absoluteRectOriginX;
             let highlightYOffset = renderer._getImageOffset(pageIndex).top - renderer._viewport.top + viewportPaddingY + absoluteRectOriginY;
 
-            //Draw the rectangle
-            let rgba = null;
-            switch (layer.layerType)
-            {
-                case 0:
-                    rgba = "rgba(51, 102, 255, " + opacity + ")";
-                    break;
-                case 1:
-                    rgba = "rgba(255, 51, 102, " + opacity + ")";
-                    break;
-                case 2:
-                    rgba = "rgba(255, 255, 10 , " + opacity + ")";
-                    break;
-                case 3:
-                    rgba = "rgba(10, 255, 10, " + opacity + ")";
-                    break;
-                case 4:
-                    rgba = "rgba(120, 0, 120, " + opacity + ")";
-                    break;
-                default:
-                    rgba = "rgba(255, 0, 0, " + opacity + ")";
-            }
-
             if (isDown)
             {
                 renderer._ctx.beginPath();
-                renderer._ctx.strokeStyle = rgba;
+                renderer._ctx.strokeStyle = layer.colour.toString();
                 renderer._ctx.lineWidth = brushSize * scaleRatio;
                 renderer._ctx.lineJoin = "round";
                 renderer._ctx.moveTo(this.lastX, this.lastY);
@@ -616,7 +691,7 @@ export default class PixelPlugin
 
             shapes.forEach((shape) =>
                 {
-                    this.drawShape(layer, shape, pageIndex, zoomLevel);
+                    shape.draw(layer, pageIndex, zoomLevel, this.core.getSettings().renderer);
                 }
             );
 
@@ -704,15 +779,54 @@ export default class PixelPlugin
     }
 }
 
-export class Rectangle
+export class Shape
 {
-    constructor (relativeRectOriginX, relativeRectOriginY, relativeRectWidth, relativeRectHeight, pageIndex)
+    constructor (point)
     {
-        this.relativeRectOriginX = relativeRectOriginX;
-        this.relativeRectOriginY = relativeRectOriginY;
+        this.origin = point
+        this.type = "shape";
+    }
+
+    draw ()
+    {
+
+    }
+}
+
+
+export class Rectangle extends Shape
+{
+    constructor (point, relativeRectWidth, relativeRectHeight) {
+        super(point);
         this.relativeRectWidth = relativeRectWidth;
         this.relativeRectHeight = relativeRectHeight;
-        this.pageIndex = pageIndex;
+    }
+
+    draw (layer, pageIndex, zoomLevel, renderer)
+    {
+        let scaleRatio = Math.pow(2,zoomLevel);
+
+        const viewportPaddingX = Math.max(0, (renderer._viewport.width - renderer.layout.dimensions.width) / 2);
+        const viewportPaddingY = Math.max(0, (renderer._viewport.height - renderer.layout.dimensions.height) / 2);
+
+        // The following absolute values are experimental values to highlight the square on the first page of Salzinnes, CDN-Hsmu M2149.L4
+        // The relative values are used to scale the highlights according to the zoom level on the page itself
+        let absoluteRectOriginX = this.origin.relativeOriginX * scaleRatio;
+        let absoluteRectOriginY = this.origin.relativeOriginY * scaleRatio;
+        let absoluteRectWidth = this.relativeRectWidth * scaleRatio;
+        let absoluteRectHeight = this.relativeRectHeight * scaleRatio;
+
+        if (pageIndex === this.origin.pageIndex)
+        {
+            // Calculates where the highlights should be drawn as a function of the whole webpage coordinates
+            // (to make it look like it is on top of a page in Diva)
+            let highlightXOffset = renderer._getImageOffset(pageIndex).left - renderer._viewport.left + viewportPaddingX + absoluteRectOriginX;
+            let highlightYOffset = renderer._getImageOffset(pageIndex).top - renderer._viewport.top + viewportPaddingY + absoluteRectOriginY;
+
+            //Draw the rectangle
+            renderer._ctx.fillStyle = layer.colour.toString();
+            renderer._ctx.fillRect(highlightXOffset, highlightYOffset,absoluteRectWidth,absoluteRectHeight);
+        }
     }
 }
 
@@ -722,6 +836,7 @@ export class Path
     {
         this.points = [];
         this.brushSize = brushSize;
+        this.type = "path";
     }
 
     addPointToPath (point)
@@ -742,21 +857,37 @@ export class Point
 
 export class Action
 {
-    constructor (path, layer)
+    constructor (action, layer)
     {
-        this.path = path;
+        this.action = action;
         this.layer = layer;
+    }
+}
+
+export class Colour
+{
+    constructor (red, green, blue, opacity)
+    {
+        this.red = red;
+        this.green = green;
+        this.blue = blue;
+        this.opacity = opacity;
+    }
+
+    toString ()
+    {
+        return "rgba(" + this.red +  ", " + this.green + ", " + this.blue + ", " + this.opacity + ")";
     }
 }
 
 export class Layer
 {
-    constructor (layerType, opacity)
+    constructor (layerType, colour)
     {
         this.layerType = layerType;
-        this.opacity = opacity;
         this.shapes = [];
         this.paths = [];
+        this.colour = colour;
     }
 
     addShapeToLayer (shape)
@@ -781,7 +912,14 @@ export class Layer
 
     getCurrentPath ()
     {
-        return this.paths[this.paths.length - 1];
+        if (this.paths.length > 0)
+        {
+            return this.paths[this.paths.length - 1];
+        }
+        else
+        {
+            return null;
+        }
     }
 
     createNewPath (brushSize)
@@ -793,6 +931,34 @@ export class Layer
     {
         let index = this.paths.indexOf(path);
         this.paths.splice(index, 1);
+    }
+
+    removeShapeFromLayer (shape)
+    {
+        let index = this.shapes.indexOf(shape);
+        this.shapes.splice(index, 1);
+    }
+
+    setOpacity (opacity)
+    {
+        this.colour.opacity = opacity;
+    }
+
+    getOpacity ()
+    {
+        return this.colour.opacity;
+    }
+
+    getCurrentShape ()
+    {
+        if (this.shapes.length > 0)
+        {
+            return this.shapes[this.shapes.length - 1];
+        }
+        else
+        {
+            return null;
+        }
     }
 }
 
