@@ -51,11 +51,11 @@ export default class PixelPlugin
         if (this.layers === null)
         {
             // Start by creating layers
-            let layer1 = new Layer(0, new Colour(51, 102, 255, 0.8));
-            let layer2 = new Layer(1, new Colour(255, 51, 102, 0.8));
-            let layer3 = new Layer(2, new Colour(255, 255, 10, 0.8));
-            let layer4 = new Layer(3, new Colour(10, 255, 10, 0.8));
-            let layer5 = new Layer(4, new Colour(255, 137, 0, 0.8));
+            let layer1 = new Layer(1, new Colour(51, 102, 255, 0.8));
+            let layer2 = new Layer(2, new Colour(255, 51, 102, 0.8));
+            let layer3 = new Layer(3, new Colour(255, 255, 10, 0.8));
+            let layer4 = new Layer(4, new Colour(10, 255, 10, 0.8));
+            let layer5 = new Layer(5, new Colour(255, 137, 0, 0.8));
 
             layer1.addShapeToLayer(new Rectangle(new Point(23, 42, 0), 24, 24));
             layer2.addShapeToLayer(new Rectangle(new Point(48, 50, 0), 57, 5));
@@ -366,6 +366,8 @@ export default class PixelPlugin
             default:
                 this.mousePressed = true;
         }
+
+        // FIXME: At deactivation mouse is down so it clears the actions to redo
         this.undoneActions = [];
     }
 
@@ -720,7 +722,8 @@ export default class PixelPlugin
      **/
 
     /**
-     * Initializes the base matrix that maps the real-size picture
+     * Initializes the base matrix that maps the real-size picture.
+     * It wil
      **/
     initializeMatrix ()
     {
@@ -730,8 +733,27 @@ export default class PixelPlugin
                 maxZoomLevel = this.core.getSettings().maxZoomLevel;
             let height = this.core.publicInstance.getPageDimensionsAtZoomLevel(pageIndex, maxZoomLevel).height,
                 width = this.core.publicInstance.getPageDimensionsAtZoomLevel(pageIndex, maxZoomLevel).width;
-            this.matrix = new Array(width).fill(null).map(() => new Array(height).fill(0));
+            this.matrix = new Array(height).fill(null).map(() => new Array(width).fill(0));
         }
+
+        this.populateMatrix();
+    }
+
+    populateMatrix ()
+    {
+        let pageIndex = this.core.getSettings().currentPageIndex,
+            maxZoomLevel = this.core.getSettings().maxZoomLevel;
+
+        this.layers.forEach((layer) =>
+        {
+            let shapes = layer.shapes;
+
+            shapes.forEach((shape) =>
+                {
+                    shape.getPixels(layer, pageIndex, maxZoomLevel, this.core.getSettings().renderer, this.matrix);
+                }
+            );
+        });
     }
 
     /**
@@ -787,11 +809,16 @@ export class Shape
 {
     constructor (point)
     {
-        this.origin = point
+        this.origin = point;
         this.type = "shape";
     }
 
     draw ()
+    {
+
+    }
+
+    getPixels ()
     {
 
     }
@@ -830,6 +857,30 @@ export class Rectangle extends Shape
             //Draw the rectangle
             renderer._ctx.fillStyle = layer.colour.toString();
             renderer._ctx.fillRect(highlightXOffset, highlightYOffset,absoluteRectWidth,absoluteRectHeight);
+        }
+    }
+
+    getPixels (layer, pageIndex, zoomLevel, renderer, matrix)
+    {
+        let scaleRatio = Math.pow(2,zoomLevel);
+
+        // The following absolute values are experimental values to highlight the square on the first page of Salzinnes, CDN-Hsmu M2149.L4
+        // The relative values are used to scale the highlights according to the zoom level on the page itself
+        let absoluteRectOriginX = this.origin.relativeOriginX * scaleRatio;
+        let absoluteRectOriginY = this.origin.relativeOriginY * scaleRatio;
+        let absoluteRectWidth = this.relativeRectWidth * scaleRatio;
+        let absoluteRectHeight = this.relativeRectHeight * scaleRatio;
+
+        if (pageIndex === this.origin.pageIndex)
+        {
+            // Want abs coord of start and finish
+            for(var row = absoluteRectOriginY; row <  absoluteRectOriginY + absoluteRectHeight; row++)
+            {
+                for(var col = absoluteRectOriginX; col < absoluteRectOriginX + absoluteRectWidth; col++)
+                {
+                    matrix[row][col] = layer.layerType;
+                }
+            }
         }
     }
 }
