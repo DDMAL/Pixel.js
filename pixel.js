@@ -436,46 +436,41 @@ export default class PixelPlugin
             mousePos = this.getMousePos(canvas, evt),
             relativeCoords = this.getRelativeCoordinates(mousePos.x, mousePos.y);
 
-        if (Math.abs(relativeCoords.x - this.lastRelCoordsX) > Math.abs(relativeCoords.y - this.lastRelCoordsY))
-        {
+        if (Math.abs(relativeCoords.x - this.lastRelCoordsX) >= Math.abs(relativeCoords.y - this.lastRelCoordsY))
             horizontalMove = true;
-        }
-        if (this.mousePressed)
+
+        if (!this.mousePressed)
+            return;
+
+        if (!this.isInPageBounds(relativeCoords.x, relativeCoords.y))
+            return;
+
+        if (!this.keyboardChangingLayers)
         {
-            if (this.keyboardChangingLayers)
+            let pageIndex = this.core.getSettings().currentPageIndex;
+            let zoomLevel = this.core.getSettings().zoomLevel;
+
+            if (this.mousePressed && this.shiftDown)
             {
-                this.initializeNewPath(canvas, evt);
-                this.keyboardChangingLayers = false;
+                if (!horizontalMove)
+                    point = new Point(this.lastRelCoordsX, relativeCoords.y, pageIndex);
+
+                else
+                    point = new Point(relativeCoords.x, this.lastRelCoordsY, pageIndex);
             }
             else
             {
-                let pageIndex = this.core.getSettings().currentPageIndex;
-                let zoomLevel = this.core.getSettings().zoomLevel;
-
-                if (this.isInPageBounds(relativeCoords.x, relativeCoords.y))
-                {
-                    if (this.mousePressed && this.shiftDown)
-                    {
-                        if (!horizontalMove)
-                        {
-                            point = new Point(this.lastRelCoordsX, relativeCoords.y, pageIndex);
-                        }
-                        else
-                        {
-                            point = new Point(relativeCoords.x, this.lastRelCoordsY, pageIndex);
-                        }
-                    }
-                    else
-                    {
-                        point = new Point(relativeCoords.x, relativeCoords.y, pageIndex);
-                    }
-                    let brushSize = this.layers[this.selectedLayer].getCurrentPath().brushSize;
-                    this.layers[this.selectedLayer].addToCurrentPath(point);
-                    this.drawPath(this.layers[this.selectedLayer], point, pageIndex, zoomLevel, brushSize, true, this.shiftDown);
-                }
+                point = new Point(relativeCoords.x, relativeCoords.y, pageIndex);
             }
+            let brushSize = this.layers[this.selectedLayer].getCurrentPath().brushSize;
+            this.layers[this.selectedLayer].addToCurrentPath(point);
+            this.drawPath(this.layers[this.selectedLayer], point, pageIndex, zoomLevel, brushSize, true, this.shiftDown);
+            return;
         }
+        this.initializeNewPath(canvas, evt);
+        this.keyboardChangingLayers = false;
     }
+}
 
 
     initializeRectanglePreview (canvas, evt)
