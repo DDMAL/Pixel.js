@@ -470,8 +470,6 @@ export default class PixelPlugin
         this.initializeNewPath(canvas, evt);
         this.keyboardChangingLayers = false;
     }
-}
-
 
     initializeRectanglePreview (canvas, evt)
     {
