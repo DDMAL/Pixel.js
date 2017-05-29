@@ -67,7 +67,7 @@ export default class PixelPlugin
         this.initializeMatrix();
         this.visibleTilesHandle = this.subscribeToVisibleTilesEvent();
         this.subscribeToMouseEvents();
-        this.keyboardHandles = this.subscribeToKeyboardEvents();
+        this.subscribeToKeyboardEvents();
         this.createPluginElements(this.layers);
         this.repaint();  // Repaint the tiles to retrigger VisibleTilesDidLoad
         this.activated = true;
@@ -121,7 +121,7 @@ export default class PixelPlugin
 
     subscribeToKeyboardEvents ()
     {
-        let handle = (e) =>
+        this.handleKeyUp = (e) =>
         {
             const KEY_1 = 49;
             const KEY_9 = 56;
@@ -145,7 +145,7 @@ export default class PixelPlugin
             }
         };
 
-        let handleKeyDown = (e) =>
+        this.handleKeyDown = (e) =>
         {
             if (e.code === "KeyZ" && e.shiftKey === false)
             {
@@ -169,17 +169,20 @@ export default class PixelPlugin
             }
         }
 
-        document.addEventListener("keyup", handle);
-        document.addEventListener("keydown", handleKeyDown);
-        return handle;
+        document.addEventListener("keyup", this.handleKeyUp);
+        document.addEventListener("keydown", this.handleKeyDown);
 
+        this.keyboardHandles = {
+            keyup: this.handleKeyUp,
+            keydown: this.handleKeyDown
+        };
     }
 
     unsubscribeFromMouseEvents ()
     {
         var canvas = document.getElementById("diva-1-outer");
 
-        canvas.removeEventListener('moubsedown', this.mouseHandles.mouseDownHandle);
+        canvas.removeEventListener('mousedown', this.mouseHandles.mouseDownHandle);
         canvas.removeEventListener('mouseup', this.mouseHandles.mouseUpHandle);
         canvas.removeEventListener('mouseleave', this.mouseHandles.mouseUpHandle);
         canvas.removeEventListener('mousemove', this.mouseHandles.mouseMoveHandle);
@@ -187,7 +190,8 @@ export default class PixelPlugin
 
     unsubscribeFromKeyboardEvents ()
     {
-        document.removeEventListener("keyup", this.keyboardHandles);
+        document.removeEventListener("keyup", this.keyboardHandles.keyup);
+        document.removeEventListener("keydown", this.keyboardHandles.keydown);
     }
 
     unsubscribeFromKeyboardPress ()
