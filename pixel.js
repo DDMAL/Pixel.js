@@ -51,11 +51,11 @@ export default class PixelPlugin
         if (this.layers === null)
         {
             // Start by creating layers
-            let layer1 = new Layer(1, new Colour(51, 102, 255, 0.8));
-            let layer2 = new Layer(2, new Colour(255, 51, 102, 0.8));
-            let layer3 = new Layer(3, new Colour(255, 255, 10, 0.8));
-            let layer4 = new Layer(4, new Colour(10, 255, 10, 0.8));
-            let layer5 = new Layer(5, new Colour(255, 137, 0, 0.8));
+            let layer1 = new Layer(0, new Colour(51, 102, 255, 0.8));
+            let layer2 = new Layer(1, new Colour(255, 51, 102, 0.8));
+            let layer3 = new Layer(2, new Colour(255, 255, 10, 0.8));
+            let layer4 = new Layer(3, new Colour(10, 255, 10, 0.8));
+            let layer5 = new Layer(4, new Colour(255, 137, 0, 0.8));
 
             layer1.addShapeToLayer(new Rectangle(new Point(23, 42, 0), 35, 35));
             layer2.addShapeToLayer(new Rectangle(new Point(48, 50, 0), 57, 5));
@@ -753,7 +753,7 @@ export default class PixelPlugin
             maxZoomLevel = this.core.getSettings().maxZoomLevel;
         let height = this.core.publicInstance.getPageDimensionsAtZoomLevel(pageIndex, maxZoomLevel).height,
             width = this.core.publicInstance.getPageDimensionsAtZoomLevel(pageIndex, maxZoomLevel).width;
-        this.matrix = new Array(height).fill(null).map(() => new Array(width).fill(0));
+        this.matrix = new Array(height).fill(null).map(() => new Array(width).fill(-1));
     }
 
     populateMatrix ()
@@ -774,21 +774,56 @@ export default class PixelPlugin
                 }
             );
 
-            // let paths = layer.paths;
-            // paths.forEach((path) =>
-            //     {
-            //         let isDown = false;
-            //         path.points.forEach((point) =>
-            //         {
-            //             this.drawPath(layer, point, pageIndex, zoomLevel, path.brushSize, isDown, this.shiftDown);
-            //             isDown = true;
-            //         });
-            //     }
-            // );
+            let paths = layer.paths;
+            paths.forEach((path) =>
+                {
+                    this.getPathPixels(layer, path, pageIndex, maxZoomLevel, path.brushSize, this.matrix)
+                }
+            );
         });
-
         console.log("after", this.matrix);
     }
+
+    getPathPixels (layer, path, pageIndex, maxZoomLevel, brushSize, matrix)
+    {
+        let scaleRatio = Math.pow(2,zoomLevel);
+
+        const viewportPaddingX = Math.max(0, (renderer._viewport.width - renderer.layout.dimensions.width) / 2);
+        const viewportPaddingY = Math.max(0, (renderer._viewport.height - renderer.layout.dimensions.height) / 2);
+
+        // The following absolute values are experimental values to highlight the square on the first page of Salzinnes, CDN-Hsmu M2149.L4
+        // The relative values are used to scale the highlights according to the zoom level on the page itself
+        let absoluteRectOriginX = point.relativeOriginX * scaleRatio;
+        let absoluteRectOriginY = point.relativeOriginY * scaleRatio;
+
+        // This indicates the page on top of which the highlights are supposed to be drawn
+        let highlightPageIndex = point.pageIndex;
+
+        if (pageIndex === highlightPageIndex)
+        {
+            // Calculates where the highlights should be drawn as a function of the whole webpage coordinates
+            // (to make it look like it is on top of a page in Diva)
+            let highlightXOffset = renderer._getImageOffset(pageIndex).left - renderer._viewport.left + viewportPaddingX + absoluteRectOriginX;
+            let highlightYOffset = renderer._getImageOffset(pageIndex).top - renderer._viewport.top + viewportPaddingY + absoluteRectOriginY;
+
+            if (isDown)
+            {
+                renderer._ctx.beginPath();
+                renderer._ctx.strokeStyle = layer.colour.toString();
+                renderer._ctx.lineWidth = brushSize * scaleRatio;
+                renderer._ctx.lineJoin = "round";
+                renderer._ctx.moveTo(this.lastX, this.lastY);
+                renderer._ctx.lineTo(highlightXOffset, highlightYOffset);
+                renderer._ctx.closePath();
+                renderer._ctx.stroke();
+            }
+
+            this.lastX = highlightXOffset;
+            this.lastY = highlightYOffset;
+        }
+    }
+
+
 
     /**
      * Fills the base matrix with type data outlined by the layer drawings
