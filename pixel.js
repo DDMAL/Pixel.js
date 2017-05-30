@@ -785,63 +785,43 @@ export default class PixelPlugin
     //     }
     // }
 
-    test(point1, zoomLevel, brushSize, isDown)
+    test(point, zoomLevel, pageIndex, brushSize, isDown)
     {
-        let point = new Point(20,20,0);
+        let point1 = new Point(20,20,0);
         let point2 = new Point(60,70,0);
 
-        let pageIndex = this.core.getSettings().currentPageIndex;
         let renderer = this.core.getSettings().renderer;
         let scaleRatio = Math.pow(2,zoomLevel);
+        let lineWidth = 20 * scaleRatio;
 
         // This indicates the page on top of which the highlights are supposed to be drawn
-        let highlightPageIndex = point.pageIndex;
+        let highlightPageIndex = point1.pageIndex;
 
         if (pageIndex === highlightPageIndex)
         {
             // Calculates where the highlights should be drawn as a function of the whole webpage coordinates
             // (to make it look like it is on top of a page in Diva)
-            let highlightXOffset = point.getAbsoluteCoordinatesWithPadding(zoomLevel, pageIndex, renderer).x;
-            let highlightYOffset = point.getAbsoluteCoordinatesWithPadding(zoomLevel, pageIndex, renderer).y;
+            let point1highlightOffset = point1.getAbsoluteCoordinatesWithPadding(zoomLevel, pageIndex, renderer);
+            var point2highlightOffset = point2.getAbsoluteCoordinatesWithPadding(zoomLevel,pageIndex,renderer);
 
-            var lineWidth = 20 * scaleRatio;
-            var point2XOffset = point2.getAbsoluteCoordinatesWithPadding(zoomLevel,pageIndex,renderer).x,
-                point2YOffset = point2.getAbsoluteCoordinatesWithPadding(zoomLevel,pageIndex,renderer).y;
+            new Line(point1, point2, lineWidth, "round").draw(this.layers[0], pageIndex, zoomLevel, renderer);
 
-            renderer._ctx.beginPath();
-            renderer._ctx.strokeStyle = this.layers[0].colour.toString();
-            renderer._ctx.lineWidth = lineWidth;
-            renderer._ctx.lineJoin = "round";
-            renderer._ctx.moveTo(highlightXOffset, highlightYOffset);
-            renderer._ctx.lineTo(point2XOffset, point2YOffset);
-            renderer._ctx.closePath();
-            renderer._ctx.stroke();
+            new Circle(point1, lineWidth/2).draw(this.layers[1], pageIndex, zoomLevel, renderer);
+            new Circle(point2, lineWidth/2).draw(this.layers[1], pageIndex, zoomLevel, renderer);
 
-            this.lastX = highlightXOffset;
-            this.lastY = highlightYOffset;
-
-            new Circle(point, lineWidth/2).draw(this.layers[1], pageIndex, zoomLevel, renderer);
-
-
-            renderer._ctx.fillStyle = this.layers[1].colour.toString();
-            renderer._ctx.beginPath();
-            renderer._ctx.arc(point2XOffset,point2YOffset,lineWidth/2,0,2*Math.PI); //line width / 4??
-            renderer._ctx.fill();
-
-            var ang = Math.atan2(point2YOffset - highlightYOffset, point2XOffset - highlightXOffset);
-            //console.log(ang);
+            let ang = new Line(point1, point2).getAngleRad(zoomLevel,pageIndex,renderer);
 
             // find the first point on the circumference that is orthogonal
             // to the line intersecting the two circle origos
-            var start1 = new Point(highlightXOffset + Math.cos(ang + Math.PI / 2) * lineWidth/2, highlightYOffset + Math.sin(ang + Math.PI/2)* lineWidth/2, 0);
-            var end1 = new Point(point2XOffset + Math.cos(ang + Math.PI / 2) * lineWidth/2, point2YOffset + Math.sin(ang + Math.PI/2)* lineWidth/2, 0);
+            var start1 = new Point(point1highlightOffset.x + Math.cos(ang + Math.PI / 2) * lineWidth/2, point1highlightOffset.y + Math.sin(ang + Math.PI/2)* lineWidth/2, 0);
+            var end1 = new Point(point2highlightOffset.x + Math.cos(ang + Math.PI / 2) * lineWidth/2, point2highlightOffset.y + Math.sin(ang + Math.PI/2)* lineWidth/2, 0);
 
             // find the second point on the circumference that is orthogonal
             // to the line intersecting the two circle origos
-            var start2 = new Point(highlightXOffset + Math.cos(ang - Math.PI / 2) * lineWidth/2, highlightYOffset + Math.sin(ang - Math.PI/2)* lineWidth/2, 0);
-            var end2 = new Point(point2XOffset + Math.cos(ang - Math.PI / 2) * lineWidth/2, point2YOffset + Math.sin(ang - Math.PI/2)* lineWidth/2, 0);
+            var start2 = new Point(point1highlightOffset.x + Math.cos(ang - Math.PI / 2) * lineWidth/2, point1highlightOffset.y + Math.sin(ang - Math.PI/2)* lineWidth/2, 0);
+            var end2 = new Point(point2highlightOffset.x + Math.cos(ang - Math.PI / 2) * lineWidth/2, point2highlightOffset.y + Math.sin(ang - Math.PI/2)* lineWidth/2, 0);
 
-
+            // These points have absolute and not relative coordinates. They are only used for testing purposes
             renderer._ctx.beginPath();
             renderer._ctx.strokeStyle = this.layers[1].colour.toString();
             renderer._ctx.lineWidth = lineWidth/30;
@@ -859,11 +839,6 @@ export default class PixelPlugin
             renderer._ctx.lineTo(end2.relativeOriginX, end2.relativeOriginY);
             renderer._ctx.closePath();
             renderer._ctx.stroke();
-
-
-
-
-
         }
     }
 
@@ -874,7 +849,7 @@ export default class PixelPlugin
         let pageIndex = args[0],
             zoomLevel = args[1];
 
-        this.test(new Point(0,0,0), zoomLevel);
+        this.test(new Point(0,0,0), zoomLevel, pageIndex);
 
         this.layers.forEach((layer) =>
         {
@@ -1205,15 +1180,41 @@ export class Point
 
 export class Line
 {
-    constructor(startPoint, endPoint)
+    constructor (startPoint, endPoint, lineWidth, lineJoin)
     {
         this.startPoint = startPoint;
         this.endPoint = endPoint;
+        this.lineWidth = lineWidth;
+        this.lineJoin = lineJoin;
     }
 
-    getLineEquation()
+    getLineEquation ()
     {
 
+    }
+
+    getAngleRad (zoomLevel, pageIndex, renderer)
+    {
+        let startPointAbsoluteCoordsWithPadding = this.startPoint.getAbsoluteCoordinatesWithPadding(zoomLevel, pageIndex, renderer);
+        let endPointAbsoluteCoordsWithPadding = this.endPoint.getAbsoluteCoordinatesWithPadding(zoomLevel, pageIndex, renderer);
+
+        return Math.atan2(endPointAbsoluteCoordsWithPadding.y - startPointAbsoluteCoordsWithPadding.y,
+            endPointAbsoluteCoordsWithPadding.x - startPointAbsoluteCoordsWithPadding.x)
+    }
+
+    draw (layer, pageIndex, zoomLevel, renderer)
+    {
+        let startPointAbsoluteCoordsWithPadding = this.startPoint.getAbsoluteCoordinatesWithPadding(zoomLevel, pageIndex, renderer);
+        let endPointAbsoluteCoordsWithPadding = this.endPoint.getAbsoluteCoordinatesWithPadding(zoomLevel, pageIndex, renderer);
+
+        renderer._ctx.beginPath();
+        renderer._ctx.strokeStyle = layer.colour.toString();
+        renderer._ctx.lineWidth = this.lineWidth;
+        renderer._ctx.lineJoin = this.lineJoin;
+        renderer._ctx.moveTo(startPointAbsoluteCoordsWithPadding.x, startPointAbsoluteCoordsWithPadding.y);
+        renderer._ctx.lineTo(endPointAbsoluteCoordsWithPadding.x, endPointAbsoluteCoordsWithPadding.y);
+        renderer._ctx.closePath();
+        renderer._ctx.stroke();
     }
 }
 
