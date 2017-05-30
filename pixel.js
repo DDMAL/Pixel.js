@@ -706,27 +706,93 @@ export default class PixelPlugin
             this.lastX = highlightXOffset;
             this.lastY = highlightYOffset;
         }
-
-
-
-
     }
 
 
-    test(zoomLevel)
+    // test(point, zoomLevel, brushSize, isDown)
+    // {
+    //     let pageIndex = this.core.getSettings().currentPageIndex;
+    //     let renderer = this.core.getSettings().renderer;
+    //     let scaleRatio = Math.pow(2,zoomLevel);
+    //
+    //     const viewportPaddingX = Math.max(0, (renderer._viewport.width - renderer.layout.dimensions.width) / 2);
+    //     const viewportPaddingY = Math.max(0, (renderer._viewport.height - renderer.layout.dimensions.height) / 2);
+    //
+    //     // The following absolute values are experimental values to highlight the square on the first page of Salzinnes, CDN-Hsmu M2149.L4
+    //     // The relative values are used to scale the highlights according to the zoom level on the page itself
+    //     let absoluteRectOriginX = point.relativeOriginX * scaleRatio;
+    //     let absoluteRectOriginY = point.relativeOriginY * scaleRatio;
+    //
+    //     // This indicates the page on top of which the highlights are supposed to be drawn
+    //     let highlightPageIndex = point.pageIndex;
+    //
+    //     if (pageIndex === highlightPageIndex)
+    //     {
+    //         // Calculates where the highlights should be drawn as a function of the whole webpage coordinates
+    //         // (to make it look like it is on top of a page in Diva)
+    //         let highlightXOffset = renderer._getImageOffset(pageIndex).left - renderer._viewport.left + viewportPaddingX + absoluteRectOriginX;
+    //         let highlightYOffset = renderer._getImageOffset(pageIndex).top - renderer._viewport.top + viewportPaddingY + absoluteRectOriginY;
+    //
+    //
+    //         var lineWidth = brushSize * scaleRatio;
+    //         var point2XOffset = this.lastX;
+    //         var point2YOffset = this.lastY;
+    //
+    //
+    //         renderer._ctx.fillStyle = this.layers[1].colour.toString();
+    //         renderer._ctx.beginPath();
+    //         renderer._ctx.arc(highlightXOffset,highlightYOffset,lineWidth/2,0,2*Math.PI);
+    //         renderer._ctx.fill();
+    //
+    //
+    //         renderer._ctx.fillStyle = this.layers[1].colour.toString();
+    //         renderer._ctx.beginPath();
+    //         renderer._ctx.arc(point2XOffset,point2YOffset,lineWidth/2,0,2*Math.PI); //line width / 4??
+    //         renderer._ctx.fill();
+    //
+    //         var ang = Math.atan2(point2YOffset - highlightYOffset, point2XOffset - highlightXOffset);
+    //
+    //         // find the first point on the circumference that is orthogonal
+    //         // to the line intersecting the two circle origos
+    //         var start1 = new Point(highlightXOffset + Math.cos(ang + Math.PI / 2) * lineWidth/2, highlightYOffset + Math.sin(ang + Math.PI/2)* lineWidth/2, 0);
+    //         var end1 = new Point(point2XOffset + Math.cos(ang + Math.PI / 2) * lineWidth/2, point2YOffset + Math.sin(ang + Math.PI/2)* lineWidth/2, 0);
+    //
+    //         // find the second point on the circumference that is orthogonal
+    //         // to the line intersecting the two circle origos
+    //         var start2 = new Point(highlightXOffset + Math.cos(ang - Math.PI / 2) * lineWidth/2, highlightYOffset + Math.sin(ang - Math.PI/2)* lineWidth/2, 0);
+    //         var end2 = new Point(point2XOffset + Math.cos(ang - Math.PI / 2) * lineWidth/2, point2YOffset + Math.sin(ang - Math.PI/2)* lineWidth/2, 0);
+    //
+    //         if (isDown)
+    //         {
+    //             renderer._ctx.beginPath();
+    //             renderer._ctx.strokeStyle = this.layers[1].colour.toString();
+    //             renderer._ctx.lineWidth = lineWidth/10;
+    //             renderer._ctx.lineJoin = "round";
+    //             renderer._ctx.moveTo(start1.relativeOriginX, start1.relativeOriginY);
+    //             renderer._ctx.lineTo(end1.relativeOriginX, end1.relativeOriginY);
+    //             renderer._ctx.closePath();
+    //             renderer._ctx.stroke();
+    //
+    //             renderer._ctx.beginPath();
+    //             renderer._ctx.strokeStyle = this.layers[1].colour.toString();
+    //             renderer._ctx.lineWidth = lineWidth/10;
+    //             renderer._ctx.lineJoin = "round";
+    //             renderer._ctx.moveTo(start2.relativeOriginX, start2.relativeOriginY);
+    //             renderer._ctx.lineTo(end2.relativeOriginX, end2.relativeOriginY);
+    //             renderer._ctx.closePath();
+    //             renderer._ctx.stroke();
+    //         }
+    //     }
+    // }
+
+    test(point1, zoomLevel, brushSize, isDown)
     {
         let point = new Point(20,20,0);
+        let point2 = new Point(60,70,0);
+
         let pageIndex = this.core.getSettings().currentPageIndex;
         let renderer = this.core.getSettings().renderer;
         let scaleRatio = Math.pow(2,zoomLevel);
-
-        const viewportPaddingX = Math.max(0, (renderer._viewport.width - renderer.layout.dimensions.width) / 2);
-        const viewportPaddingY = Math.max(0, (renderer._viewport.height - renderer.layout.dimensions.height) / 2);
-
-        // The following absolute values are experimental values to highlight the square on the first page of Salzinnes, CDN-Hsmu M2149.L4
-        // The relative values are used to scale the highlights according to the zoom level on the page itself
-        let absoluteRectOriginX = point.relativeOriginX * scaleRatio;
-        let absoluteRectOriginY = point.relativeOriginY * scaleRatio;
 
         // This indicates the page on top of which the highlights are supposed to be drawn
         let highlightPageIndex = point.pageIndex;
@@ -735,15 +801,12 @@ export default class PixelPlugin
         {
             // Calculates where the highlights should be drawn as a function of the whole webpage coordinates
             // (to make it look like it is on top of a page in Diva)
-            let highlightXOffset = renderer._getImageOffset(pageIndex).left - renderer._viewport.left + viewportPaddingX + absoluteRectOriginX;
-            let highlightYOffset = renderer._getImageOffset(pageIndex).top - renderer._viewport.top + viewportPaddingY + absoluteRectOriginY;
+            let highlightXOffset = point.getAbsoluteCoordinatesWithPadding(zoomLevel, pageIndex, renderer).x;
+            let highlightYOffset = point.getAbsoluteCoordinatesWithPadding(zoomLevel, pageIndex, renderer).y;
 
-
-            var lineWidth = 20 * scaleRatio
-            var point2XOffset = highlightXOffset + 200,
-                point2YOffset = highlightYOffset + 300
-
-
+            var lineWidth = 20 * scaleRatio;
+            var point2XOffset = point2.getAbsoluteCoordinatesWithPadding(zoomLevel,pageIndex,renderer).x,
+                point2YOffset = point2.getAbsoluteCoordinatesWithPadding(zoomLevel,pageIndex,renderer).y;
 
             renderer._ctx.beginPath();
             renderer._ctx.strokeStyle = this.layers[0].colour.toString();
@@ -757,10 +820,7 @@ export default class PixelPlugin
             this.lastX = highlightXOffset;
             this.lastY = highlightYOffset;
 
-            renderer._ctx.fillStyle = this.layers[1].colour.toString();
-            renderer._ctx.beginPath();
-            renderer._ctx.arc(highlightXOffset,highlightYOffset,lineWidth/2,0,2*Math.PI); //line width / 4??
-            renderer._ctx.fill();
+            new Circle(point, lineWidth/2).draw(this.layers[1], pageIndex, zoomLevel, renderer);
 
 
             renderer._ctx.fillStyle = this.layers[1].colour.toString();
@@ -769,7 +829,7 @@ export default class PixelPlugin
             renderer._ctx.fill();
 
             var ang = Math.atan2(point2YOffset - highlightYOffset, point2XOffset - highlightXOffset);
-            console.log(ang);
+            //console.log(ang);
 
             // find the first point on the circumference that is orthogonal
             // to the line intersecting the two circle origos
@@ -801,8 +861,12 @@ export default class PixelPlugin
             renderer._ctx.stroke();
 
 
+
+
+
         }
     }
+
 
 
     drawHighlights (args)
@@ -810,7 +874,7 @@ export default class PixelPlugin
         let pageIndex = args[0],
             zoomLevel = args[1];
 
-        this.test(zoomLevel);
+        this.test(new Point(0,0,0), zoomLevel);
 
         this.layers.forEach((layer) =>
         {
@@ -829,6 +893,7 @@ export default class PixelPlugin
                     path.points.forEach((point) =>
                     {
                         this.drawPath(layer, point, pageIndex, zoomLevel, path.brushSize, isDown, this.shiftDown);
+                        //this.test(point, zoomLevel, path.brushSize, isDown);
                         isDown = true;
                     });
                 }
@@ -876,51 +941,51 @@ export default class PixelPlugin
             let paths = layer.paths;
             paths.forEach((path) =>
                 {
-                    this.getPathPixels(layer, path, pageIndex, maxZoomLevel, path.brushSize, this.matrix)
+                    // this.getPathPixels(layer, path, pageIndex, maxZoomLevel, path.brushSize, this.matrix)
                 }
             );
         });
         console.log("after", this.matrix);
     }
 
-    getPathPixels (layer, path, pageIndex, maxZoomLevel, brushSize, matrix)
-    {
-        let scaleRatio = Math.pow(2,zoomLevel);
-
-        const viewportPaddingX = Math.max(0, (renderer._viewport.width - renderer.layout.dimensions.width) / 2);
-        const viewportPaddingY = Math.max(0, (renderer._viewport.height - renderer.layout.dimensions.height) / 2);
-
-        // The following absolute values are experimental values to highlight the square on the first page of Salzinnes, CDN-Hsmu M2149.L4
-        // The relative values are used to scale the highlights according to the zoom level on the page itself
-        let absoluteRectOriginX = point.relativeOriginX * scaleRatio;
-        let absoluteRectOriginY = point.relativeOriginY * scaleRatio;
-
-        // This indicates the page on top of which the highlights are supposed to be drawn
-        let highlightPageIndex = point.pageIndex;
-
-        if (pageIndex === highlightPageIndex)
-        {
-            // Calculates where the highlights should be drawn as a function of the whole webpage coordinates
-            // (to make it look like it is on top of a page in Diva)
-            let highlightXOffset = renderer._getImageOffset(pageIndex).left - renderer._viewport.left + viewportPaddingX + absoluteRectOriginX;
-            let highlightYOffset = renderer._getImageOffset(pageIndex).top - renderer._viewport.top + viewportPaddingY + absoluteRectOriginY;
-
-            if (isDown)
-            {
-                renderer._ctx.beginPath();
-                renderer._ctx.strokeStyle = layer.colour.toString();
-                renderer._ctx.lineWidth = brushSize * scaleRatio;
-                renderer._ctx.lineJoin = "round";
-                renderer._ctx.moveTo(this.lastX, this.lastY);
-                renderer._ctx.lineTo(highlightXOffset, highlightYOffset);
-                renderer._ctx.closePath();
-                renderer._ctx.stroke();
-            }
-
-            this.lastX = highlightXOffset;
-            this.lastY = highlightYOffset;
-        }
-    }
+    // getPathPixels (layer, path, pageIndex, maxZoomLevel, brushSize, matrix)
+    // {
+    //     let scaleRatio = Math.pow(2,zoomLevel);
+    //
+    //     const viewportPaddingX = Math.max(0, (renderer._viewport.width - renderer.layout.dimensions.width) / 2);
+    //     const viewportPaddingY = Math.max(0, (renderer._viewport.height - renderer.layout.dimensions.height) / 2);
+    //
+    //     // The following absolute values are experimental values to highlight the square on the first page of Salzinnes, CDN-Hsmu M2149.L4
+    //     // The relative values are used to scale the highlights according to the zoom level on the page itself
+    //     let absoluteRectOriginX = point.relativeOriginX * scaleRatio;
+    //     let absoluteRectOriginY = point.relativeOriginY * scaleRatio;
+    //
+    //     // This indicates the page on top of which the highlights are supposed to be drawn
+    //     let highlightPageIndex = point.pageIndex;
+    //
+    //     if (pageIndex === highlightPageIndex)
+    //     {
+    //         // Calculates where the highlights should be drawn as a function of the whole webpage coordinates
+    //         // (to make it look like it is on top of a page in Diva)
+    //         let highlightXOffset = renderer._getImageOffset(pageIndex).left - renderer._viewport.left + viewportPaddingX + absoluteRectOriginX;
+    //         let highlightYOffset = renderer._getImageOffset(pageIndex).top - renderer._viewport.top + viewportPaddingY + absoluteRectOriginY;
+    //
+    //         if (isDown)
+    //         {
+    //             renderer._ctx.beginPath();
+    //             renderer._ctx.strokeStyle = layer.colour.toString();
+    //             renderer._ctx.lineWidth = brushSize * scaleRatio;
+    //             renderer._ctx.lineJoin = "round";
+    //             renderer._ctx.moveTo(this.lastX, this.lastY);
+    //             renderer._ctx.lineTo(highlightXOffset, highlightYOffset);
+    //             renderer._ctx.closePath();
+    //             renderer._ctx.stroke();
+    //         }
+    //
+    //         this.lastX = highlightXOffset;
+    //         this.lastY = highlightYOffset;
+    //     }
+    // }
 
 
 
@@ -989,6 +1054,33 @@ export class Shape
     getPixels ()
     {
 
+    }
+}
+
+
+export class Circle extends Shape
+{
+    constructor (point, relativeRadius) {
+        super(point);
+        this.relativeRadius = relativeRadius;
+    }
+
+    draw (layer, pageIndex, zoomLevel, renderer)
+    {
+        let scaleRatio = Math.pow(2,zoomLevel);
+
+        if (pageIndex === this.origin.pageIndex)
+        {
+            // Calculates where the highlights should be drawn as a function of the whole webpage coordinates
+            // (to make it look like it is on top of a page in Diva)
+            let absoluteCenterWithPadding = this.origin.getAbsoluteCoordinatesWithPadding(zoomLevel, pageIndex, renderer);
+
+            //Draw the circle
+            renderer._ctx.fillStyle = layer.colour.toString();
+            renderer._ctx.beginPath();
+            renderer._ctx.arc(absoluteCenterWithPadding.x,absoluteCenterWithPadding.y,this.relativeRadius,0,2*Math.PI);
+            renderer._ctx.fill();
+        }
     }
 }
 
@@ -1077,6 +1169,51 @@ export class Point
         this.relativeOriginX = relativeOriginX;
         this.relativeOriginY = relativeOriginY;
         this.pageIndex = pageIndex;
+    }
+
+    getAbsoluteCoordinates(zoomLevel)
+    {
+        let scaleRatio = Math.pow(2,zoomLevel);
+        return {
+            x: this.relativeOriginX * scaleRatio,
+            y: this.relativeOriginY * scaleRatio
+        }
+    }
+
+    getAbsoluteCoordinatesWithPadding(zoomLevel, pageIndex, renderer)
+    {
+        let scaleRatio = Math.pow(2,zoomLevel);
+
+        const viewportPaddingX = Math.max(0, (renderer._viewport.width - renderer.layout.dimensions.width) / 2);
+        const viewportPaddingY = Math.max(0, (renderer._viewport.height - renderer.layout.dimensions.height) / 2);
+
+        // The following absolute values are experimental values to highlight the square on the first page of Salzinnes, CDN-Hsmu M2149.L4
+        // The relative values are used to scale the highlights according to the zoom level on the page itself
+        let absoluteCoordinates = this.getAbsoluteCoordinates(zoomLevel);
+
+        // Calculates where the highlights should be drawn as a function of the whole webpage coordinates
+        // (to make it look like it is on top of a page in Diva)
+        let offsetX = renderer._getImageOffset(pageIndex).left - renderer._viewport.left + viewportPaddingX + absoluteCoordinates.x;
+        let offsetY = renderer._getImageOffset(pageIndex).top - renderer._viewport.top + viewportPaddingY + absoluteCoordinates.y;
+
+        return {
+            x: offsetX,
+            y: offsetY
+        }
+    }
+}
+
+export class Line
+{
+    constructor(startPoint, endPoint)
+    {
+        this.startPoint = startPoint;
+        this.endPoint = endPoint;
+    }
+
+    getLineEquation()
+    {
+
     }
 }
 
