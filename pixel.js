@@ -59,7 +59,7 @@ export default class PixelPlugin
 
             layer1.addShapeToLayer(new Rectangle(new Point(23, 42, 0), 24, 24));
             layer2.addShapeToLayer(new Rectangle(new Point(48, 50, 0), 57, 5));
-            layer3.addShapeToLayer(new Rectangle(new Point(50,120, 0), 50, 10));
+            layer3.addShapeToLayer(new Rectangle(new Point(50, 120, 0), 50, 10));
 
             this.layers = [layer1, layer2, layer3, layer4, layer5];
         }
@@ -133,8 +133,14 @@ export default class PixelPlugin
 
             if (key >= KEY_1 && key < KEY_1 + numberOfLayers && key <= KEY_9)
             {
-                this.selectedLayer = key - KEY_1;
-                document.getElementById("layer " + this.selectedLayer).checked = true;
+                this.layers.forEach ((layer) =>
+                {
+                    if (layer.layerType ===  key - KEY_1)
+                    {
+                        this.selectedLayer = this.layers.indexOf(layer);
+                        document.getElementById("layer " + layer.layerType).checked = true;
+                    }
+                });
 
                 if (lastLayer !== this.selectedLayer && this.mousePressed)
                     this.keyboardChangingLayers = true;
@@ -260,9 +266,19 @@ export default class PixelPlugin
             radio.setAttribute("type", "radio");
             radio.setAttribute("value", layer.layerType);
             radio.setAttribute("name", "layer selector");
-            radio.onclick = () => { this.selectedLayer = radio.value; };
+            radio.onclick = () =>
+            {
+                this.layers.forEach ((layer) =>
+                {
+                    // Not triple equality because layer.LayerType and radio.value are of different types
+                    if (layer.layerType == radio.value)
+                    {
+                        this.selectedLayer = this.layers.indexOf(layer);
+                    }
+                });
+            };
 
-            if (layer.layerType === 0)      // Layer 0 is checked by default
+            if (layer.layerType === this.layers[0].layerType)      // Layer at position 0 is checked by default
                 radio.checked = true;
 
             form.appendChild(radio);
