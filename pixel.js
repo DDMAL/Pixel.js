@@ -54,7 +54,7 @@ export default class PixelPlugin
             let layer1 = new Layer(0, new Colour(51, 102, 255, 0.8)),
                 layer2 = new Layer(1, new Colour(255, 51, 102, 0.8)),
                 layer3 = new Layer(2, new Colour(255, 255, 10, 0.8)),
-                layer4 = new Layer(3, new Colour(10, 255, 10, 0.8)),
+                layer4 = new Layer(3, new Colour(10, 180, 50, 0.8)),
                 layer5 = new Layer(4, new Colour(255, 137, 0, 0.8));
 
             layer1.addShapeToLayer(new Rectangle(new Point(23, 42, 0), 24, 24));
@@ -256,9 +256,10 @@ export default class PixelPlugin
         form.setAttribute("id", "layer selector");
         form.setAttribute("action", "");
 
-        layers.forEach((layer) =>
+        for (var index = layers.length - 1; index >= 0; index--)
         {
-            let radio = document.createElement("input"),
+            let layer = layers[index],
+                radio = document.createElement("input"),
                 content = document.createTextNode("Layer " + (layer.layerType + 1)),
                 br = document.createElement("br");
 
@@ -285,7 +286,7 @@ export default class PixelPlugin
             form.appendChild(content);
             this.createOpacitySlider(layer, form);
             form.appendChild(br);
-        });
+        }
         document.body.appendChild(form);
     }
 
