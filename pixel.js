@@ -721,6 +721,8 @@ export default class PixelPlugin
         // This indicates the page on top of which the highlights are supposed to be drawn
         let highlightPageIndex = point1.pageIndex;
 
+        new Line(point1, point2, lineWidth, "round").draw(this.layers[0],pageIndex,zoomLevel,renderer);
+
         if (pageIndex === highlightPageIndex)
         {
             // Calculates where the highlights should be drawn as a function of the whole webpage coordinates
@@ -728,43 +730,8 @@ export default class PixelPlugin
             let point1highlightOffset = point1.getAbsoluteCoordinatesWithPadding(zoomLevel, pageIndex, renderer);
             var point2highlightOffset = point2.getAbsoluteCoordinatesWithPadding(zoomLevel,pageIndex,renderer);
 
-            new Line(point1, point2, lineWidth, "round").draw(this.layers[0], pageIndex, zoomLevel, renderer);
-
-            new Circle(point1, lineWidth/2).draw(this.layers[1], pageIndex, zoomLevel, renderer);
-            new Circle(point2, lineWidth/2).draw(this.layers[1], pageIndex, zoomLevel, renderer);
-
-            // Transform circle into 5ara zeft el teen coordinates
-            let circleTop = new Point(point1.relativeOriginX, point1.relativeOriginY - lineWidth/2, 0);
-            let circleBottom = new Point(point1.relativeOriginX, point1.relativeOriginY + lineWidth/2, 0);
-            let circleLeft = new Point(point1.relativeOriginX - lineWidth/2, point1.relativeOriginY, 0);
-            let circleRight = new Point(point1.relativeOriginX + lineWidth/2, point1.relativeOriginY, 0);
-
-            new Circle(circleTop, lineWidth/30).draw(this.layers[3], pageIndex, zoomLevel, renderer);
-            new Circle(circleBottom, lineWidth/30).draw(this.layers[3], pageIndex, zoomLevel, renderer);
-            new Circle(circleLeft, lineWidth/30).draw(this.layers[3], pageIndex, zoomLevel, renderer);
-            new Circle(circleRight, lineWidth/30).draw(this.layers[3], pageIndex, zoomLevel, renderer);
-
-
-            for(var y = circleTop.getAbsoluteCoordinatesWithPadding(zoomLevel, pageIndex, renderer).y;
-                y <= circleBottom.getAbsoluteCoordinatesWithPadding(zoomLevel, pageIndex, renderer).y; y++)
-            {
-                for(var  x = circleLeft.getAbsoluteCoordinatesWithPadding(zoomLevel, pageIndex, renderer).x;
-                    x <= circleRight.getAbsoluteCoordinatesWithPadding(zoomLevel, pageIndex, renderer).x; x++){
-
-                    let shiftedX = x - point1highlightOffset.x;
-                    let shiftedY = y - point1highlightOffset.y;
-
-                    if(shiftedX*shiftedX + shiftedY*shiftedY <= (lineWidth/2)*scaleRatio*(lineWidth/2)*scaleRatio)
-                    {
-                        // renderer._ctx.fillStyle = this.layers[4].colour.toString();
-                        // renderer._ctx.beginPath();
-                        // renderer._ctx.arc(x,y, lineWidth/30,0,2*Math.PI);
-                        // renderer._ctx.fill();
-
-                    }
-                }
-            }
-
+            new Circle(point1, lineWidth/2).getPixels(this.layers[3], pageIndex, zoomLevel, renderer);
+            new Circle(point2, lineWidth/2).getPixels(this.layers[3], pageIndex, zoomLevel, renderer);
 
             let ang = new Line(point1, point2).getAngleRad(zoomLevel,pageIndex,renderer);
 
@@ -792,92 +759,13 @@ export default class PixelPlugin
                 absolutePaddedY: point2highlightOffset.y + Math.sin(ang - Math.PI/2)* absoluteLineWidth/2
             };
 
-            // These points have absolute and not relative coordinates. They are only used for testing purposes
-            renderer._ctx.beginPath();
-            renderer._ctx.strokeStyle = this.layers[2].colour.toString();
-            renderer._ctx.lineWidth = absoluteLineWidth/30;
-            renderer._ctx.lineJoin = "round";
-            renderer._ctx.moveTo(start1.absolutePaddedX, start1.absolutePaddedY);
-            renderer._ctx.lineTo(end1.absolutePaddedX, end1.absolutePaddedY);
-            renderer._ctx.closePath();
-            renderer._ctx.stroke();
-
-            renderer._ctx.beginPath();
-            renderer._ctx.strokeStyle = this.layers[2].colour.toString();
-            renderer._ctx.lineWidth = absoluteLineWidth/30;
-            renderer._ctx.lineJoin = "round";
-            renderer._ctx.moveTo(start2.absolutePaddedX, start2.absolutePaddedY);
-            renderer._ctx.lineTo(end2.absolutePaddedX, end2.absolutePaddedY);
-            renderer._ctx.closePath();
-            renderer._ctx.stroke();
-
-            // Logic for scanning lines
-
             // 1. get ymax and ymin
             let ymax = Math.round(Math.max(start1.absolutePaddedY, start2.absolutePaddedY, end1.absolutePaddedY, end2.absolutePaddedY));
             let ymin = Math.round(Math.min(start1.absolutePaddedY, start2.absolutePaddedY, end1.absolutePaddedY, end2.absolutePaddedY));
             let pairOfEdges = [[start1,end1], [start2, end2], [start1, start2], [end1, end2]]
 
-            // TODO: Check for horizontal or vertical lines
-
-            // For every scan line
-            for(var y = ymin; y < ymax; y++)
-            {
-                let intersectionPoints = [];
-                // For every line
-                for (var e = 0; e < pairOfEdges.length; e++)
-                {
-                    // Calculate intersection with line
-                    for(var p = 0; p < pairOfEdges[e].length - 1; p++)
-                    {
-                        let x1 = pairOfEdges[e][p].absolutePaddedX;
-                        let y1 = pairOfEdges[e][p].absolutePaddedY;
-                        let x2 = pairOfEdges[e][p + 1].absolutePaddedX;
-                        let y2 = pairOfEdges[e][p + 1].absolutePaddedY;
-
-                        let deltax = x2 - x1;
-                        let deltay = y2 - y1;
-
-                        let x = x1 + deltax / deltay * (y - y1);
-                        let roundedX = Math.round(x);
-
-                        if ((y1 <= y && y2 > y) || (y2 <= y && y1 > y))
-                        {
-                            intersectionPoints.push({
-                                absolutePaddedX: roundedX,
-                                absolutePaddedY: y
-                            })
-                        }
-                    }
-                }
-
-                intersectionPoints.sort((a, b) => {
-                    return a.absolutePaddedX - b.absolutePaddedX;
-                });
-
-                // Start filling
-                if (intersectionPoints.length > 0)
-                {
-                    for (var index = 0; index < intersectionPoints.length - 1; index++)
-                    {
-                        if (index%2 === 0)
-                        {
-                            let start = intersectionPoints[index].absolutePaddedX; // This will contain the start of the x coords to fill
-                            let end = intersectionPoints[index + 1].absolutePaddedX;    // This will contain the end of the x coords to fill
-
-                            let y = intersectionPoints[index].absolutePaddedY;
-
-                            for (var fill = start; fill < end; fill++)
-                            {
-                                renderer._ctx.fillStyle = this.layers[4].colour.toString();
-                                renderer._ctx.beginPath();
-                                renderer._ctx.arc(fill, y, lineWidth/50 ,0,2*Math.PI);
-                                renderer._ctx.fill();
-                            }
-                        }
-                    }
-                }
-            }
+            // Logic for scanning lines
+            new Shape().getPixels(this.layers[3], renderer, ymax, ymin, pairOfEdges);
         }
     }
 
@@ -1024,9 +912,69 @@ export class Shape
 
     }
 
-    getPixels ()
+    getPixels(layer, renderer, ymax, ymin, pairOfEdges)
     {
+        // TODO: Check for horizontal or vertical lines
 
+        // For every scan line
+        for(var y = ymin; y < ymax; y++)
+        {
+            let intersectionPoints = [];
+
+            // For every line
+            for (var e = 0; e < pairOfEdges.length; e++)
+            {
+                // Calculate intersection with line
+                for(var p = 0; p < pairOfEdges[e].length - 1; p++)
+                {
+                    let x1 = pairOfEdges[e][p].absolutePaddedX;
+                    let y1 = pairOfEdges[e][p].absolutePaddedY;
+                    let x2 = pairOfEdges[e][p + 1].absolutePaddedX;
+                    let y2 = pairOfEdges[e][p + 1].absolutePaddedY;
+
+                    let deltax = x2 - x1;
+                    let deltay = y2 - y1;
+
+                    let x = x1 + deltax / deltay * (y - y1);
+                    let roundedX = Math.round(x);
+
+                    if ((y1 <= y && y2 > y) || (y2 <= y && y1 > y))
+                    {
+                        intersectionPoints.push({
+                            absolutePaddedX: roundedX,
+                            absolutePaddedY: y
+                        })
+                    }
+                }
+            }
+
+            intersectionPoints.sort((a, b) => {
+                return a.absolutePaddedX - b.absolutePaddedX;
+            });
+
+            // Start filling
+            if (intersectionPoints.length > 0)
+            {
+                for (var index = 0; index < intersectionPoints.length - 1; index++)
+                {
+                    if (index%2 === 0)
+                    {
+                        let start = intersectionPoints[index].absolutePaddedX; // This will contain the start of the x coords to fill
+                        let end = intersectionPoints[index + 1].absolutePaddedX;    // This will contain the end of the x coords to fill
+
+                        let y = intersectionPoints[index].absolutePaddedY;
+
+                        for (var fill = start; fill < end; fill++)
+                        {
+                            renderer._ctx.fillStyle = layer.colour.toString();
+                            renderer._ctx.beginPath();
+                            renderer._ctx.arc(fill, y, 0.2,0,2*Math.PI);
+                            renderer._ctx.fill();
+                        }
+                    }
+                }
+            }
+        }
     }
 }
 
@@ -1053,6 +1001,39 @@ export class Circle extends Shape
             renderer._ctx.beginPath();
             renderer._ctx.arc(absoluteCenterWithPadding.x,absoluteCenterWithPadding.y, this.relativeRadius * scaleRatio,0,2*Math.PI);
             renderer._ctx.fill();
+        }
+    }
+
+    getPixels (layer, pageIndex, zoomLevel, renderer, matrix)
+    {
+        let circleTop = new Point(this.origin.relativeOriginX, this.origin.relativeOriginY - this.relativeRadius, 0);
+        let circleBottom = new Point(this.origin.relativeOriginX, this.origin.relativeOriginY + this.relativeRadius, 0);
+        let circleLeft = new Point(this.origin.relativeOriginX - this.relativeRadius, this.origin.relativeOriginY, 0);
+        let circleRight = new Point(this.origin.relativeOriginX + this.relativeRadius, this.origin.relativeOriginY, 0);
+
+        let scaleRatio = Math.pow(2, zoomLevel);
+
+        for(var y = circleTop.getAbsoluteCoordinatesWithPadding(zoomLevel, pageIndex, renderer).y;
+            y <= circleBottom.getAbsoluteCoordinatesWithPadding(zoomLevel, pageIndex, renderer).y; y++)
+        {
+            for(var  x = circleLeft.getAbsoluteCoordinatesWithPadding(zoomLevel, pageIndex, renderer).x;
+                x <= circleRight.getAbsoluteCoordinatesWithPadding(zoomLevel, pageIndex, renderer).x; x++){
+
+                let point1highlightOffset = this.origin.getAbsoluteCoordinatesWithPadding(zoomLevel, pageIndex, renderer);
+
+
+                let shiftedX = x - point1highlightOffset.x;
+                let shiftedY = y - point1highlightOffset.y;
+
+                if(shiftedX*shiftedX + shiftedY*shiftedY <= (this.relativeRadius)*scaleRatio*(this.relativeRadius)*scaleRatio)
+                {
+                    renderer._ctx.fillStyle = layer.colour.toString();
+                    renderer._ctx.beginPath();
+                    renderer._ctx.arc(x,y, 0.2,0,2*Math.PI);
+                    renderer._ctx.fill();
+
+                }
+            }
         }
     }
 }
@@ -1106,8 +1087,6 @@ export class Rectangle extends Shape
 
         if (pageIndex === this.origin.pageIndex)
         {
-            console.log(absoluteRectOriginY, absoluteRectOriginX, absoluteRectOriginY + absoluteRectHeight, absoluteRectOriginX + absoluteRectWidth);
-
             // Want abs coord of start and finish
             for(var row = Math.min(absoluteRectOriginY, absoluteRectOriginY + absoluteRectHeight); row <  Math.max(absoluteRectOriginY, absoluteRectOriginY + absoluteRectHeight); row++)
             {
@@ -1155,8 +1134,6 @@ export class Point
 
     getAbsoluteCoordinatesWithPadding(zoomLevel, pageIndex, renderer)
     {
-        let scaleRatio = Math.pow(2,zoomLevel);
-
         const viewportPaddingX = Math.max(0, (renderer._viewport.width - renderer.layout.dimensions.width) / 2);
         const viewportPaddingY = Math.max(0, (renderer._viewport.height - renderer.layout.dimensions.height) / 2);
 
@@ -1176,11 +1153,11 @@ export class Point
     }
 }
 
-export class Line
+export class Line extends Shape
 {
     constructor (startPoint, endPoint, lineWidth, lineJoin)
     {
-        this.startPoint = startPoint;
+        super(startPoint);
         this.endPoint = endPoint;
         this.lineWidth = lineWidth;
         this.lineJoin = lineJoin;
@@ -1193,7 +1170,7 @@ export class Line
 
     getAngleRad (zoomLevel, pageIndex, renderer)
     {
-        let startPointAbsoluteCoordsWithPadding = this.startPoint.getAbsoluteCoordinatesWithPadding(zoomLevel, pageIndex, renderer);
+        let startPointAbsoluteCoordsWithPadding = this.origin.getAbsoluteCoordinatesWithPadding(zoomLevel, pageIndex, renderer);
         let endPointAbsoluteCoordsWithPadding = this.endPoint.getAbsoluteCoordinatesWithPadding(zoomLevel, pageIndex, renderer);
 
         return Math.atan2(endPointAbsoluteCoordsWithPadding.y - startPointAbsoluteCoordsWithPadding.y,
@@ -1205,7 +1182,7 @@ export class Line
 
         let scaleRatio = Math.pow(2,zoomLevel);
 
-        let startPointAbsoluteCoordsWithPadding = this.startPoint.getAbsoluteCoordinatesWithPadding(zoomLevel, pageIndex, renderer);
+        let startPointAbsoluteCoordsWithPadding = this.origin.getAbsoluteCoordinatesWithPadding(zoomLevel, pageIndex, renderer);
         let endPointAbsoluteCoordsWithPadding = this.endPoint.getAbsoluteCoordinatesWithPadding(zoomLevel, pageIndex, renderer);
 
         renderer._ctx.beginPath();
