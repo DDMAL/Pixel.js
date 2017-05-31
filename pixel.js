@@ -849,10 +849,13 @@ export default class PixelPlugin
             );
         });
         this.printMatrix();
+
+        console.log("Done");
     }
 
     printMatrix ()
     {
+        // Need to implement a buffering page
         let renderer = this.core.getSettings().renderer;
 
         for (var row = 0; row < this.matrix.length; row++)
@@ -874,25 +877,6 @@ export default class PixelPlugin
                 }
             }
         }
-    }
-
-
-
-    /**
-     * Fills the base matrix with type data outlined by the layer drawings
-     * @param path object containing points
-     * @param layer The targeted layer containing the pixels to map
-     */
-    fillMatrix (path, layer)
-    {
-        let maxZoomLevel = this.core.getSettings().maxZoomLevel;
-        let scaleRatio = Math.pow(2, maxZoomLevel);
-        path.points.forEach((point) =>
-        {
-            let absoluteOriginX = point.relativeRectOriginX * scaleRatio,
-                absoluteOriginY = point.relativeRectOriginY * scaleRatio;
-            this.matrix[absoluteOriginX][absoluteOriginY] = layer.layerType;
-        });
     }
 
     createIcon ()
