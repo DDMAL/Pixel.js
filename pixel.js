@@ -57,9 +57,9 @@ export default class PixelPlugin
                 layer4 = new Layer(3, new Colour(10, 255, 10, 0.8)),
                 layer5 = new Layer(4, new Colour(255, 137, 0, 0.8));
 
-            layer1.addShapeToLayer(new Rectangle(new Point(23, 42, 0), 24, 24));
-            layer2.addShapeToLayer(new Rectangle(new Point(48, 50, 0), 57, 5));
-            layer3.addShapeToLayer(new Rectangle(new Point(50,120, 0), 50, 10));
+            // layer1.addShapeToLayer(new Rectangle(new Point(23, 42, 0), 35, 35));
+            // layer2.addShapeToLayer(new Rectangle(new Point(48, 50, 0), 57, 5));
+            // layer3.addShapeToLayer(new Rectangle(new Point(50,120, 0), 50, 10));
 
             this.layers = [layer1, layer2, layer3, layer4, layer5];
         }
@@ -209,6 +209,7 @@ export default class PixelPlugin
         this.createRedoButton();
         this.createLayerSelectors(layers);
         this.createBrushSizeSelector();
+        this.createExportButton();
     }
 
     destroyPluginElements (layers)
@@ -217,6 +218,7 @@ export default class PixelPlugin
         this.destroyBrushSizeSelector();
         this.destroyUndoButton();
         this.destroyRedoButton();
+        this.destroyExportButton();
     }
 
     createOpacitySlider (layer, parentElement)
@@ -342,6 +344,26 @@ export default class PixelPlugin
         document.body.removeChild(br);
     }
 
+    createExportButton ()
+    {
+        let exportButton = document.createElement("button");
+        let text = document.createTextNode("Export as Matrix");
+
+        this.export = () => { this.populateMatrix(); };
+
+        exportButton.setAttribute("id", "export button");
+        exportButton.appendChild(text);
+        exportButton.addEventListener("click", this.export);
+
+        document.body.appendChild(exportButton);
+    }
+
+    destroyExportButton ()
+    {
+        let exportButton = document.getElementById("export button");
+        document.body.removeChild(exportButton);
+    }
+
     /**
      * ===============================================
      *                   Drawing
@@ -364,6 +386,8 @@ export default class PixelPlugin
             default:
                 this.mousePressed = true;
         }
+
+        // FIXME: At deactivation mouse is down so it clears the actions to redo
         this.undoneActions = [];
     }
 
@@ -673,6 +697,66 @@ export default class PixelPlugin
         }
     }
 
+    fillPath(layer, point1, point2, zoomLevel, pageIndex, brushSize)
+    {
+        let renderer = this.core.getSettings().renderer;
+        let scaleRatio = Math.pow(2,zoomLevel);
+        let lineWidth = brushSize;
+        let absoluteLineWidth = lineWidth * scaleRatio;
+
+        // This indicates the page on top of which the highlights are supposed to be drawn
+        let highlightPageIndex = point1.pageIndex;
+
+        if (pageIndex === highlightPageIndex)
+        {
+            //new Line(point1, point2, brushSize, "round").draw(this.layers[4],pageIndex,zoomLevel,this.core.getSettings().renderer);
+
+            // Calculates where the highlights should be drawn as a function of the whole webpage coordinates
+            // (to make it look like it is on top of a page in Diva)
+            let point1highlightOffset = point1.getAbsoluteCoordinatesWithPadding(zoomLevel, pageIndex, renderer);
+            var point2highlightOffset = point2.getAbsoluteCoordinatesWithPadding(zoomLevel,pageIndex,renderer);
+
+            new Circle(point1, lineWidth/2).getPixels(layer, pageIndex, zoomLevel, renderer, this.matrix);
+            new Circle(point2, lineWidth/2).getPixels(layer, pageIndex, zoomLevel, renderer, this.matrix);
+
+            let ang = new Line(point1, point2).getAngleRad(zoomLevel,pageIndex,renderer);
+
+            // find the first point on the circumference that is orthogonal
+            // to the line intersecting the two circle origos
+
+            // These are values with padding
+            var start1 = {
+                absolutePaddedX: point1highlightOffset.x + Math.cos(ang + Math.PI / 2) * absoluteLineWidth/2,
+                absolutePaddedY: point1highlightOffset.y + Math.sin(ang + Math.PI/2)* absoluteLineWidth/2
+            };
+            var end1 = {
+                absolutePaddedX: point2highlightOffset.x + Math.cos(ang + Math.PI / 2) * absoluteLineWidth/2,
+                absolutePaddedY: point2highlightOffset.y + Math.sin(ang + Math.PI/2)* absoluteLineWidth/2
+            };
+
+            // find the second point on the circumference that is orthogonal
+            // to the line intersecting the two circle origos
+            var start2 = {
+                absolutePaddedX: point1highlightOffset.x + Math.cos(ang - Math.PI / 2) * absoluteLineWidth/2,
+                absolutePaddedY: point1highlightOffset.y + Math.sin(ang - Math.PI/2)* absoluteLineWidth/2
+            };
+            var end2 = {
+                absolutePaddedX: point2highlightOffset.x + Math.cos(ang - Math.PI / 2) * absoluteLineWidth/2,
+                absolutePaddedY: point2highlightOffset.y + Math.sin(ang - Math.PI/2)* absoluteLineWidth/2
+            };
+
+            // 1. get ymax and ymin
+            let ymax = Math.round(Math.max(start1.absolutePaddedY, start2.absolutePaddedY, end1.absolutePaddedY, end2.absolutePaddedY));
+            let ymin = Math.round(Math.min(start1.absolutePaddedY, start2.absolutePaddedY, end1.absolutePaddedY, end2.absolutePaddedY));
+            let pairOfEdges = [[start1,end1], [start2, end2], [start1, start2], [end1, end2]];
+
+            // Logic for scanning lines
+            new Shape().getPixels(layer, pageIndex, zoomLevel, renderer, ymax, ymin, pairOfEdges, this.matrix);
+        }
+    }
+
+
+
     drawHighlights (args)
     {
         let pageIndex = args[0],
@@ -692,6 +776,7 @@ export default class PixelPlugin
             paths.forEach((path) =>
                 {
                     let isDown = false;
+
                     path.points.forEach((point) =>
                     {
                         this.drawPath(layer, point, pageIndex, zoomLevel, path.brushSize, isDown, this.shiftDown);
@@ -709,35 +794,78 @@ export default class PixelPlugin
      **/
 
     /**
-     * Initializes the base matrix that maps the real-size picture
+     * Initializes the base matrix that maps the real-size picture.
+     * It wil
      **/
     initializeMatrix ()
     {
-        if (this.matrix === null)
-        {
-            let pageIndex = this.core.getSettings().currentPageIndex,
-                maxZoomLevel = this.core.getSettings().maxZoomLevel,
-                height = this.core.publicInstance.getPageDimensionsAtZoomLevel(pageIndex, maxZoomLevel).height,
-                width = this.core.publicInstance.getPageDimensionsAtZoomLevel(pageIndex, maxZoomLevel).width;
-            this.matrix = new Array(width).fill(null).map(() => new Array(height).fill(0));
-        }
+        let pageIndex = this.core.getSettings().currentPageIndex,
+            maxZoomLevel = this.core.getSettings().maxZoomLevel;
+        let height = this.core.publicInstance.getPageDimensionsAtZoomLevel(pageIndex, maxZoomLevel).height,
+            width = this.core.publicInstance.getPageDimensionsAtZoomLevel(pageIndex, maxZoomLevel).width;
+        this.matrix = new Array(height).fill(null).map(() => new Array(width).fill(-1));
     }
 
-    /**
-     * Fills the base matrix with type data outlined by the layer drawings
-     * @param path object containing points
-     * @param layer The targeted layer containing the pixels to map
-     */
-    fillMatrix (path, layer)
+    populateMatrix ()
     {
-        let maxZoomLevel = this.core.getSettings().maxZoomLevel,
-            scaleRatio = Math.pow(2, maxZoomLevel);
-        path.points.forEach((point) =>
+        console.log("populating");
+
+        this.initializeMatrix();
+
+        let pageIndex = this.core.getSettings().currentPageIndex,
+            maxZoomLevel = this.core.getSettings().maxZoomLevel;
+
+        this.layers.forEach((layer) =>
         {
-            let absoluteOriginX = point.relativeRectOriginX * scaleRatio,
-                absoluteOriginY = point.relativeRectOriginY * scaleRatio;
-            this.matrix[absoluteOriginX][absoluteOriginY] = layer.layerType;
+            let shapes = layer.shapes;
+
+            shapes.forEach((shape) =>
+                {
+                    shape.getPixels(layer, pageIndex, maxZoomLevel, this.core.getSettings().renderer, this.matrix);
+                }
+            );
+
+            let paths = layer.paths;
+            paths.forEach((path) =>
+                {
+                    for (let index = 0; index < path.points.length - 1; index++)
+                    {
+                        let point = path.points[index];
+                        let nextPoint = path.points[index + 1];
+                        this.fillPath(layer, point, nextPoint, maxZoomLevel, pageIndex, path.brushSize);
+                    }
+                }
+            );
         });
+        this.printMatrix();
+
+        console.log("Done");
+    }
+
+    printMatrix ()
+    {
+        // Need to implement a buffering page
+        let renderer = this.core.getSettings().renderer;
+
+        for (var row = 0; row < this.matrix.length; row++)
+        {
+            for (var col = 0; col < this.matrix[0].length; col++)
+            {
+                if (this.matrix[row][col] !== -1)
+                {
+                    this.layers.forEach((layer) =>
+                    {
+                        if (layer.layerType === this.matrix[row][col])
+                        {
+                            renderer._ctx.fillStyle = layer.colour.toString();
+                            renderer._ctx.beginPath();
+                            renderer._ctx.arc(col, row, 0.2,0,2*Math.PI);
+                            renderer._ctx.fill();
+                        }
+                    })
+                }
+            }
+        }
     }
 
     createIcon ()
@@ -776,13 +904,143 @@ export class Shape
 {
     constructor (point)
     {
-        this.origin = point
+        this.origin = point;
         this.type = "shape";
     }
 
     draw ()
     {
 
+    }
+
+    getPixels(layer, pageIndex, zoomLevel, renderer, ymax, ymin, pairOfEdges, matrix)
+    {
+        // TODO: Check for horizontal or vertical lines
+        // For every scan line
+        for(var y = ymin; y < ymax; y++)
+        {
+            let intersectionPoints = [];
+
+            // For every line
+            for (var e = 0; e < pairOfEdges.length; e++)
+            {
+                // Calculate intersection with line
+                for(var p = 0; p < pairOfEdges[e].length - 1; p++)
+                {
+                    let x1 = pairOfEdges[e][p].absolutePaddedX;
+                    let y1 = pairOfEdges[e][p].absolutePaddedY;
+                    let x2 = pairOfEdges[e][p + 1].absolutePaddedX;
+                    let y2 = pairOfEdges[e][p + 1].absolutePaddedY;
+
+                    let deltax = x2 - x1;
+                    let deltay = y2 - y1;
+
+                    let x = x1 + deltax / deltay * (y - y1);
+                    let roundedX = Math.round(x);
+
+                    if ((y1 <= y && y2 > y) || (y2 <= y && y1 > y))
+                    {
+                        intersectionPoints.push({
+                            absolutePaddedX: roundedX,
+                            absolutePaddedY: y
+                        })
+                    }
+                }
+            }
+
+            intersectionPoints.sort((a, b) => {
+                return a.absolutePaddedX - b.absolutePaddedX;
+            });
+
+            // Start filling
+            if (intersectionPoints.length > 0)
+            {
+                for (var index = 0; index < intersectionPoints.length - 1; index++)
+                {
+                    if (index%2 === 0)
+                    {
+                        let start = intersectionPoints[index].absolutePaddedX; // This will contain the start of the x coords to fill
+                        let end = intersectionPoints[index + 1].absolutePaddedX;    // This will contain the end of the x coords to fill
+
+                        let y = intersectionPoints[index].absolutePaddedY;
+
+                        for (var fill = start; fill < end; fill++)
+                        {
+                            // Remove padding to get absolute coordinates
+                            let absoluteCoords = new Point().getAbsoluteCoordinatesFromPadded(pageIndex,renderer,fill,y);
+
+                            if (absoluteCoords.absoluteY >= 0 && absoluteCoords.absoluteX >= 0
+                                && absoluteCoords.absoluteY <= matrix.length && absoluteCoords.absoluteX <= matrix[0].length)
+                            {
+                                matrix[absoluteCoords.absoluteY][absoluteCoords.absoluteX] = layer.layerType;
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    }
+}
+
+
+export class Circle extends Shape
+{
+    constructor (point, relativeRadius) {
+        super(point);
+        this.relativeRadius = relativeRadius;
+    }
+
+    draw (layer, pageIndex, zoomLevel, renderer)
+    {
+        let scaleRatio = Math.pow(2,zoomLevel);
+
+        if (pageIndex === this.origin.pageIndex)
+        {
+            // Calculates where the highlights should be drawn as a function of the whole webpage coordinates
+            // (to make it look like it is on top of a page in Diva)
+            let absoluteCenterWithPadding = this.origin.getAbsoluteCoordinatesWithPadding(zoomLevel, pageIndex, renderer);
+
+            //Draw the circle
+            renderer._ctx.fillStyle = layer.colour.toString();
+            renderer._ctx.beginPath();
+            renderer._ctx.arc(absoluteCenterWithPadding.x,absoluteCenterWithPadding.y, this.relativeRadius * scaleRatio,0,2*Math.PI);
+            renderer._ctx.fill();
+        }
+    }
+
+    getPixels (layer, pageIndex, zoomLevel, renderer, matrix)
+    {
+        let circleTop = new Point(this.origin.relativeOriginX, this.origin.relativeOriginY - this.relativeRadius, 0);
+        let circleBottom = new Point(this.origin.relativeOriginX, this.origin.relativeOriginY + this.relativeRadius, 0);
+        let circleLeft = new Point(this.origin.relativeOriginX - this.relativeRadius, this.origin.relativeOriginY, 0);
+        let circleRight = new Point(this.origin.relativeOriginX + this.relativeRadius, this.origin.relativeOriginY, 0);
+
+        let scaleRatio = Math.pow(2, zoomLevel);
+
+        for(var y = circleTop.getAbsoluteCoordinatesWithPadding(zoomLevel, pageIndex, renderer).y;
+            y <= circleBottom.getAbsoluteCoordinatesWithPadding(zoomLevel, pageIndex, renderer).y; y++)
+        {
+            for(var  x = circleLeft.getAbsoluteCoordinatesWithPadding(zoomLevel, pageIndex, renderer).x;
+                x <= circleRight.getAbsoluteCoordinatesWithPadding(zoomLevel, pageIndex, renderer).x; x++){
+
+                let point1highlightOffset = this.origin.getAbsoluteCoordinatesWithPadding(zoomLevel, pageIndex, renderer);
+
+
+                let shiftedX = x - point1highlightOffset.x;
+                let shiftedY = y - point1highlightOffset.y;
+
+                if(shiftedX*shiftedX + shiftedY*shiftedY <= (this.relativeRadius)*scaleRatio*(this.relativeRadius)*scaleRatio)
+                {
+                    // Get absolute from padded
+                    let absoluteCoords = new Point().getAbsoluteCoordinatesFromPadded(pageIndex,renderer,x,y);
+                    if (absoluteCoords.absoluteY >= 0 && absoluteCoords.absoluteX >= 0
+                        && absoluteCoords.absoluteY <= matrix.length && absoluteCoords.absoluteX <= matrix[0].length)
+                    {
+                        matrix[absoluteCoords.absoluteY][absoluteCoords.absoluteX] = layer.layerType;
+                    }
+                }
+            }
+        }
     }
 }
 
@@ -821,6 +1079,31 @@ export class Rectangle extends Shape
             renderer._ctx.fillRect(highlightXOffset, highlightYOffset,absoluteRectWidth,absoluteRectHeight);
         }
     }
+
+    getPixels (layer, pageIndex, zoomLevel, renderer, matrix)
+    {
+        let scaleRatio = Math.pow(2,zoomLevel);
+
+        // The following absolute values are experimental values to highlight the square on the first page of Salzinnes, CDN-Hsmu M2149.L4
+        // The relative values are used to scale the highlights according to the zoom level on the page itself
+        let absoluteRectOriginX = this.origin.relativeOriginX * scaleRatio;
+        let absoluteRectOriginY = this.origin.relativeOriginY * scaleRatio;
+        let absoluteRectWidth = this.relativeRectWidth * scaleRatio;
+        let absoluteRectHeight = this.relativeRectHeight * scaleRatio;
+
+        if (pageIndex === this.origin.pageIndex)
+        {
+            // Want abs coord of start and finish
+            for(var row = Math.round(Math.min(absoluteRectOriginY, absoluteRectOriginY + absoluteRectHeight)); row <  Math.max(absoluteRectOriginY, absoluteRectOriginY + absoluteRectHeight); row++)
+            {
+                for(var col = Math.round(Math.min(absoluteRectOriginX, absoluteRectOriginX + absoluteRectWidth)); col < Math.max(absoluteRectOriginX, absoluteRectOriginX + absoluteRectWidth); col++)
+                {
+                    if (row >= 0 && col >= 0 && row <= matrix.length && col <= matrix[0].length)
+                        matrix[row][col] = layer.layerType;
+                }
+            }
+        }
+    }
 }
 
 export class Path
@@ -845,6 +1128,90 @@ export class Point
         this.relativeOriginX = relativeOriginX;
         this.relativeOriginY = relativeOriginY;
         this.pageIndex = pageIndex;
+    }
+
+    getAbsoluteCoordinates(zoomLevel)
+    {
+        let scaleRatio = Math.pow(2,zoomLevel);
+        return {
+            x: this.relativeOriginX * scaleRatio,
+            y: this.relativeOriginY * scaleRatio
+        }
+    }
+
+    getAbsoluteCoordinatesWithPadding(zoomLevel, pageIndex, renderer)
+    {
+        const viewportPaddingX = Math.max(0, (renderer._viewport.width - renderer.layout.dimensions.width) / 2);
+        const viewportPaddingY = Math.max(0, (renderer._viewport.height - renderer.layout.dimensions.height) / 2);
+
+        // The following absolute values are experimental values to highlight the square on the first page of Salzinnes, CDN-Hsmu M2149.L4
+        // The relative values are used to scale the highlights according to the zoom level on the page itself
+        let absoluteCoordinates = this.getAbsoluteCoordinates(zoomLevel);
+
+        // Calculates where the highlights should be drawn as a function of the whole webpage coordinates
+        // (to make it look like it is on top of a page in Diva)
+        let offsetX = renderer._getImageOffset(pageIndex).left - renderer._viewport.left + viewportPaddingX + absoluteCoordinates.x;
+        let offsetY = renderer._getImageOffset(pageIndex).top - renderer._viewport.top + viewportPaddingY + absoluteCoordinates.y;
+
+        return {
+            x: offsetX,
+            y: offsetY
+        }
+    }
+
+    getAbsoluteCoordinatesFromPadded(pageIndex, renderer, paddedX, paddedY)
+    {
+        const viewportPaddingX = Math.max(0, (renderer._viewport.width - renderer.layout.dimensions.width) / 2);
+        const viewportPaddingY = Math.max(0, (renderer._viewport.height - renderer.layout.dimensions.height) / 2);
+
+        return {
+            absoluteX: Math.round(paddedX - (renderer._getImageOffset(pageIndex).left - renderer._viewport.left + viewportPaddingX)),
+            absoluteY: Math.round(paddedY - (renderer._getImageOffset(pageIndex).top - renderer._viewport.top + viewportPaddingY))
+        }
+    }
+
+}
+
+export class Line extends Shape
+{
+    constructor (startPoint, endPoint, lineWidth, lineJoin)
+    {
+        super(startPoint);
+        this.endPoint = endPoint;
+        this.lineWidth = lineWidth;
+        this.lineJoin = lineJoin;
+    }
+
+    getLineEquation ()
+    {
+
+    }
+
+    getAngleRad (zoomLevel, pageIndex, renderer)
+    {
+        let startPointAbsoluteCoordsWithPadding = this.origin.getAbsoluteCoordinatesWithPadding(zoomLevel, pageIndex, renderer);
+        let endPointAbsoluteCoordsWithPadding = this.endPoint.getAbsoluteCoordinatesWithPadding(zoomLevel, pageIndex, renderer);
+
+        return Math.atan2(endPointAbsoluteCoordsWithPadding.y - startPointAbsoluteCoordsWithPadding.y,
+            endPointAbsoluteCoordsWithPadding.x - startPointAbsoluteCoordsWithPadding.x)
+    }
+
+    draw (layer, pageIndex, zoomLevel, renderer)
+    {
+
+        let scaleRatio = Math.pow(2,zoomLevel);
+
+        let startPointAbsoluteCoordsWithPadding = this.origin.getAbsoluteCoordinatesWithPadding(zoomLevel, pageIndex, renderer);
+        let endPointAbsoluteCoordsWithPadding = this.endPoint.getAbsoluteCoordinatesWithPadding(zoomLevel, pageIndex, renderer);
+
+        renderer._ctx.beginPath();
+        renderer._ctx.strokeStyle = layer.colour.toString();
+        renderer._ctx.lineWidth = this.lineWidth * scaleRatio;
+        renderer._ctx.lineJoin = this.lineJoin;
+        renderer._ctx.moveTo(startPointAbsoluteCoordsWithPadding.x, startPointAbsoluteCoordsWithPadding.y);
+        renderer._ctx.lineTo(endPointAbsoluteCoordsWithPadding.x, endPointAbsoluteCoordsWithPadding.y);
+        renderer._ctx.closePath();
+        renderer._ctx.stroke();
     }
 }
 
