@@ -54,12 +54,12 @@ export default class PixelPlugin
             let layer1 = new Layer(0, new Colour(51, 102, 255, 0.8)),
                 layer2 = new Layer(1, new Colour(255, 51, 102, 0.8)),
                 layer3 = new Layer(2, new Colour(255, 255, 10, 0.8)),
-                layer4 = new Layer(3, new Colour(10, 255, 10, 0.8)),
+                layer4 = new Layer(3, new Colour(10, 180, 50, 0.8)),
                 layer5 = new Layer(4, new Colour(255, 137, 0, 0.8));
 
-            // layer1.addShapeToLayer(new Rectangle(new Point(23, 42, 0), 35, 35));
-            // layer2.addShapeToLayer(new Rectangle(new Point(48, 50, 0), 57, 5));
-            // layer3.addShapeToLayer(new Rectangle(new Point(50,120, 0), 50, 10));
+            layer1.addShapeToLayer(new Rectangle(new Point(23, 42, 0), 24, 24));
+            layer2.addShapeToLayer(new Rectangle(new Point(48, 50, 0), 57, 5));
+            layer3.addShapeToLayer(new Rectangle(new Point(50, 120, 0), 50, 10));
 
             this.layers = [layer1, layer2, layer3, layer4, layer5];
         }
@@ -133,8 +133,14 @@ export default class PixelPlugin
 
             if (key >= KEY_1 && key < KEY_1 + numberOfLayers && key <= KEY_9)
             {
-                this.selectedLayer = key - KEY_1;
-                document.getElementById("layer " + this.selectedLayer).checked = true;
+                this.layers.forEach ((layer) =>
+                {
+                    if (layer.layerType ===  key - KEY_1)
+                    {
+                        this.selectedLayer = this.layers.indexOf(layer);
+                        document.getElementById("layer " + layer.layerType).checked = true;
+                    }
+                });
 
                 if (lastLayer !== this.selectedLayer && this.mousePressed)
                     this.keyboardChangingLayers = true;
@@ -252,9 +258,10 @@ export default class PixelPlugin
         form.setAttribute("id", "layer selector");
         form.setAttribute("action", "");
 
-        layers.forEach((layer) =>
+        for (var index = layers.length - 1; index >= 0; index--)
         {
-            let radio = document.createElement("input"),
+            let layer = layers[index],
+                radio = document.createElement("input"),
                 content = document.createTextNode("Layer " + (layer.layerType + 1)),
                 br = document.createElement("br");
 
@@ -262,16 +269,26 @@ export default class PixelPlugin
             radio.setAttribute("type", "radio");
             radio.setAttribute("value", layer.layerType);
             radio.setAttribute("name", "layer selector");
-            radio.onclick = () => { this.selectedLayer = radio.value; };
+            radio.onclick = () =>
+            {
+                this.layers.forEach ((layer) =>
+                {
+                    // Not triple equality because layer.LayerType and radio.value are of different types
+                    if (layer.layerType == radio.value)
+                    {
+                        this.selectedLayer = this.layers.indexOf(layer);
+                    }
+                });
+            };
 
-            if (layer.layerType === 0)      // Layer 0 is checked by default
+            if (layer.layerType === this.layers[0].layerType)      // Layer at position 0 is checked by default
                 radio.checked = true;
 
             form.appendChild(radio);
             form.appendChild(content);
             this.createOpacitySlider(layer, form);
             form.appendChild(br);
-        });
+        }
         document.body.appendChild(form);
     }
 
