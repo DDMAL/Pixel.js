@@ -51,15 +51,15 @@ export default class PixelPlugin
         if (this.layers === null)
         {
             // Start by creating layers
-            let layer1 = new Layer(0, new Colour(51, 102, 255, 0.8));
-            let layer2 = new Layer(1, new Colour(255, 51, 102, 0.8));
-            let layer3 = new Layer(2, new Colour(255, 255, 10, 0.8));
-            let layer4 = new Layer(3, new Colour(10, 255, 10, 0.8));
-            let layer5 = new Layer(4, new Colour(255, 137, 0, 0.8));
-
-            // layer1.addShapeToLayer(new Rectangle(new Point(23, 42, 0), 35, 35));
-            // layer2.addShapeToLayer(new Rectangle(new Point(48, 50, 0), 57, 5));
-            // layer3.addShapeToLayer(new Rectangle(new Point(50,120, 0), 50, 10));
+            let layer1 = new Layer(0, new Colour(51, 102, 255, 0.8)),
+                layer2 = new Layer(1, new Colour(255, 51, 102, 0.8)),
+                layer3 = new Layer(2, new Colour(255, 255, 10, 0.8)),
+                layer4 = new Layer(3, new Colour(10, 180, 50, 0.8)),
+                layer5 = new Layer(4, new Colour(255, 137, 0, 0.8));
+            
+            layer1.addShapeToLayer(new Rectangle(new Point(23, 42, 0), 24, 24));
+            layer2.addShapeToLayer(new Rectangle(new Point(48, 50, 0), 57, 5));
+            layer3.addShapeToLayer(new Rectangle(new Point(50, 120, 0), 50, 10));
 
             this.layers = [layer1, layer2, layer3, layer4, layer5];
         }
@@ -127,22 +127,26 @@ export default class PixelPlugin
             const KEY_9 = 56;
             const SHIFT_KEY = 16;
 
-            let lastLayer = this.selectedLayer;
-            let numberOfLayers = this.layers.length;
-            let key = e.keyCode ? e.keyCode : e.which;
+            let lastLayer = this.selectedLayer,
+                numberOfLayers = this.layers.length,
+                key = e.keyCode ? e.keyCode : e.which;
 
             if (key >= KEY_1 && key < KEY_1 + numberOfLayers && key <= KEY_9)
             {
-                this.selectedLayer = key - KEY_1;
-                document.getElementById("layer " + this.selectedLayer).checked = true;
+                this.layers.forEach ((layer) =>
+                {
+                    if (layer.layerType ===  key - KEY_1)
+                    {
+                        this.selectedLayer = this.layers.indexOf(layer);
+                        document.getElementById("layer " + layer.layerType).checked = true;
+                    }
+                });
 
                 if (lastLayer !== this.selectedLayer && this.mousePressed)
                     this.keyboardChangingLayers = true;
             }
             if (key === SHIFT_KEY)
-            {
                 this.shiftDown = false;
-            }
         };
 
         this.handleKeyDown = (e) =>
@@ -254,26 +258,37 @@ export default class PixelPlugin
         form.setAttribute("id", "layer selector");
         form.setAttribute("action", "");
 
-        layers.forEach((layer) =>
+        for (var index = layers.length - 1; index >= 0; index--)
         {
-            let radio = document.createElement("input");
-            let content = document.createTextNode("Layer " + (layer.layerType + 1));
-            let br = document.createElement("br");
+            let layer = layers[index],
+                radio = document.createElement("input"),
+                content = document.createTextNode("Layer " + (layer.layerType + 1)),
+                br = document.createElement("br");
 
             radio.setAttribute("id", "layer " + layer.layerType);
             radio.setAttribute("type", "radio");
             radio.setAttribute("value", layer.layerType);
             radio.setAttribute("name", "layer selector");
-            radio.onclick = () => { this.selectedLayer = radio.value; };
+            radio.onclick = () =>
+            {
+                this.layers.forEach ((layer) =>
+                {
+                    // Not triple equality because layer.LayerType and radio.value are of different types
+                    if (layer.layerType == radio.value)
+                    {
+                        this.selectedLayer = this.layers.indexOf(layer);
+                    }
+                });
+            };
 
-            if (layer.layerType === 0)      // Layer 0 is checked by default
+            if (layer.layerType === this.layers[0].layerType)      // Layer at position 0 is checked by default
                 radio.checked = true;
 
             form.appendChild(radio);
             form.appendChild(content);
             this.createOpacitySlider(layer, form);
             form.appendChild(br);
-        });
+        }
         document.body.appendChild(form);
     }
 
@@ -302,8 +317,8 @@ export default class PixelPlugin
 
     createUndoButton ()
     {
-        let undoButton = document.createElement("button");
-        let text = document.createTextNode("Undo");
+        let undoButton = document.createElement("button"),
+            text = document.createTextNode("Undo");
 
         this.undo = () => { this.undoAction(); };
 
@@ -322,9 +337,9 @@ export default class PixelPlugin
 
     createRedoButton ()
     {
-        let redoButton = document.createElement("button");
-        let text = document.createTextNode("Redo");
-        let br = document.createElement("br");
+        let redoButton = document.createElement("button"),
+            text = document.createTextNode("Redo"),
+            br = document.createElement("br");
 
         this.redo = () => { this.redoAction(); };
 
@@ -427,16 +442,16 @@ export default class PixelPlugin
 
     initializeNewPath (canvas, evt)
     {
-        let pageIndex = this.core.getSettings().currentPageIndex;
-        let zoomLevel = this.core.getSettings().zoomLevel;
-        let mousePos = this.getMousePos(canvas, evt);
-        let relativeCoords = this.getRelativeCoordinates(mousePos.x, mousePos.y);
+        let pageIndex = this.core.getSettings().currentPageIndex,
+            zoomLevel = this.core.getSettings().zoomLevel,
+            mousePos = this.getMousePos(canvas, evt),
+            relativeCoords = this.getRelativeCoordinates(mousePos.x, mousePos.y);
 
         if (this.isInPageBounds(relativeCoords.x, relativeCoords.y))
         {
-            let selectedLayer = this.layers[this.selectedLayer];
-            let point = new Point(relativeCoords.x, relativeCoords.y, pageIndex);
-            let brushSize = document.getElementById("brush size selector").value/10;
+            let selectedLayer = this.layers[this.selectedLayer],
+                point = new Point(relativeCoords.x, relativeCoords.y, pageIndex),
+                brushSize = document.getElementById("brush size selector").value/10;
 
             this.lastRelCoordsX = relativeCoords.x;
             this.lastRelCoordsY = relativeCoords.y;
@@ -460,54 +475,47 @@ export default class PixelPlugin
             mousePos = this.getMousePos(canvas, evt),
             relativeCoords = this.getRelativeCoordinates(mousePos.x, mousePos.y);
 
-        if (Math.abs(relativeCoords.x - this.lastRelCoordsX) > Math.abs(relativeCoords.y - this.lastRelCoordsY))
-        {
+        if (Math.abs(relativeCoords.x - this.lastRelCoordsX) >= Math.abs(relativeCoords.y - this.lastRelCoordsY))
             horizontalMove = true;
-        }
-        if (this.mousePressed)
+
+        if (!this.mousePressed)
+            return;
+
+        if (!this.isInPageBounds(relativeCoords.x, relativeCoords.y))
+            return;
+
+        if (!this.keyboardChangingLayers)
         {
-            if (this.keyboardChangingLayers)
+            let pageIndex = this.core.getSettings().currentPageIndex;
+            let zoomLevel = this.core.getSettings().zoomLevel;
+
+            if (this.mousePressed && this.shiftDown)
             {
-                this.initializeNewPath(canvas, evt);
-                this.keyboardChangingLayers = false;
+                if (!horizontalMove)
+                    point = new Point(this.lastRelCoordsX, relativeCoords.y, pageIndex);
+
+                else
+                    point = new Point(relativeCoords.x, this.lastRelCoordsY, pageIndex);
             }
             else
             {
-                let pageIndex = this.core.getSettings().currentPageIndex;
-                let zoomLevel = this.core.getSettings().zoomLevel;
-
-                if (this.isInPageBounds(relativeCoords.x, relativeCoords.y))
-                {
-                    if (this.mousePressed && this.shiftDown)
-                    {
-                        if (!horizontalMove)
-                        {
-                            point = new Point(this.lastRelCoordsX, relativeCoords.y, pageIndex);
-                        }
-                        else
-                        {
-                            point = new Point(relativeCoords.x, this.lastRelCoordsY, pageIndex);
-                        }
-                    }
-                    else
-                    {
-                        point = new Point(relativeCoords.x, relativeCoords.y, pageIndex);
-                    }
-                    let brushSize = this.layers[this.selectedLayer].getCurrentPath().brushSize;
-                    this.layers[this.selectedLayer].addToCurrentPath(point);
-                    this.drawPath(this.layers[this.selectedLayer], point, pageIndex, zoomLevel, brushSize, true, this.shiftDown);
-                }
+                point = new Point(relativeCoords.x, relativeCoords.y, pageIndex);
             }
+            let brushSize = this.layers[this.selectedLayer].getCurrentPath().brushSize;
+            this.layers[this.selectedLayer].addToCurrentPath(point);
+            this.drawPath(this.layers[this.selectedLayer], point, pageIndex, zoomLevel, brushSize, true, this.shiftDown);
+            return;
         }
+        this.initializeNewPath(canvas, evt);
+        this.keyboardChangingLayers = false;
     }
-
 
     initializeRectanglePreview (canvas, evt)
     {
-        let pageIndex = this.core.getSettings().currentPageIndex;
-        let zoomLevel = this.core.getSettings().zoomLevel;
-        let mousePos = this.getMousePos(canvas, evt);
-        let relativeCoords = this.getRelativeCoordinates(mousePos.x, mousePos.y);
+        let pageIndex = this.core.getSettings().currentPageIndex,
+            zoomLevel = this.core.getSettings().zoomLevel,
+            mousePos = this.getMousePos(canvas, evt),
+            relativeCoords = this.getRelativeCoordinates(mousePos.x, mousePos.y);
 
         if (this.isInPageBounds(relativeCoords.x, relativeCoords.y))
         {
@@ -523,11 +531,11 @@ export default class PixelPlugin
     {
         if (this.mousePressed)
         {
-            let pageIndex = this.core.getSettings().currentPageIndex;
-            let zoomLevel = this.core.getSettings().zoomLevel;
-            let mousePos = this.getMousePos(canvas, evt);
-            let relativeCoords = this.getRelativeCoordinates(mousePos.x, mousePos.y);
-            let lastShape = this.layers[this.selectedLayer].getCurrentShape();
+            let pageIndex = this.core.getSettings().currentPageIndex,
+                zoomLevel = this.core.getSettings().zoomLevel,
+                mousePos = this.getMousePos(canvas, evt),
+                relativeCoords = this.getRelativeCoordinates(mousePos.x, mousePos.y),
+                lastShape = this.layers[this.selectedLayer].getCurrentShape();
 
             if (this.isInPageBounds(relativeCoords.x, relativeCoords.y))
             {
@@ -598,17 +606,16 @@ export default class PixelPlugin
 
     isInPageBounds (relativeX, relativeY)
     {
-        let pageDimensions = this.core.publicInstance.getCurrentPageDimensionsAtCurrentZoomLevel();
-        let absolutePageOrigin = this.getAbsoluteCoordinates(0,0);
-        let absolutePageWidthOffset = pageDimensions.width + absolutePageOrigin.x;  //Taking into account the padding, etc...
-        let absolutePageHeightOffset = pageDimensions.height + absolutePageOrigin.y;
-        let relativeBounds = this.getRelativeCoordinates(absolutePageWidthOffset, absolutePageHeightOffset);
+        let pageDimensions = this.core.publicInstance.getCurrentPageDimensionsAtCurrentZoomLevel(),
+            absolutePageOrigin = this.getAbsoluteCoordinates(0,0),
+            absolutePageWidthOffset = pageDimensions.width + absolutePageOrigin.x,  //Taking into account the padding, etc...
+            absolutePageHeightOffset = pageDimensions.height + absolutePageOrigin.y,
+            relativeBounds = this.getRelativeCoordinates(absolutePageWidthOffset, absolutePageHeightOffset);
 
         if (relativeX < 0 || relativeY < 0 || relativeX > relativeBounds.x || relativeY > relativeBounds.y)
         {
             return false;
         }
-
         return true;
     }
 
@@ -624,18 +631,18 @@ export default class PixelPlugin
 
     getRelativeCoordinates (highlightXOffset, highlightYOffset)
     {
-        let pageIndex = this.core.getSettings().currentPageIndex;
-        let zoomLevel = this.core.getSettings().zoomLevel;
-        let renderer = this.core.getSettings().renderer;
-        let scaleRatio = Math.pow(2,zoomLevel);
+        let pageIndex = this.core.getSettings().currentPageIndex,
+            zoomLevel = this.core.getSettings().zoomLevel,
+            renderer = this.core.getSettings().renderer,
+            scaleRatio = Math.pow(2,zoomLevel);
 
         const viewportPaddingX = Math.max(0, (renderer._viewport.width - renderer.layout.dimensions.width) / 2);
         const viewportPaddingY = Math.max(0, (renderer._viewport.height - renderer.layout.dimensions.height) / 2);
 
         // Calculates where the highlights should be drawn as a function of the whole webpage coordinates
         // (to make it look like it is on top of a page in Diva)
-        let absoluteRectOriginX = highlightXOffset - renderer._getImageOffset(pageIndex).left + renderer._viewport.left -  viewportPaddingX;
-        let absoluteRectOriginY = highlightYOffset - renderer._getImageOffset(pageIndex).top + renderer._viewport.top - viewportPaddingY;
+        let absoluteRectOriginX = highlightXOffset - renderer._getImageOffset(pageIndex).left + renderer._viewport.left -  viewportPaddingX,
+            absoluteRectOriginY = highlightYOffset - renderer._getImageOffset(pageIndex).top + renderer._viewport.top - viewportPaddingY;
 
         return{
             x: absoluteRectOriginX/scaleRatio,
@@ -645,22 +652,21 @@ export default class PixelPlugin
 
     getAbsoluteCoordinates (relativeX, relativeY)
     {
-        let pageIndex = this.core.getSettings().currentPageIndex;
-        let zoomLevel = this.core.getSettings().zoomLevel;
-
-        let renderer = this.core.getSettings().renderer;
-        let scaleRatio = Math.pow(2,zoomLevel);
+        let pageIndex = this.core.getSettings().currentPageIndex,
+            zoomLevel = this.core.getSettings().zoomLevel,
+            renderer = this.core.getSettings().renderer,
+            scaleRatio = Math.pow(2,zoomLevel);
 
         const viewportPaddingX = Math.max(0, (renderer._viewport.width - renderer.layout.dimensions.width) / 2);
         const viewportPaddingY = Math.max(0, (renderer._viewport.height - renderer.layout.dimensions.height) / 2);
 
-        let absoluteX = relativeX * scaleRatio;
-        let absoluteY = relativeY * scaleRatio;
+        let absoluteX = relativeX * scaleRatio,
+            absoluteY = relativeY * scaleRatio;
 
         // Calculates where the highlights should be drawn as a function of the whole webpage coordinates
         // (to make it look like it is on top of a page in Diva)
-        let absoluteOffsetX = renderer._getImageOffset(pageIndex).left - renderer._viewport.left + viewportPaddingX + absoluteX;
-        let absoluteOffsetY = renderer._getImageOffset(pageIndex).top - renderer._viewport.top + viewportPaddingY + absoluteY;
+        let absoluteOffsetX = renderer._getImageOffset(pageIndex).left - renderer._viewport.left + viewportPaddingX + absoluteX,
+            absoluteOffsetY = renderer._getImageOffset(pageIndex).top - renderer._viewport.top + viewportPaddingY + absoluteY;
 
         return{
             x: absoluteOffsetX,
@@ -670,16 +676,16 @@ export default class PixelPlugin
 
     drawPath (layer, point, pageIndex, zoomLevel, brushSize, isDown)
     {
-        let renderer = this.core.getSettings().renderer;
-        let scaleRatio = Math.pow(2,zoomLevel);
+        let renderer = this.core.getSettings().renderer,
+            scaleRatio = Math.pow(2,zoomLevel);
 
         const viewportPaddingX = Math.max(0, (renderer._viewport.width - renderer.layout.dimensions.width) / 2);
         const viewportPaddingY = Math.max(0, (renderer._viewport.height - renderer.layout.dimensions.height) / 2);
 
         // The following absolute values are experimental values to highlight the square on the first page of Salzinnes, CDN-Hsmu M2149.L4
         // The relative values are used to scale the highlights according to the zoom level on the page itself
-        let absoluteRectOriginX = point.relativeOriginX * scaleRatio;
-        let absoluteRectOriginY = point.relativeOriginY * scaleRatio;
+        let absoluteRectOriginX = point.relativeOriginX * scaleRatio,
+            absoluteRectOriginY = point.relativeOriginY * scaleRatio;
 
         // This indicates the page on top of which the highlights are supposed to be drawn
         let highlightPageIndex = point.pageIndex;
@@ -688,8 +694,8 @@ export default class PixelPlugin
         {
             // Calculates where the highlights should be drawn as a function of the whole webpage coordinates
             // (to make it look like it is on top of a page in Diva)
-            let highlightXOffset = renderer._getImageOffset(pageIndex).left - renderer._viewport.left + viewportPaddingX + absoluteRectOriginX;
-            let highlightYOffset = renderer._getImageOffset(pageIndex).top - renderer._viewport.top + viewportPaddingY + absoluteRectOriginY;
+            let highlightXOffset = renderer._getImageOffset(pageIndex).left - renderer._viewport.left + viewportPaddingX + absoluteRectOriginX,
+                highlightYOffset = renderer._getImageOffset(pageIndex).top - renderer._viewport.top + viewportPaddingY + absoluteRectOriginY;
 
             if (isDown)
             {
@@ -1073,17 +1079,17 @@ export class Rectangle extends Shape
 
         // The following absolute values are experimental values to highlight the square on the first page of Salzinnes, CDN-Hsmu M2149.L4
         // The relative values are used to scale the highlights according to the zoom level on the page itself
-        let absoluteRectOriginX = this.origin.relativeOriginX * scaleRatio;
-        let absoluteRectOriginY = this.origin.relativeOriginY * scaleRatio;
-        let absoluteRectWidth = this.relativeRectWidth * scaleRatio;
-        let absoluteRectHeight = this.relativeRectHeight * scaleRatio;
+        let absoluteRectOriginX = this.origin.relativeOriginX * scaleRatio,
+            absoluteRectOriginY = this.origin.relativeOriginY * scaleRatio,
+            absoluteRectWidth = this.relativeRectWidth * scaleRatio,
+            absoluteRectHeight = this.relativeRectHeight * scaleRatio;
 
         if (pageIndex === this.origin.pageIndex)
         {
             // Calculates where the highlights should be drawn as a function of the whole webpage coordinates
             // (to make it look like it is on top of a page in Diva)
-            let highlightXOffset = renderer._getImageOffset(pageIndex).left - renderer._viewport.left + viewportPaddingX + absoluteRectOriginX;
-            let highlightYOffset = renderer._getImageOffset(pageIndex).top - renderer._viewport.top + viewportPaddingY + absoluteRectOriginY;
+            let highlightXOffset = renderer._getImageOffset(pageIndex).left - renderer._viewport.left + viewportPaddingX + absoluteRectOriginX,
+                highlightYOffset = renderer._getImageOffset(pageIndex).top - renderer._viewport.top + viewportPaddingY + absoluteRectOriginY;
 
             //Draw the rectangle
             renderer._ctx.fillStyle = layer.colour.toString();
@@ -1284,13 +1290,9 @@ export class Layer
     getCurrentPath ()
     {
         if (this.paths.length > 0)
-        {
             return this.paths[this.paths.length - 1];
-        }
         else
-        {
             return null;
-        }
     }
 
     createNewPath (brushSize)
