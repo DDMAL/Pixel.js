@@ -763,7 +763,7 @@ export default class PixelPlugin
             let pairOfEdges = [[start1,end1], [start2, end2], [start1, start2], [end1, end2]]
 
             // Logic for scanning lines
-            new Shape().getPixels(this.layers[3], renderer, ymax, ymin, pairOfEdges);
+            new Shape().getPixels(this.layers[3], pageIndex, zoomLevel, renderer, ymax, ymin, pairOfEdges);
         }
     }
 
@@ -773,18 +773,7 @@ export default class PixelPlugin
     {
         let pageIndex = args[0],
             zoomLevel = args[1];
-
-        let lineWidth = 20;
-
-        // let point1 = new Point(20,20,0);
-        // let point2 = new Point(60,70,0);
-        //new Line(point1, point2, lineWidth, "round").draw(this.layers[0],pageIndex,zoomLevel,this.core.getSettings().renderer);
-
-        if (this.exporting)
-        {
-            // this.fillPath(point1, point2, zoomLevel, pageIndex, lineWidth);
-        }
-
+        
         this.layers.forEach((layer) =>
         {
             let shapes = layer.shapes;
@@ -932,10 +921,9 @@ export class Shape
 
     }
 
-    getPixels(layer, renderer, ymax, ymin, pairOfEdges)
+    getPixels(layer, pageIndex, zoomLevel, renderer, ymax, ymin, pairOfEdges)
     {
         // TODO: Check for horizontal or vertical lines
-
         // For every scan line
         for(var y = ymin; y < ymax; y++)
         {
@@ -986,9 +974,12 @@ export class Shape
 
                         for (var fill = start; fill < end; fill++)
                         {
+                            // Remove padding to get absolute coordinates
+                            let absoluteCoords = new Point().getAbsoluteCoordinatesFromPadded(pageIndex,renderer,fill,y);
+
                             renderer._ctx.fillStyle = layer.colour.toString();
                             renderer._ctx.beginPath();
-                            renderer._ctx.arc(fill, y, 0.5,0,2*Math.PI);
+                            renderer._ctx.arc(absoluteCoords.absoluteX, absoluteCoords.absoluteY, 0.5,0,2*Math.PI);
                             renderer._ctx.fill();
                         }
                     }
@@ -1047,9 +1038,14 @@ export class Circle extends Shape
 
                 if(shiftedX*shiftedX + shiftedY*shiftedY <= (this.relativeRadius)*scaleRatio*(this.relativeRadius)*scaleRatio)
                 {
+
+                    // Get absolute from padded
+                    let absoluteCoords = new Point().getAbsoluteCoordinatesFromPadded(pageIndex,renderer,x,y);
+
+
                     renderer._ctx.fillStyle = layer.colour.toString();
                     renderer._ctx.beginPath();
-                    renderer._ctx.arc(x,y, 0.5,0,2*Math.PI);
+                    renderer._ctx.arc(absoluteCoords.absoluteX, absoluteCoords.absoluteY, 0.5,0,2*Math.PI);
                     renderer._ctx.fill();
 
                 }
@@ -1171,6 +1167,18 @@ export class Point
             y: offsetY
         }
     }
+
+    getAbsoluteCoordinatesFromPadded(pageIndex, renderer, paddedX, paddedY)
+    {
+        const viewportPaddingX = Math.max(0, (renderer._viewport.width - renderer.layout.dimensions.width) / 2);
+        const viewportPaddingY = Math.max(0, (renderer._viewport.height - renderer.layout.dimensions.height) / 2);
+
+        return {
+            absoluteX: paddedX - (renderer._getImageOffset(pageIndex).left - renderer._viewport.left + viewportPaddingX),
+            absoluteY: paddedY - (renderer._getImageOffset(pageIndex).top - renderer._viewport.top + viewportPaddingY)
+        }
+    }
+
 }
 
 export class Line extends Shape
