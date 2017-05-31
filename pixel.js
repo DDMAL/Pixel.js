@@ -979,7 +979,12 @@ export class Shape
                         {
                             // Remove padding to get absolute coordinates
                             let absoluteCoords = new Point().getAbsoluteCoordinatesFromPadded(pageIndex,renderer,fill,y);
-                            matrix[absoluteCoords.absoluteY][absoluteCoords.absoluteX] = layer.layerType;
+
+                            if (absoluteCoords.absoluteY >= 0 && absoluteCoords.absoluteX >= 0
+                                && absoluteCoords.absoluteY <= matrix.length && absoluteCoords.absoluteX <= matrix[0].length)
+                            {
+                                matrix[absoluteCoords.absoluteY][absoluteCoords.absoluteX] = layer.layerType;
+                            }
                         }
                     }
                 }
@@ -1039,7 +1044,11 @@ export class Circle extends Shape
                 {
                     // Get absolute from padded
                     let absoluteCoords = new Point().getAbsoluteCoordinatesFromPadded(pageIndex,renderer,x,y);
-                    matrix[absoluteCoords.absoluteY][absoluteCoords.absoluteX] = layer.layerType;
+                    if (absoluteCoords.absoluteY >= 0 && absoluteCoords.absoluteX >= 0
+                        && absoluteCoords.absoluteY <= matrix.length && absoluteCoords.absoluteX <= matrix[0].length)
+                    {
+                        matrix[absoluteCoords.absoluteY][absoluteCoords.absoluteX] = layer.layerType;
+                    }
                 }
             }
         }
@@ -1100,7 +1109,8 @@ export class Rectangle extends Shape
             {
                 for(var col = Math.round(Math.min(absoluteRectOriginX, absoluteRectOriginX + absoluteRectWidth)); col < Math.max(absoluteRectOriginX, absoluteRectOriginX + absoluteRectWidth); col++)
                 {
-                    matrix[row][col] = layer.layerType;
+                    if (row >= 0 && col >= 0 && row <= matrix.length && col <= matrix[0].length)
+                        matrix[row][col] = layer.layerType;
                 }
             }
         }
