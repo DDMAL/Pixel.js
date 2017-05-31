@@ -30,7 +30,6 @@ export default class PixelPlugin
         this.currentTool = "brush";
         this.lastRelCoordsX = null;
         this.lastRelCoordsY = null;
-        this.exporting = false;
     }
 
     /**
@@ -709,7 +708,7 @@ export default class PixelPlugin
         }
     }
 
-    fillPath(point1, point2, zoomLevel, pageIndex, brushSize, isDown)
+    fillPath(layer, point1, point2, zoomLevel, pageIndex, brushSize)
     {
         let renderer = this.core.getSettings().renderer;
         let scaleRatio = Math.pow(2,zoomLevel);
@@ -728,8 +727,8 @@ export default class PixelPlugin
             let point1highlightOffset = point1.getAbsoluteCoordinatesWithPadding(zoomLevel, pageIndex, renderer);
             var point2highlightOffset = point2.getAbsoluteCoordinatesWithPadding(zoomLevel,pageIndex,renderer);
 
-            new Circle(point1, lineWidth/2).getPixels(this.layers[3], pageIndex, zoomLevel, renderer);
-            new Circle(point2, lineWidth/2).getPixels(this.layers[3], pageIndex, zoomLevel, renderer);
+            new Circle(point1, lineWidth/2).getPixels(layer, pageIndex, zoomLevel, renderer, this.matrix);
+            new Circle(point2, lineWidth/2).getPixels(layer, pageIndex, zoomLevel, renderer, this.matrix);
 
             let ang = new Line(point1, point2).getAngleRad(zoomLevel,pageIndex,renderer);
 
@@ -760,10 +759,10 @@ export default class PixelPlugin
             // 1. get ymax and ymin
             let ymax = Math.round(Math.max(start1.absolutePaddedY, start2.absolutePaddedY, end1.absolutePaddedY, end2.absolutePaddedY));
             let ymin = Math.round(Math.min(start1.absolutePaddedY, start2.absolutePaddedY, end1.absolutePaddedY, end2.absolutePaddedY));
-            let pairOfEdges = [[start1,end1], [start2, end2], [start1, start2], [end1, end2]]
+            let pairOfEdges = [[start1,end1], [start2, end2], [start1, start2], [end1, end2]];
 
             // Logic for scanning lines
-            new Shape().getPixels(this.layers[3], pageIndex, zoomLevel, renderer, ymax, ymin, pairOfEdges);
+            new Shape().getPixels(layer, pageIndex, zoomLevel, renderer, ymax, ymin, pairOfEdges, this.matrix);
         }
     }
 
@@ -773,7 +772,7 @@ export default class PixelPlugin
     {
         let pageIndex = args[0],
             zoomLevel = args[1];
-        
+
         this.layers.forEach((layer) =>
         {
             let shapes = layer.shapes;
@@ -789,22 +788,11 @@ export default class PixelPlugin
                 {
                     let isDown = false;
 
-                    for (let index = 0; index < path.points.length; index++)
+                    path.points.forEach((point) =>
                     {
-                        let point = path.points[index];
                         this.drawPath(layer, point, pageIndex, zoomLevel, path.brushSize, isDown, this.shiftDown);
-
-                        if (this.exporting)
-                        {
-                            if (index !== path.points.length - 1)
-                            {
-                                let nextPoint = path.points[index + 1];
-                                this.fillPath(point, nextPoint, zoomLevel, pageIndex, path.brushSize, isDown);
-                            }
-                        }
-
                         isDown = true;
-                    }
+                    });
                 }
             );
         });
@@ -831,8 +819,7 @@ export default class PixelPlugin
 
     populateMatrix ()
     {
-        this.exporting = !this.exporting;
-
+        console.log("populating");
 
         this.initializeMatrix();
 
@@ -852,12 +839,44 @@ export default class PixelPlugin
             let paths = layer.paths;
             paths.forEach((path) =>
                 {
-                    // this.getPathPixels(layer, path, pageIndex, maxZoomLevel, path.brushSize, this.matrix)
+                    for (let index = 0; index < path.points.length - 1; index++)
+                    {
+                        let point = path.points[index];
+                        let nextPoint = path.points[index + 1];
+                        this.fillPath(layer, point, nextPoint, maxZoomLevel, pageIndex, path.brushSize);
+                    }
                 }
             );
         });
-        console.log("after", this.matrix);
+        this.printMatrix();
     }
+
+    printMatrix ()
+    {
+        let renderer = this.core.getSettings().renderer;
+
+        for (var row = 0; row < this.matrix.length; row++)
+        {
+            for (var col = 0; col < this.matrix[0].length; col++)
+            {
+                if (this.matrix[row][col] !== -1)
+                {
+                    this.layers.forEach((layer) =>
+                    {
+                        if (layer.layerType === this.matrix[row][col])
+                        {
+                            renderer._ctx.fillStyle = layer.colour.toString();
+                            renderer._ctx.beginPath();
+                            renderer._ctx.arc(col, row, 0.2,0,2*Math.PI);
+                            renderer._ctx.fill();
+                        }
+                    })
+                }
+            }
+        }
+    }
+
+
 
     /**
      * Fills the base matrix with type data outlined by the layer drawings
@@ -921,7 +940,7 @@ export class Shape
 
     }
 
-    getPixels(layer, pageIndex, zoomLevel, renderer, ymax, ymin, pairOfEdges)
+    getPixels(layer, pageIndex, zoomLevel, renderer, ymax, ymin, pairOfEdges, matrix)
     {
         // TODO: Check for horizontal or vertical lines
         // For every scan line
@@ -976,11 +995,7 @@ export class Shape
                         {
                             // Remove padding to get absolute coordinates
                             let absoluteCoords = new Point().getAbsoluteCoordinatesFromPadded(pageIndex,renderer,fill,y);
-
-                            renderer._ctx.fillStyle = layer.colour.toString();
-                            renderer._ctx.beginPath();
-                            renderer._ctx.arc(absoluteCoords.absoluteX, absoluteCoords.absoluteY, 0.5,0,2*Math.PI);
-                            renderer._ctx.fill();
+                            matrix[absoluteCoords.absoluteY][absoluteCoords.absoluteX] = layer.layerType;
                         }
                     }
                 }
@@ -1038,16 +1053,9 @@ export class Circle extends Shape
 
                 if(shiftedX*shiftedX + shiftedY*shiftedY <= (this.relativeRadius)*scaleRatio*(this.relativeRadius)*scaleRatio)
                 {
-
                     // Get absolute from padded
                     let absoluteCoords = new Point().getAbsoluteCoordinatesFromPadded(pageIndex,renderer,x,y);
-
-
-                    renderer._ctx.fillStyle = layer.colour.toString();
-                    renderer._ctx.beginPath();
-                    renderer._ctx.arc(absoluteCoords.absoluteX, absoluteCoords.absoluteY, 0.5,0,2*Math.PI);
-                    renderer._ctx.fill();
-
+                    matrix[absoluteCoords.absoluteY][absoluteCoords.absoluteX] = layer.layerType;
                 }
             }
         }
@@ -1104,9 +1112,9 @@ export class Rectangle extends Shape
         if (pageIndex === this.origin.pageIndex)
         {
             // Want abs coord of start and finish
-            for(var row = Math.min(absoluteRectOriginY, absoluteRectOriginY + absoluteRectHeight); row <  Math.max(absoluteRectOriginY, absoluteRectOriginY + absoluteRectHeight); row++)
+            for(var row = Math.round(Math.min(absoluteRectOriginY, absoluteRectOriginY + absoluteRectHeight)); row <  Math.max(absoluteRectOriginY, absoluteRectOriginY + absoluteRectHeight); row++)
             {
-                for(var col = Math.min(absoluteRectOriginX, absoluteRectOriginX + absoluteRectWidth); col < Math.max(absoluteRectOriginX, absoluteRectOriginX + absoluteRectWidth); col++)
+                for(var col = Math.round(Math.min(absoluteRectOriginX, absoluteRectOriginX + absoluteRectWidth)); col < Math.max(absoluteRectOriginX, absoluteRectOriginX + absoluteRectWidth); col++)
                 {
                     matrix[row][col] = layer.layerType;
                 }
@@ -1174,8 +1182,8 @@ export class Point
         const viewportPaddingY = Math.max(0, (renderer._viewport.height - renderer.layout.dimensions.height) / 2);
 
         return {
-            absoluteX: paddedX - (renderer._getImageOffset(pageIndex).left - renderer._viewport.left + viewportPaddingX),
-            absoluteY: paddedY - (renderer._getImageOffset(pageIndex).top - renderer._viewport.top + viewportPaddingY)
+            absoluteX: Math.round(paddedX - (renderer._getImageOffset(pageIndex).left - renderer._viewport.left + viewportPaddingX)),
+            absoluteY: Math.round(paddedY - (renderer._getImageOffset(pageIndex).top - renderer._viewport.top + viewportPaddingY))
         }
     }
 
