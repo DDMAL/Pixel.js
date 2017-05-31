@@ -227,6 +227,37 @@ export default class PixelPlugin
         this.destroyExportButton();
     }
 
+    createIcon ()
+    {
+        const pageToolsIcon = document.createElement('div');
+        pageToolsIcon.classList.add('diva-pixel-icon');
+
+        let root = document.createElementNS("http://www.w3.org/2000/svg", "svg");
+        root.setAttribute("x", "0px");
+        root.setAttribute("y", "0px");
+        root.setAttribute("viewBox", "0 0 25 25");
+        root.id = `${this.core.settings.selector}pixel-icon`;
+
+        let g = document.createElementNS("http://www.w3.org/2000/svg", "g");
+        g.id = `${this.core.settings.selector}pixel-icon-glyph`;
+        g.setAttribute("transform", "matrix(1, 0, 0, 1, -11.5, -11.5)");
+        g.setAttribute("class", "diva-pagetool-icon");
+
+        //Placeholder icon
+        let rect = document.createElementNS("http://www.w3.org/2000/svg", "rect");
+        rect.setAttribute('x', '15');
+        rect.setAttribute('y', '10');
+        rect.setAttribute('width', '25');
+        rect.setAttribute('height', 25);
+
+        g.appendChild(rect);
+        root.appendChild(g);
+
+        pageToolsIcon.appendChild(root);
+
+        return pageToolsIcon;
+    }
+
     createOpacitySlider (layer, parentElement)
     {
         var opacitySlider = document.createElement("input");
@@ -730,8 +761,8 @@ export default class PixelPlugin
 
             // Calculates where the highlights should be drawn as a function of the whole webpage coordinates
             // (to make it look like it is on top of a page in Diva)
-            let point1highlightOffset = point1.getAbsoluteCoordinatesWithPadding(zoomLevel, pageIndex, renderer);
-            var point2highlightOffset = point2.getAbsoluteCoordinatesWithPadding(zoomLevel,pageIndex,renderer);
+            let point1highlightOffset = point1.getAbsolutePaddedCoordinates(zoomLevel, pageIndex, renderer);
+            var point2highlightOffset = point2.getAbsolutePaddedCoordinates(zoomLevel,pageIndex,renderer);
 
             new Circle(point1, lineWidth/2).getPixels(layer, pageIndex, zoomLevel, renderer, this.matrix);
             new Circle(point2, lineWidth/2).getPixels(layer, pageIndex, zoomLevel, renderer, this.matrix);
@@ -804,6 +835,32 @@ export default class PixelPlugin
         });
     }
 
+    printMatrix ()
+    {
+        // Need to implement a buffering page
+        let renderer = this.core.getSettings().renderer;
+
+        for (var row = 0; row < this.matrix.length; row++)
+        {
+            for (var col = 0; col < this.matrix[0].length; col++)
+            {
+                if (this.matrix[row][col] !== -1)
+                {
+                    this.layers.forEach((layer) =>
+                    {
+                        if (layer.layerType === this.matrix[row][col])
+                        {
+                            renderer._ctx.fillStyle = layer.colour.toString();
+                            renderer._ctx.beginPath();
+                            renderer._ctx.arc(col, row, 0.2,0,2*Math.PI);
+                            renderer._ctx.fill();
+                        }
+                    })
+                }
+            }
+        }
+    }
+
     /**
      * ===============================================
      *                    Backend
@@ -855,65 +912,7 @@ export default class PixelPlugin
             );
         });
         this.printMatrix();
-
         console.log("Done");
-    }
-
-    printMatrix ()
-    {
-        // Need to implement a buffering page
-        let renderer = this.core.getSettings().renderer;
-
-        for (var row = 0; row < this.matrix.length; row++)
-        {
-            for (var col = 0; col < this.matrix[0].length; col++)
-            {
-                if (this.matrix[row][col] !== -1)
-                {
-                    this.layers.forEach((layer) =>
-                    {
-                        if (layer.layerType === this.matrix[row][col])
-                        {
-                            renderer._ctx.fillStyle = layer.colour.toString();
-                            renderer._ctx.beginPath();
-                            renderer._ctx.arc(col, row, 0.2,0,2*Math.PI);
-                            renderer._ctx.fill();
-                        }
-                    })
-                }
-            }
-        }
-    }
-
-    createIcon ()
-    {
-        const pageToolsIcon = document.createElement('div');
-        pageToolsIcon.classList.add('diva-pixel-icon');
-
-        let root = document.createElementNS("http://www.w3.org/2000/svg", "svg");
-        root.setAttribute("x", "0px");
-        root.setAttribute("y", "0px");
-        root.setAttribute("viewBox", "0 0 25 25");
-        root.id = `${this.core.settings.selector}pixel-icon`;
-
-        let g = document.createElementNS("http://www.w3.org/2000/svg", "g");
-        g.id = `${this.core.settings.selector}pixel-icon-glyph`;
-        g.setAttribute("transform", "matrix(1, 0, 0, 1, -11.5, -11.5)");
-        g.setAttribute("class", "diva-pagetool-icon");
-
-        //Placeholder icon
-        let rect = document.createElementNS("http://www.w3.org/2000/svg", "rect");
-        rect.setAttribute('x', '15');
-        rect.setAttribute('y', '10');
-        rect.setAttribute('width', '25');
-        rect.setAttribute('height', 25);
-
-        g.appendChild(rect);
-        root.appendChild(g);
-
-        pageToolsIcon.appendChild(root);
-
-        return pageToolsIcon;
     }
 }
 
@@ -925,11 +924,25 @@ export class Shape
         this.type = "shape";
     }
 
+    /**
+     * Abstract method, to be implemented by extending function
+     */
     draw ()
     {
 
     }
 
+    /**
+     * copies the polygon to a matrix that represents a page
+     * @param layer
+     * @param pageIndex
+     * @param zoomLevel
+     * @param renderer
+     * @param ymax
+     * @param ymin
+     * @param pairOfEdges
+     * @param matrix
+     */
     getPixels(layer, pageIndex, zoomLevel, renderer, ymax, ymin, pairOfEdges, matrix)
     {
         // TODO: Check for horizontal or vertical lines
@@ -986,10 +999,10 @@ export class Shape
                             // Remove padding to get absolute coordinates
                             let absoluteCoords = new Point().getAbsoluteCoordinatesFromPadded(pageIndex,renderer,fill,y);
 
-                            if (absoluteCoords.absoluteY >= 0 && absoluteCoords.absoluteX >= 0
-                                && absoluteCoords.absoluteY <= matrix.length && absoluteCoords.absoluteX <= matrix[0].length)
+                            if (absoluteCoords.y >= 0 && absoluteCoords.x >= 0
+                                && absoluteCoords.y <= matrix.length && absoluteCoords.x <= matrix[0].length)
                             {
-                                matrix[absoluteCoords.absoluteY][absoluteCoords.absoluteX] = layer.layerType;
+                                matrix[absoluteCoords.y][absoluteCoords.x] = layer.layerType;
                             }
                         }
                     }
@@ -1007,6 +1020,13 @@ export class Circle extends Shape
         this.relativeRadius = relativeRadius;
     }
 
+    /**
+     * Draws the circle on a canvas
+     * @param layer
+     * @param pageIndex
+     * @param zoomLevel
+     * @param renderer
+     */
     draw (layer, pageIndex, zoomLevel, renderer)
     {
         let scaleRatio = Math.pow(2,zoomLevel);
@@ -1015,7 +1035,7 @@ export class Circle extends Shape
         {
             // Calculates where the highlights should be drawn as a function of the whole webpage coordinates
             // (to make it look like it is on top of a page in Diva)
-            let absoluteCenterWithPadding = this.origin.getAbsoluteCoordinatesWithPadding(zoomLevel, pageIndex, renderer);
+            let absoluteCenterWithPadding = this.origin.getAbsolutePaddedCoordinates(zoomLevel, pageIndex, renderer);
 
             //Draw the circle
             renderer._ctx.fillStyle = layer.colour.toString();
@@ -1025,6 +1045,14 @@ export class Circle extends Shape
         }
     }
 
+    /**
+     * Copies the circle to a matrix that represents a page
+     * @param layer
+     * @param pageIndex
+     * @param zoomLevel
+     * @param renderer
+     * @param matrix
+     */
     getPixels (layer, pageIndex, zoomLevel, renderer, matrix)
     {
         let circleTop = new Point(this.origin.relativeOriginX, this.origin.relativeOriginY - this.relativeRadius, 0);
@@ -1034,13 +1062,13 @@ export class Circle extends Shape
 
         let scaleRatio = Math.pow(2, zoomLevel);
 
-        for(var y = circleTop.getAbsoluteCoordinatesWithPadding(zoomLevel, pageIndex, renderer).y;
-            y <= circleBottom.getAbsoluteCoordinatesWithPadding(zoomLevel, pageIndex, renderer).y; y++)
+        for(var y = circleTop.getAbsolutePaddedCoordinates(zoomLevel, pageIndex, renderer).y;
+            y <= circleBottom.getAbsolutePaddedCoordinates(zoomLevel, pageIndex, renderer).y; y++)
         {
-            for(var  x = circleLeft.getAbsoluteCoordinatesWithPadding(zoomLevel, pageIndex, renderer).x;
-                x <= circleRight.getAbsoluteCoordinatesWithPadding(zoomLevel, pageIndex, renderer).x; x++){
+            for(var  x = circleLeft.getAbsolutePaddedCoordinates(zoomLevel, pageIndex, renderer).x;
+                x <= circleRight.getAbsolutePaddedCoordinates(zoomLevel, pageIndex, renderer).x; x++){
 
-                let point1highlightOffset = this.origin.getAbsoluteCoordinatesWithPadding(zoomLevel, pageIndex, renderer);
+                let point1highlightOffset = this.origin.getAbsolutePaddedCoordinates(zoomLevel, pageIndex, renderer);
 
 
                 let shiftedX = x - point1highlightOffset.x;
@@ -1050,10 +1078,10 @@ export class Circle extends Shape
                 {
                     // Get absolute from padded
                     let absoluteCoords = new Point().getAbsoluteCoordinatesFromPadded(pageIndex,renderer,x,y);
-                    if (absoluteCoords.absoluteY >= 0 && absoluteCoords.absoluteX >= 0
-                        && absoluteCoords.absoluteY <= matrix.length && absoluteCoords.absoluteX <= matrix[0].length)
+                    if (absoluteCoords.y >= 0 && absoluteCoords.x >= 0
+                        && absoluteCoords.y <= matrix.length && absoluteCoords.x <= matrix[0].length)
                     {
-                        matrix[absoluteCoords.absoluteY][absoluteCoords.absoluteX] = layer.layerType;
+                        matrix[absoluteCoords.y][absoluteCoords.x] = layer.layerType;
                     }
                 }
             }
@@ -1070,6 +1098,13 @@ export class Rectangle extends Shape
         this.relativeRectHeight = relativeRectHeight;
     }
 
+    /**
+     * draws a rectangle on a canvas
+     * @param layer
+     * @param pageIndex
+     * @param zoomLevel
+     * @param renderer
+     */
     draw (layer, pageIndex, zoomLevel, renderer)
     {
         let scaleRatio = Math.pow(2,zoomLevel);
@@ -1097,6 +1132,14 @@ export class Rectangle extends Shape
         }
     }
 
+    /**
+     * copies the rectangle to a matrix that represents a page
+     * @param layer
+     * @param pageIndex
+     * @param zoomLevel
+     * @param renderer
+     * @param matrix
+     */
     getPixels (layer, pageIndex, zoomLevel, renderer, matrix)
     {
         let scaleRatio = Math.pow(2,zoomLevel);
@@ -1140,6 +1183,12 @@ export class Path
 
 export class Point
 {
+    /**
+     * The relative origins allow to position the point at the same page location no matter what the zoom level is
+     * @param relativeOriginX
+     * @param relativeOriginY
+     * @param pageIndex
+     */
     constructor (relativeOriginX, relativeOriginY, pageIndex)
     {
         this.relativeOriginX = relativeOriginX;
@@ -1147,6 +1196,13 @@ export class Point
         this.pageIndex = pageIndex;
     }
 
+    /**
+     * Calculates the coordinates of a point on a page in pixels given the zoom level
+     * where the top left corner of the page always represents the (0,0) coordinate.
+     * The function scales the relative coordinates to the required zoom level.
+     * @param zoomLevel
+     * @returns {{x: number, y: number}}
+     */
     getAbsoluteCoordinates(zoomLevel)
     {
         let scaleRatio = Math.pow(2,zoomLevel);
@@ -1156,16 +1212,23 @@ export class Point
         }
     }
 
-    getAbsoluteCoordinatesWithPadding(zoomLevel, pageIndex, renderer)
+    /**
+     * Calculates the coordinates of a point on the canvas in pixels, where the top left corner of the canvas
+     * represents the (0,0) coordinate.
+     * This is relative to the viewport padding.
+     * @param zoomLevel
+     * @param pageIndex
+     * @param renderer
+     * @returns {{x: number, y: number}}
+     */
+    getAbsolutePaddedCoordinates(zoomLevel, pageIndex, renderer)
     {
         const viewportPaddingX = Math.max(0, (renderer._viewport.width - renderer.layout.dimensions.width) / 2);
         const viewportPaddingY = Math.max(0, (renderer._viewport.height - renderer.layout.dimensions.height) / 2);
 
-        // The following absolute values are experimental values to highlight the square on the first page of Salzinnes, CDN-Hsmu M2149.L4
-        // The relative values are used to scale the highlights according to the zoom level on the page itself
         let absoluteCoordinates = this.getAbsoluteCoordinates(zoomLevel);
 
-        // Calculates where the highlights should be drawn as a function of the whole webpage coordinates
+        // Calculates where the highlights should be drawn as a function of the whole canvas coordinates system
         // (to make it look like it is on top of a page in Diva)
         let offsetX = renderer._getImageOffset(pageIndex).left - renderer._viewport.left + viewportPaddingX + absoluteCoordinates.x;
         let offsetY = renderer._getImageOffset(pageIndex).top - renderer._viewport.top + viewportPaddingY + absoluteCoordinates.y;
@@ -1176,14 +1239,22 @@ export class Point
         }
     }
 
+    /**
+     * Calculates the coordinates of a point on a page in pixels from the padded coordinates used to display the point on canvas
+     * @param pageIndex
+     * @param renderer
+     * @param paddedX
+     * @param paddedY
+     * @returns {{x: number, y: number}}
+     */
     getAbsoluteCoordinatesFromPadded(pageIndex, renderer, paddedX, paddedY)
     {
         const viewportPaddingX = Math.max(0, (renderer._viewport.width - renderer.layout.dimensions.width) / 2);
         const viewportPaddingY = Math.max(0, (renderer._viewport.height - renderer.layout.dimensions.height) / 2);
 
         return {
-            absoluteX: Math.round(paddedX - (renderer._getImageOffset(pageIndex).left - renderer._viewport.left + viewportPaddingX)),
-            absoluteY: Math.round(paddedY - (renderer._getImageOffset(pageIndex).top - renderer._viewport.top + viewportPaddingY))
+            x: Math.round(paddedX - (renderer._getImageOffset(pageIndex).left - renderer._viewport.left + viewportPaddingX)),
+            y: Math.round(paddedY - (renderer._getImageOffset(pageIndex).top - renderer._viewport.top + viewportPaddingY))
         }
     }
 
@@ -1201,25 +1272,39 @@ export class Line extends Shape
 
     getLineEquation ()
     {
-
+        //TODO: Implement function
     }
 
+    /**
+     * Calculates the angle of the line.
+     * The angle of a horizontal line is 0 degrees, angles increase in the clockwise direction
+     * @param zoomLevel
+     * @param pageIndex
+     * @param renderer
+     * @returns {number}
+     */
     getAngleRad (zoomLevel, pageIndex, renderer)
     {
-        let startPointAbsoluteCoordsWithPadding = this.origin.getAbsoluteCoordinatesWithPadding(zoomLevel, pageIndex, renderer);
-        let endPointAbsoluteCoordsWithPadding = this.endPoint.getAbsoluteCoordinatesWithPadding(zoomLevel, pageIndex, renderer);
+        let startPointAbsolutePaddedCoords = this.origin.getAbsolutePaddedCoordinates(zoomLevel, pageIndex, renderer);
+        let endPointAbsolutePaddedCoords = this.endPoint.getAbsolutePaddedCoordinates(zoomLevel, pageIndex, renderer);
 
-        return Math.atan2(endPointAbsoluteCoordsWithPadding.y - startPointAbsoluteCoordsWithPadding.y,
-            endPointAbsoluteCoordsWithPadding.x - startPointAbsoluteCoordsWithPadding.x)
+        return Math.atan2(endPointAbsolutePaddedCoords.y - startPointAbsolutePaddedCoords.y,
+            endPointAbsolutePaddedCoords.x - startPointAbsolutePaddedCoords.x)
     }
 
+    /**
+     * Draws a line on a canvas
+     * @param layer
+     * @param pageIndex
+     * @param zoomLevel
+     * @param renderer
+     */
     draw (layer, pageIndex, zoomLevel, renderer)
     {
-
         let scaleRatio = Math.pow(2,zoomLevel);
 
-        let startPointAbsoluteCoordsWithPadding = this.origin.getAbsoluteCoordinatesWithPadding(zoomLevel, pageIndex, renderer);
-        let endPointAbsoluteCoordsWithPadding = this.endPoint.getAbsoluteCoordinatesWithPadding(zoomLevel, pageIndex, renderer);
+        let startPointAbsoluteCoordsWithPadding = this.origin.getAbsolutePaddedCoordinates(zoomLevel, pageIndex, renderer);
+        let endPointAbsoluteCoordsWithPadding = this.endPoint.getAbsolutePaddedCoordinates(zoomLevel, pageIndex, renderer);
 
         renderer._ctx.beginPath();
         renderer._ctx.strokeStyle = layer.colour.toString();
@@ -1251,6 +1336,10 @@ export class Colour
         this.opacity = opacity;
     }
 
+    /**
+     * Turns the red, green, blue and opacity values into an HTML color
+     * @returns {string}
+     */
     toString ()
     {
         return "rgba(" + this.red +  ", " + this.green + ", " + this.blue + ", " + this.opacity + ")";
@@ -1277,6 +1366,10 @@ export class Layer
         this.paths.push(path);
     }
 
+    /**
+     * Creates a new path that has the brush size selector width
+     * @param point
+     */
     addToCurrentPath (point)
     {
         if (this.paths.length === 0)
