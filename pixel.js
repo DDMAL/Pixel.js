@@ -30,6 +30,7 @@ export default class PixelPlugin
         this.currentTool = "brush";
         this.lastRelCoordsX = null;
         this.lastRelCoordsY = null;
+        this.exporting = false;
     }
 
     /**
@@ -708,23 +709,20 @@ export default class PixelPlugin
         }
     }
 
-    fillPath(point, zoomLevel, pageIndex, brushSize, isDown)
+    fillPath(point1, point2, zoomLevel, pageIndex, brushSize, isDown)
     {
-        let point1 = new Point(20,20,0);
-        let point2 = new Point(60,70,0);
-
         let renderer = this.core.getSettings().renderer;
         let scaleRatio = Math.pow(2,zoomLevel);
-        let lineWidth = 20;
+        let lineWidth = brushSize;
         let absoluteLineWidth = lineWidth * scaleRatio;
 
         // This indicates the page on top of which the highlights are supposed to be drawn
         let highlightPageIndex = point1.pageIndex;
 
-        new Line(point1, point2, lineWidth, "round").draw(this.layers[0],pageIndex,zoomLevel,renderer);
-
         if (pageIndex === highlightPageIndex)
         {
+            //new Line(point1, point2, brushSize, "round").draw(this.layers[4],pageIndex,zoomLevel,this.core.getSettings().renderer);
+
             // Calculates where the highlights should be drawn as a function of the whole webpage coordinates
             // (to make it look like it is on top of a page in Diva)
             let point1highlightOffset = point1.getAbsoluteCoordinatesWithPadding(zoomLevel, pageIndex, renderer);
@@ -776,7 +774,16 @@ export default class PixelPlugin
         let pageIndex = args[0],
             zoomLevel = args[1];
 
-        this.fillPath(new Point(0,0,0), zoomLevel, pageIndex);
+        let lineWidth = 20;
+
+        // let point1 = new Point(20,20,0);
+        // let point2 = new Point(60,70,0);
+        //new Line(point1, point2, lineWidth, "round").draw(this.layers[0],pageIndex,zoomLevel,this.core.getSettings().renderer);
+
+        if (this.exporting)
+        {
+            // this.fillPath(point1, point2, zoomLevel, pageIndex, lineWidth);
+        }
 
         this.layers.forEach((layer) =>
         {
@@ -792,12 +799,23 @@ export default class PixelPlugin
             paths.forEach((path) =>
                 {
                     let isDown = false;
-                    path.points.forEach((point) =>
+
+                    for (let index = 0; index < path.points.length; index++)
                     {
+                        let point = path.points[index];
                         this.drawPath(layer, point, pageIndex, zoomLevel, path.brushSize, isDown, this.shiftDown);
-                        //this.test(point, zoomLevel, path.brushSize, isDown);
+
+                        if (this.exporting)
+                        {
+                            if (index !== path.points.length - 1)
+                            {
+                                let nextPoint = path.points[index + 1];
+                                this.fillPath(point, nextPoint, zoomLevel, pageIndex, path.brushSize, isDown);
+                            }
+                        }
+
                         isDown = true;
-                    });
+                    }
                 }
             );
         });
@@ -824,6 +842,8 @@ export default class PixelPlugin
 
     populateMatrix ()
     {
+        this.exporting = !this.exporting;
+
 
         this.initializeMatrix();
 
@@ -968,7 +988,7 @@ export class Shape
                         {
                             renderer._ctx.fillStyle = layer.colour.toString();
                             renderer._ctx.beginPath();
-                            renderer._ctx.arc(fill, y, 0.2,0,2*Math.PI);
+                            renderer._ctx.arc(fill, y, 0.5,0,2*Math.PI);
                             renderer._ctx.fill();
                         }
                     }
@@ -1029,7 +1049,7 @@ export class Circle extends Shape
                 {
                     renderer._ctx.fillStyle = layer.colour.toString();
                     renderer._ctx.beginPath();
-                    renderer._ctx.arc(x,y, 0.2,0,2*Math.PI);
+                    renderer._ctx.arc(x,y, 0.5,0,2*Math.PI);
                     renderer._ctx.fill();
 
                 }
