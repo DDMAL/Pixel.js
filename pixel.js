@@ -50,9 +50,18 @@ export default class PixelPlugin
 
     activatePlugin ()
     {
-        this._canvas = this.core.getSettings().renderer._canvas;
-        this._ctx = this._canvas.getContext('2d');
+        // this._canvas = this.core.getSettings().renderer._canvas;
+        // this._ctx = this._canvas.getContext('2d');
 
+        // FIXME: Need to remove scrollbar width from the height only when it is displayed
+        this._canvas = document.createElement('canvas');
+        this._canvas.setAttribute("id", "pixelCanvas");
+        this._canvas.setAttribute("style", "position: absolute; top: 0; left: 0;");
+        this._canvas.width = this.core.getSettings().renderer._canvas.width - this.core.getSettings().scrollbarWidth;
+        this._canvas.height = this.core.getSettings().renderer._canvas.height;
+        this._ctx = this._canvas.getContext('2d');
+        let div = document.getElementById('diva-1-outer');
+        div.insertBefore(this._canvas, div.firstChild.nextSibling);
 
         if (this.layers === null)
         {
@@ -65,7 +74,7 @@ export default class PixelPlugin
             
             layer1.addShapeToLayer(new Rectangle(new Point(23, 42, 0), 24, 24));
             layer2.addShapeToLayer(new Rectangle(new Point(48, 50, 0), 57, 5));
-            layer3.addShapeToLayer(new Rectangle(new Point(50, 120, 0), 50, 10));
+            layer3.addShapeToLayer(new Rectangle(new Point(50, 80, 0), 50, 10));
 
             this.layers = [layer1, layer2, layer3, layer4, layer5];
         }
@@ -638,7 +647,7 @@ export default class PixelPlugin
 
     repaint ()
     {
-        this.core.getSettings().renderer._paint();
+        this.drawHighlights([0, this.core.getSettings().zoomLevel]);
     }
 
     isInPageBounds (relativeX, relativeY)
@@ -813,32 +822,37 @@ export default class PixelPlugin
 
     drawHighlights (args)
     {
-        let pageIndex = args[0],
-            zoomLevel = args[1];
+        this._ctx.clearRect(0,0,this._canvas.width, this._canvas.height);
 
-        this.layers.forEach((layer) =>
+        let zoomLevel = args[1];
+        let renderer = this.core.getSettings().renderer;
+
+        renderer._renderedPages.forEach((pageIndex) =>
         {
-            let shapes = layer.shapes;
+            this.layers.forEach((layer) =>
+            {
+                let shapes = layer.shapes;
 
-            shapes.forEach((shape) =>
-                {
-                    shape.draw(layer, pageIndex, zoomLevel, this.core.getSettings().renderer, this._ctx);
-                }
-            );
-
-            let paths = layer.paths;
-            paths.forEach((path) =>
-                {
-                    let isDown = false;
-
-                    path.points.forEach((point) =>
+                shapes.forEach((shape) =>
                     {
-                        this.drawPath(layer, point, pageIndex, zoomLevel, path.brushSize, isDown);
-                        isDown = true;
-                    });
-                }
-            );
-        });
+                        shape.draw(layer, pageIndex, zoomLevel, this.core.getSettings().renderer, this._ctx);
+                    }
+                );
+
+                let paths = layer.paths;
+                paths.forEach((path) =>
+                    {
+                        let isDown = false;
+
+                        path.points.forEach((point) =>
+                        {
+                            this.drawPath(layer, point, pageIndex, zoomLevel, path.brushSize, isDown);
+                            isDown = true;
+                        });
+                    }
+                );
+            });
+        })
     }
 
     printMatrix ()
