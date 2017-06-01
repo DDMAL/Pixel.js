@@ -30,6 +30,8 @@ export default class PixelPlugin
         this.currentTool = "brush";
         this.lastRelCoordsX = null;
         this.lastRelCoordsY = null;
+        this._canvas = null;
+        this._ctx = null;
     }
 
     /**
@@ -48,6 +50,10 @@ export default class PixelPlugin
 
     activatePlugin ()
     {
+        this._canvas = this.core.getSettings().renderer._canvas;
+        this._ctx = this._canvas.getContext('2d');
+
+
         if (this.layers === null)
         {
             // Start by creating layers
@@ -730,14 +736,14 @@ export default class PixelPlugin
 
             if (isDown)
             {
-                renderer._ctx.beginPath();
-                renderer._ctx.strokeStyle = layer.colour.toString();
-                renderer._ctx.lineWidth = brushSize * scaleRatio;
-                renderer._ctx.lineJoin = "round";
-                renderer._ctx.moveTo(this.lastX, this.lastY);
-                renderer._ctx.lineTo(highlightXOffset, highlightYOffset);
-                renderer._ctx.closePath();
-                renderer._ctx.stroke();
+                this._ctx.beginPath();
+                this._ctx.strokeStyle = layer.colour.toString();
+                this._ctx.lineWidth = brushSize * scaleRatio;
+                this._ctx.lineJoin = "round";
+                this._ctx.moveTo(this.lastX, this.lastY);
+                this._ctx.lineTo(highlightXOffset, highlightYOffset);
+                this._ctx.closePath();
+                this._ctx.stroke();
             }
 
             this.lastX = highlightXOffset;
@@ -816,7 +822,7 @@ export default class PixelPlugin
 
             shapes.forEach((shape) =>
                 {
-                    shape.draw(layer, pageIndex, zoomLevel, this.core.getSettings().renderer);
+                    shape.draw(layer, pageIndex, zoomLevel, this.core.getSettings().renderer, this._ctx);
                 }
             );
 
@@ -852,10 +858,10 @@ export default class PixelPlugin
                     {
                         if (layer.layerType === this.matrix[row][col])
                         {
-                            renderer._ctx.fillStyle = layer.colour.toString();
-                            renderer._ctx.beginPath();
-                            renderer._ctx.arc(col, row, 0.2,0,2*Math.PI);
-                            renderer._ctx.fill();
+                            this._ctx.fillStyle = layer.colour.toString();
+                            this._ctx.beginPath();
+                            this._ctx.arc(col, row, 0.2,0,2*Math.PI);
+                            this._ctx.fill();
                         }
                     })
                 }
@@ -1029,7 +1035,7 @@ export class Circle extends Shape
      * @param zoomLevel
      * @param renderer
      */
-    draw (layer, pageIndex, zoomLevel, renderer)
+    draw (layer, pageIndex, zoomLevel, renderer, ctx)
     {
         let scaleRatio = Math.pow(2,zoomLevel);
 
@@ -1040,10 +1046,10 @@ export class Circle extends Shape
             let absoluteCenterWithPadding = this.origin.getAbsolutePaddedCoordinates(zoomLevel, pageIndex, renderer);
 
             //Draw the circle
-            renderer._ctx.fillStyle = layer.colour.toString();
-            renderer._ctx.beginPath();
-            renderer._ctx.arc(absoluteCenterWithPadding.x,absoluteCenterWithPadding.y, this.relativeRadius * scaleRatio,0,2*Math.PI);
-            renderer._ctx.fill();
+            ctx.fillStyle = layer.colour.toString();
+            ctx.beginPath();
+            ctx.arc(absoluteCenterWithPadding.x,absoluteCenterWithPadding.y, this.relativeRadius * scaleRatio,0,2*Math.PI);
+            ctx.fill();
         }
     }
 
@@ -1107,7 +1113,7 @@ export class Rectangle extends Shape
      * @param zoomLevel
      * @param renderer
      */
-    draw (layer, pageIndex, zoomLevel, renderer)
+    draw (layer, pageIndex, zoomLevel, renderer, ctx)
     {
         let scaleRatio = Math.pow(2,zoomLevel);
 
@@ -1129,8 +1135,8 @@ export class Rectangle extends Shape
                 highlightYOffset = renderer._getImageOffset(pageIndex).top - renderer._viewport.top + viewportPaddingY + absoluteRectOriginY;
 
             //Draw the rectangle
-            renderer._ctx.fillStyle = layer.colour.toString();
-            renderer._ctx.fillRect(highlightXOffset, highlightYOffset,absoluteRectWidth,absoluteRectHeight);
+            ctx.fillStyle = layer.colour.toString();
+            ctx.fillRect(highlightXOffset, highlightYOffset,absoluteRectWidth,absoluteRectHeight);
         }
     }
 
@@ -1301,21 +1307,21 @@ export class Line extends Shape
      * @param zoomLevel
      * @param renderer
      */
-    draw (layer, pageIndex, zoomLevel, renderer)
+    draw (layer, pageIndex, zoomLevel, renderer, ctx)
     {
         let scaleRatio = Math.pow(2,zoomLevel);
 
         let startPointAbsoluteCoordsWithPadding = this.origin.getAbsolutePaddedCoordinates(zoomLevel, pageIndex, renderer);
         let endPointAbsoluteCoordsWithPadding = this.endPoint.getAbsolutePaddedCoordinates(zoomLevel, pageIndex, renderer);
 
-        renderer._ctx.beginPath();
-        renderer._ctx.strokeStyle = layer.colour.toString();
-        renderer._ctx.lineWidth = this.lineWidth * scaleRatio;
-        renderer._ctx.lineJoin = this.lineJoin;
-        renderer._ctx.moveTo(startPointAbsoluteCoordsWithPadding.x, startPointAbsoluteCoordsWithPadding.y);
-        renderer._ctx.lineTo(endPointAbsoluteCoordsWithPadding.x, endPointAbsoluteCoordsWithPadding.y);
-        renderer._ctx.closePath();
-        renderer._ctx.stroke();
+        ctx.beginPath();
+        ctx.strokeStyle = layer.colour.toString();
+        ctx.lineWidth = this.lineWidth * scaleRatio;
+        ctx.lineJoin = this.lineJoin;
+        ctx.moveTo(startPointAbsoluteCoordsWithPadding.x, startPointAbsoluteCoordsWithPadding.y);
+        ctx.lineTo(endPointAbsoluteCoordsWithPadding.x, endPointAbsoluteCoordsWithPadding.y);
+        ctx.closePath();
+        ctx.stroke();
     }
 }
 
