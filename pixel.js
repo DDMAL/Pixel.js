@@ -491,7 +491,7 @@ export default class PixelPlugin
             selectedLayer.addToCurrentPath(point);
 
             this.actions.push(new Action(selectedLayer.getCurrentPath(), selectedLayer));
-            this.drawPath(selectedLayer, point, pageIndex, zoomLevel, brushSize, false, this.shiftDown);
+            this.drawPath(selectedLayer, point, pageIndex, zoomLevel, brushSize, false);
         }
         else
         {
@@ -534,7 +534,7 @@ export default class PixelPlugin
             }
             let brushSize = this.layers[this.selectedLayer].getCurrentPath().brushSize;
             this.layers[this.selectedLayer].addToCurrentPath(point);
-            this.drawPath(this.layers[this.selectedLayer], point, pageIndex, zoomLevel, brushSize, true, this.shiftDown);
+            this.drawPath(this.layers[this.selectedLayer], point, pageIndex, zoomLevel, brushSize, true);
             return;
         }
         this.initializeNewPath(canvas, evt);
@@ -827,7 +827,7 @@ export default class PixelPlugin
 
                     path.points.forEach((point) =>
                     {
-                        this.drawPath(layer, point, pageIndex, zoomLevel, path.brushSize, isDown, this.shiftDown);
+                        this.drawPath(layer, point, pageIndex, zoomLevel, path.brushSize, isDown);
                         isDown = true;
                     });
                 }
@@ -839,10 +839,12 @@ export default class PixelPlugin
     {
         // Need to implement a buffering page
         let renderer = this.core.getSettings().renderer;
+        let rowlen = this.matrix[0].length;
+
 
         for (var row = 0; row < this.matrix.length; row++)
         {
-            for (var col = 0; col < this.matrix[0].length; col++)
+            for (var col = 0; col < rowlen; col++)
             {
                 if (this.matrix[row][col] !== -1)
                 {
