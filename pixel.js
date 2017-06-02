@@ -69,6 +69,7 @@ export default class PixelPlugin
         this.initializeMatrix();
         this.createPluginElements(this.layers);
         this.scrollEventHandle = this.subscribeToScrollEvent();
+        this.subscribeToZoomLevelWillChangeEvent();
         this.subscribeToMouseEvents();
         this.subscribeToKeyboardEvents();
         this.repaint();  // Repaint the tiles to retrigger VisibleTilesDidLoad
@@ -93,11 +94,11 @@ export default class PixelPlugin
      * ===============================================
      **/
 
-    subscribeToVisibleTilesEvent ()
+    subscribeToZoomLevelWillChangeEvent ()
     {
-        let handle = Diva.Events.subscribe('VisibleTilesDidLoad', (args) =>
+        let handle = Diva.Events.subscribe('ZoomLevelWillChange', (zoomLevel) =>
         {
-            this.drawHighlights(args);
+            this.drawHighlights(zoomLevel);
         });
         return handle;
     }
@@ -108,7 +109,7 @@ export default class PixelPlugin
 
         let handle = Diva.Events.subscribe('ViewerDidScroll', () =>
         {
-            this.drawHighlights();
+            this.drawHighlights(this.core.getSettings().zoomLevel);
         });
 
         return handle;
@@ -668,7 +669,7 @@ export default class PixelPlugin
 
     repaint ()
     {
-        this.drawHighlights([0, this.core.getSettings().zoomLevel]);
+        this.drawHighlights(this.core.getSettings().zoomLevel);
     }
 
     isInPageBounds (relativeX, relativeY)
@@ -841,12 +842,12 @@ export default class PixelPlugin
 
 
 
-    drawHighlights (args)
+    drawHighlights (zoomLevel)
     {
-        this._ctx.clearRect(0,0,this._canvas.width, this._canvas.height);
+        console.log("Drawing");
 
+        this._ctx.clearRect(0,0,this._canvas.width, this._canvas.height);
         let renderer = this.core.getSettings().renderer;
-        let zoomLevel = renderer._zoomLevel;
 
         renderer._renderedPages.forEach((pageIndex) =>
         {
