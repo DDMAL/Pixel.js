@@ -186,11 +186,18 @@ export default class PixelPlugin
             }
             else if (e.key === "b")
             {
+                this.core.disableDragScrollable();
                 this.currentTool = "brush";
             }
             else if (e.key === "r")
             {
+                this.core.disableDragScrollable();
                 this.currentTool = "rectangle";
+            }
+            else if (e.key === "g")
+            {
+                this.core.enableDragScrollable();
+                this.currentTool = "grab";
             }
         }
 
@@ -472,6 +479,9 @@ export default class PixelPlugin
             case "rectangle":
                 this.mousePressed = true;
                 this.initializeRectanglePreview(canvas, evt);
+                break;
+            case "grab":
+                this.mousePressed = true;
                 break;
             default:
                 this.mousePressed = true;
