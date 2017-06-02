@@ -622,8 +622,27 @@ export default class PixelPlugin
 
             if (this.isInPageBounds(relativeCoords.x, relativeCoords.y))
             {
+                let lastWidth = lastShape.relativeRectWidth;
                 lastShape.relativeRectWidth = relativeCoords.x - lastShape.origin.relativeOriginX;
-                lastShape.relativeRectHeight = relativeCoords.y - lastShape.origin.relativeOriginY;
+
+                let squareInBounds = this.isInPageBounds(lastShape.origin.relativeOriginX + lastShape.relativeRectWidth,
+                    lastShape.origin.relativeOriginY + lastShape.relativeRectWidth);
+
+                if (this.shiftDown)
+                {
+                    if (squareInBounds)
+                    {
+                        lastShape.relativeRectHeight = lastShape.relativeRectWidth;
+                    }
+                    else
+                    {
+                        lastShape.relativeRectWidth = lastWidth;
+                    }
+                }
+                else
+                {
+                    lastShape.relativeRectHeight = relativeCoords.y - lastShape.origin.relativeOriginY;
+                }
                 this.repaint();
             }
         }
