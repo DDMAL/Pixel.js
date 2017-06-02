@@ -66,6 +66,8 @@ export default class PixelPlugin
             this.layers = [layer1, layer2, layer3, layer4, layer5];
         }
 
+        this.core.disableScrollable();
+
         this.initializeMatrix();
         this.createPluginElements(this.layers);
         this.scrollEventHandle = this.subscribeToScrollEvent();
@@ -94,6 +96,7 @@ export default class PixelPlugin
      * ===============================================
      **/
 
+    // TODO: Unsubscribe from ZoomLevelWillChange Event
     subscribeToZoomLevelWillChangeEvent ()
     {
         let handle = Diva.Events.subscribe('ZoomLevelWillChange', (zoomLevel) =>
@@ -844,8 +847,6 @@ export default class PixelPlugin
 
     drawHighlights (zoomLevel)
     {
-        console.log("Drawing");
-
         this._ctx.clearRect(0,0,this._canvas.width, this._canvas.height);
         let renderer = this.core.getSettings().renderer;
 
