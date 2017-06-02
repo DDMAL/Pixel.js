@@ -14,7 +14,7 @@ export default class PixelPlugin
         this.core = core;
         this.activated = false;
         this.pageToolsIcon = this.createIcon();
-        this.visibleTilesHandle = null;
+        this.scrollEventHandle = null;
         this.mouseHandles = null;
         this.keyboardHandles = null;
         this.layers = null;
@@ -50,19 +50,6 @@ export default class PixelPlugin
 
     activatePlugin ()
     {
-        // this._canvas = this.core.getSettings().renderer._canvas;
-        // this._ctx = this._canvas.getContext('2d');
-
-        // FIXME: Need to remove scrollbar width from the height only when it is displayed
-        this._canvas = document.createElement('canvas');
-        this._canvas.setAttribute("id", "pixelCanvas");
-        this._canvas.setAttribute("style", "position: absolute; top: 0; left: 0;");
-        this._canvas.width = this.core.getSettings().renderer._canvas.width - this.core.getSettings().scrollbarWidth;
-        this._canvas.height = this.core.getSettings().renderer._canvas.height;
-        this._ctx = this._canvas.getContext('2d');
-        let div = document.getElementById('diva-1-outer');
-        div.insertBefore(this._canvas, div.firstChild.nextSibling);
-
         if (this.layers === null)
         {
             // Start by creating layers
@@ -80,22 +67,23 @@ export default class PixelPlugin
         }
 
         this.initializeMatrix();
-        this.visibleTilesHandle = this.subscribeToVisibleTilesEvent();
+        this.createPluginElements(this.layers);
+        this.scrollEventHandle = this.subscribeToScrollEvent();
         this.subscribeToMouseEvents();
         this.subscribeToKeyboardEvents();
-        this.createPluginElements(this.layers);
         this.repaint();  // Repaint the tiles to retrigger VisibleTilesDidLoad
         this.activated = true;
     }
 
     deactivatePlugin ()
     {
-        Diva.Events.unsubscribe(this.visibleTilesHandle);
+        Diva.Events.unsubscribe(this.scrollEventHandle);
         this.unsubscribeFromMouseEvents();
         this.unsubscribeFromKeyboardEvents();
         this.unsubscribeFromKeyboardPress();
         this.repaint(); // Repaint the tiles to make the highlights disappear off the page
         this.destroyPluginElements(this.layers);
+        this._ctx.clearRect(0,0,this._canvas.width, this._canvas.height);
         this.activated = false;
     }
 
@@ -111,6 +99,18 @@ export default class PixelPlugin
         {
             this.drawHighlights(args);
         });
+        return handle;
+    }
+
+    subscribeToScrollEvent()
+    {
+        this.drawHighlights();
+
+        let handle = Diva.Events.subscribe('ViewerDidScroll', () =>
+        {
+            this.drawHighlights();
+        });
+
         return handle;
     }
 
@@ -226,6 +226,7 @@ export default class PixelPlugin
 
     createPluginElements (layers)
     {
+        this.createPixelCanvas();
         this.createUndoButton();
         this.createRedoButton();
         this.createLayerSelectors(layers);
@@ -240,7 +241,27 @@ export default class PixelPlugin
         this.destroyUndoButton();
         this.destroyRedoButton();
         this.destroyExportButton();
+        this.destroyPixelCanvas();
     }
+
+    createPixelCanvas()
+    {
+        this._canvas = document.createElement('canvas');
+        this._canvas.setAttribute("id", "pixelCanvas");
+        this._canvas.setAttribute("style", "position: absolute; top: 0; left: 0;");
+        this._canvas.width = this.core.getSettings().renderer._canvas.width;
+        this._canvas.height = this.core.getSettings().renderer._canvas.height;
+        this._ctx = this._canvas.getContext('2d');
+        let div = document.getElementById('diva-1-outer');
+        div.insertBefore(this._canvas, div.firstChild.nextSibling);
+    }
+
+    destroyPixelCanvas()
+    {
+        let div = document.getElementById('diva-1-outer');
+        div.removeChild(this._canvas);
+    }
+
 
     createIcon ()
     {
@@ -824,8 +845,8 @@ export default class PixelPlugin
     {
         this._ctx.clearRect(0,0,this._canvas.width, this._canvas.height);
 
-        let zoomLevel = args[1];
         let renderer = this.core.getSettings().renderer;
+        let zoomLevel = renderer._zoomLevel;
 
         renderer._renderedPages.forEach((pageIndex) =>
         {
