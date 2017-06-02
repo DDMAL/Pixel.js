@@ -15,6 +15,7 @@ export default class PixelPlugin
         this.activated = false;
         this.pageToolsIcon = this.createIcon();
         this.scrollEventHandle = null;
+        this.zoomEventHandle = null;
         this.mouseHandles = null;
         this.keyboardHandles = null;
         this.layers = null;
@@ -66,12 +67,11 @@ export default class PixelPlugin
             this.layers = [layer1, layer2, layer3, layer4, layer5];
         }
 
-        this.core.disableScrollable();
-
+        this.core.disableDragScrollable();
         this.initializeMatrix();
         this.createPluginElements(this.layers);
         this.scrollEventHandle = this.subscribeToScrollEvent();
-        this.subscribeToZoomLevelWillChangeEvent();
+        this.zoomEventHandle = this.subscribeToZoomLevelWillChangeEvent();
         this.subscribeToMouseEvents();
         this.subscribeToKeyboardEvents();
         this.repaint();  // Repaint the tiles to retrigger VisibleTilesDidLoad
@@ -81,12 +81,14 @@ export default class PixelPlugin
     deactivatePlugin ()
     {
         Diva.Events.unsubscribe(this.scrollEventHandle);
+        Diva.Events.unsubscribe(this.zoomEventHandle);
         this.unsubscribeFromMouseEvents();
         this.unsubscribeFromKeyboardEvents();
         this.unsubscribeFromKeyboardPress();
         this.repaint(); // Repaint the tiles to make the highlights disappear off the page
         this.destroyPluginElements(this.layers);
         this._ctx.clearRect(0,0,this._canvas.width, this._canvas.height);
+        this.core.enableDragScrollable();
         this.activated = false;
     }
 
@@ -842,8 +844,6 @@ export default class PixelPlugin
             new Shape().getPixels(layer, pageIndex, zoomLevel, renderer, ymax, ymin, pairOfEdges, this.matrix);
         }
     }
-
-
 
     drawHighlights (zoomLevel)
     {
