@@ -622,27 +622,39 @@ export default class PixelPlugin
 
             if (this.isInPageBounds(relativeCoords.x, relativeCoords.y))
             {
-                let lastWidth = lastShape.relativeRectWidth;
-                lastShape.relativeRectWidth = relativeCoords.x - lastShape.origin.relativeOriginX;
-
-                let squareInBounds = this.isInPageBounds(lastShape.origin.relativeOriginX + lastShape.relativeRectWidth,
-                    lastShape.origin.relativeOriginY + lastShape.relativeRectWidth);
-
-                if (this.shiftDown)
+                // If cursor is to the south east or north west of the point of origin
+                if ((relativeCoords.x < lastShape.origin.relativeOriginX && relativeCoords.y < lastShape.origin.relativeOriginY)
+                || (relativeCoords.x > lastShape.origin.relativeOriginX && relativeCoords.y > lastShape.origin.relativeOriginY))
                 {
-                    if (squareInBounds)
+                    let lastWidth = lastShape.relativeRectWidth;
+                    lastShape.relativeRectWidth = relativeCoords.x - lastShape.origin.relativeOriginX;
+
+                    let squareInBounds = this.isInPageBounds(lastShape.origin.relativeOriginX + lastShape.relativeRectWidth,
+                        lastShape.origin.relativeOriginY + lastShape.relativeRectWidth);
+
+                    if (this.shiftDown)
                     {
-                        lastShape.relativeRectHeight = lastShape.relativeRectWidth;
+                        if (squareInBounds)
+                        {
+                            lastShape.relativeRectHeight = lastShape.relativeRectWidth;
+                        }
+                        else
+                        {
+                            lastShape.relativeRectWidth = lastWidth;
+                        }
                     }
                     else
                     {
-                        lastShape.relativeRectWidth = lastWidth;
+                        lastShape.relativeRectHeight = relativeCoords.y - lastShape.origin.relativeOriginY;
                     }
                 }
-                else
+                else        // If cursor to the north east or south west of the point of origin
                 {
-                    lastShape.relativeRectHeight = relativeCoords.y - lastShape.origin.relativeOriginY;
+                    // TODO shift the origin of the rectangle
+                    
                 }
+
+
                 this.repaint();
             }
         }
