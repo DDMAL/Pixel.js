@@ -110,7 +110,7 @@ export default class PixelPlugin
 
     subscribeToScrollEvent()
     {
-        this.drawHighlights();
+        this.drawHighlights(this.core.getSettings().zoomLevel);
 
         let handle = Diva.Events.subscribe('ViewerDidScroll', () =>
         {
