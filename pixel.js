@@ -650,8 +650,27 @@ export default class PixelPlugin
                 }
                 else        // If cursor to the north east or south west of the point of origin
                 {
-                    // TODO shift the origin of the rectangle
-                    
+                    let lastWidth = lastShape.relativeRectWidth;
+                    lastShape.relativeRectWidth = relativeCoords.x - lastShape.origin.relativeOriginX;
+
+                    let squareInBounds = this.isInPageBounds(lastShape.origin.relativeOriginX + lastShape.relativeRectWidth,
+                        lastShape.origin.relativeOriginY + lastShape.relativeRectWidth);
+
+                    if (this.shiftDown)
+                    {
+                        if (squareInBounds)
+                        {
+                            lastShape.relativeRectHeight = - lastShape.relativeRectWidth;
+                        }
+                        else
+                        {
+                            lastShape.relativeRectWidth = lastWidth;
+                        }
+                    }
+                    else
+                    {
+                        lastShape.relativeRectHeight = relativeCoords.y - lastShape.origin.relativeOriginY;
+                    }
                 }
 
 
