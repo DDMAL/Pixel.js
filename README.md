@@ -7,7 +7,7 @@
 
 ## Quick Start
 - Download [```Diva.js v.6.0```](https://github.com/DDMAL/diva.js/tree/develop-diva6) and [```Pixel.js```](https://github.com/DDMAL/Pixel.js/tree/develop).
-- Place the entire ```Pixel.js``` folder into `diva.js/source/js/plugins`
+- Place the entire ```Pixel.js``` folder into `diva.js/source/js/plugins` (Make sure to rename the Pixel folder Pixel.js if necessary)
 - Include the path to ```pixel.js``` file to the list of plugins in `diva.js/webpack.config.js`
 ``` js
 plugins: (process.env.NODE_ENV === "production") ? productionPlugins() : developmentPlugins()
@@ -19,7 +19,7 @@ plugins: (process.env.NODE_ENV === "production") ? productionPlugins() : develop
     }
 ```
 
-- In the ```Pixel.js``` directory, run the `pixel.sh` script using the following command
+- In the ```Pixel.js``` directory, run the `pixel.sh` script using the following command.
 ```bash
 $ ./pixel.sh
 ```
