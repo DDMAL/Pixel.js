@@ -247,6 +247,55 @@ export default class PixelPlugin
 
     /**
      * ===============================================
+     *           Drag & Drop Layers Events
+     * ===============================================
+     **/
+
+    dragStart (event)
+    {
+        event.dataTransfer.setData("Text", event.target.id);
+    }
+
+    dragging (event)
+    {
+
+    }
+
+    allowDrop (event)
+    {
+        event.preventDefault();
+    }
+
+    drop (event, departureLayerIndex, destinationLayerIndex)
+    {
+        event.preventDefault();
+        let data = event.dataTransfer.getData("Text"),
+            tempLayerStorage;
+
+        //event.target.appendChild(document.getElementById(data));
+        tempLayerStorage = this.layers[departureLayerIndex];
+        if (departureLayerIndex > destinationLayerIndex)
+        {
+            for (let i = 1; i < (departureLayerIndex - destinationLayerIndex); i++)
+            {
+                this.layers[departureLayerIndex - i + 1] = this.layers[departureLayerIndex - i];
+            }
+            this.layers[destinationLayerIndex] = tempLayerStorage;
+        }
+        else if (departureLayerIndex < destinationLayerIndex)
+        {
+            for (let i = 1; i < (destinationLayerIndex - departureLayerIndex); i++)
+            {
+                this.layers[departureLayerIndex + i - 1] = this.layers[departureLayerIndex + i];
+            }
+            this.layers[destinationLayerIndex] = tempLayerStorage;
+        }
+        event.target.appendChild(document.getElementById(data));
+    }
+
+
+    /**
+     * ===============================================
      *                HTML UI Elements
      * ===============================================
      **/
