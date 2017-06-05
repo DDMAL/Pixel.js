@@ -201,16 +201,19 @@ export default class PixelPlugin
             {
                 this.disableDragScrollable();
                 this.currentTool = "brush";
+                document.getElementById(this.currentTool).checked = true;
             }
             else if (e.key === "r")
             {
                 this.disableDragScrollable();
                 this.currentTool = "rectangle";
+                document.getElementById(this.currentTool).checked = true;
             }
             else if (e.key === "g")
             {
                 this.enableDragScrollable();
                 this.currentTool = "grab";
+                document.getElementById(this.currentTool).checked = true;
             }
         }
 
@@ -252,6 +255,7 @@ export default class PixelPlugin
 
     createPluginElements (layers)
     {
+        this.createToolsView(["brush", "rectangle", "grab"]);
         this.createPixelCanvas();
         this.createUndoButton();
         this.createRedoButton();
@@ -268,6 +272,53 @@ export default class PixelPlugin
         this.destroyRedoButton();
         this.destroyExportButton();
         this.destroyPixelCanvas();
+
+        this.destroyToolsView(["brush", "rectangle", "grab"]);
+    }
+
+    // Tools are strings or enums masalan
+    createToolsView(tools)
+    {
+        let form = document.createElement("form");
+        form.setAttribute("id", "tool selector");
+
+        for (var index = 0; index < tools.length; index++)
+        {
+            let tool = tools[index],
+                radio = document.createElement("input"),
+                content = document.createTextNode(tool),
+                br = document.createElement("br");
+
+            radio.setAttribute("id", tool);
+            radio.setAttribute("type", "radio");
+            radio.setAttribute("value", tool);
+            radio.setAttribute("name", "tool selector");
+            radio.onclick = () =>
+            {
+                this.currentTool = radio.value;
+
+                if (radio.value === "grab")
+                    this.enableDragScrollable();
+
+                else
+                    this.disableDragScrollable()
+            };
+
+            if (tool === "brush")      // Layer at position 0 is checked by default
+                radio.checked = true;
+
+
+            form.appendChild(radio);
+            form.appendChild(content);
+            form.appendChild(br);
+        }
+        document.body.appendChild(form);
+    }
+
+    destroyToolsView(tools)
+    {
+        let form = document.getElementById("tool selector");
+        document.body.removeChild(form);
     }
 
     createPixelCanvas()
@@ -668,7 +719,7 @@ export default class PixelPlugin
 
                     if (this.shiftDown)
                     {
-                        let squareInBounds = this.isInPageBounds(lastShape.origin.relativeOriginX - lastShape.relativeRectWidth,
+                        let squareInBounds = this.isInPageBounds(lastShape.origin.relativeOriginX + lastShape.relativeRectWidth,
                             lastShape.origin.relativeOriginY - lastShape.relativeRectWidth);
 
                         if (squareInBounds)
