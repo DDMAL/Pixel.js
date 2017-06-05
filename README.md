@@ -2,13 +2,13 @@
 ```Pixel.js``` is a drawing and layering plugin that works on top of [```Diva.js```](https://github.com/DDMAL/diva.js). 
 
 ## Objectives
-- Transform Diva from a document image viewer to a document editor and annotator.
+- Transform [```Diva.js```](https://github.com/DDMAL/diva.js) from a document image viewer to a document editor and annotator.
 - Label every pixel of the image with its corresponding class (background, staff lines, text, etc...). This will be used to provide the ground truth data for the machine learning algorithm that classifies and isolates the different components of old manuscripts and scores.
 
 ## Installation Instructions
-- Download [```Diva v.6.0```](https://github.com/DDMAL/diva.js/tree/develop-diva6)
-- Add ```Pixel.js``` directory into Diva's plugins folder.
-- Include the path to pixel.js to the list of plugins in `webpack.config.js`.
+- Download [```Diva.js v.6.0```](https://github.com/DDMAL/diva.js/tree/develop-diva6) and [```Pixel.js```](https://github.com/DDMAL/Pixel.js/tree/develop).
+- Place the entire ```Pixel.js``` folder into `diva.js/source/js/plugins`
+- Include the path to pixel.js file to the list of plugins in `diva.js/webpack.config.js`
 ``` js
 plugins: (process.env.NODE_ENV === "production") ? productionPlugins() : developmentPlugins()
 }, {
@@ -19,13 +19,23 @@ plugins: (process.env.NODE_ENV === "production") ? productionPlugins() : develop
     }
 ```
 - include the pixel.js script in the body of your your main html file ```<script src="build/plugins/pixel.js"></script>```
-- When instantiating diva, include pixel as a plugin. Your diva instantiation should like something like the following:
+- When instantiating diva, include `Diva.PixelPlugin` to the list of plugins. Your diva instantiation should like something like the following:
 ``` js
 var diva = new Diva('diva-wrapper', {
                 objectData: "https://images.simssa.ca/iiif/manuscripts/cdn-hsmu-m2149l4/manifest.json",
                 plugins: [Diva.DownloadPlugin, Diva.ManipulationPlugin, Diva.PixelPlugin]
             });
 ```
+
+- From the command line, run the following: 
+```bash
+$ npm install 
+$ npm install -g gulp webpack
+$ gulp
+```
+- Ensure that the build file created contains the `css` file. If not, add the `css` file from `source`.
+- Diva and Pixel.js will be running on ```http://localhost:9001/```
+
 
 ## Example
 ``` html
@@ -57,6 +67,3 @@ var diva = new Diva('diva-wrapper', {
 </body>
 </html>
 ```
-- From the command line, run: `npm install` > `npm install -g gulp webpack` > `gulp`.
-- Ensure that the build file created contains the `css` file. If not, add the `css` file from `source`.
-- Diva and Pixel.js will be running on ```http://localhost:9001/```
