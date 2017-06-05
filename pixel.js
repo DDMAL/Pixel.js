@@ -274,6 +274,7 @@ export default class PixelPlugin
 
         //event.target.appendChild(document.getElementById(data));
         tempLayerStorage = this.layers[departureLayerIndex];
+
         if (departureLayerIndex > destinationLayerIndex)
         {
             for (let i = 1; i < (departureLayerIndex - destinationLayerIndex); i++)
@@ -290,7 +291,9 @@ export default class PixelPlugin
             }
             this.layers[destinationLayerIndex] = tempLayerStorage;
         }
-        event.target.appendChild(document.getElementById(data));
+        this.destroyPluginElements(this.layers);
+        this.createPluginElements(this.layers);
+        //event.target.appendChild(document.getElementById(data));
     }
 
 
@@ -312,7 +315,7 @@ export default class PixelPlugin
 
     destroyPluginElements (layers)
     {
-        this.destroyLayerSelectors();
+        this.destroyLayerSelectors(layers);
         this.destroyBrushSizeSelector();
         this.destroyUndoButton();
         this.destroyRedoButton();
@@ -337,7 +340,6 @@ export default class PixelPlugin
         let div = document.getElementById('diva-1-outer');
         div.removeChild(this._canvas);
     }
-
 
     createIcon ()
     {
@@ -388,25 +390,27 @@ export default class PixelPlugin
         parentElement.appendChild(opacitySlider);
     }
 
-    destroyOpacitySlider (layer)
+    destroyOpacitySlider (layers)
     {
-        let opacitySlider = document.getElementById("layer " + layer.layerType + " opacity");
+        let opacitySlider = document.getElementById("layer " + layers.layerType + " opacity");
         document.body.removeChild(opacitySlider);
     }
 
     createLayerSelectors (layers)
     {
-        let form = document.createElement("form");
-
-        form.setAttribute("id", "layer selector");
-        form.setAttribute("action", "");
-
-        for (var index = layers.length - 1; index >= 0; index--)
+        for (let index = layers.length - 1; index >= 0; index--)
         {
             let layer = layers[index],
                 radio = document.createElement("input"),
+                p = document.createElement("p"),
                 content = document.createTextNode("Layer " + (layer.layerType + 1)),
                 br = document.createElement("br");
+
+            let form = document.createElement("form");
+            form.setAttribute("id", "layer" + layer.layerType + "selector");
+            form.setAttribute("value", layer.layerType);
+            form.setAttribute("draggable", "true");
+            form.setAttribute("action", "");
 
             radio.setAttribute("id", "layer " + layer.layerType);
             radio.setAttribute("type", "radio");
@@ -428,17 +432,46 @@ export default class PixelPlugin
                 radio.checked = true;
 
             form.appendChild(radio);
+            // p.appendChild(content);
             form.appendChild(content);
             this.createOpacitySlider(layer, form);
             form.appendChild(br);
+            document.body.appendChild(form);
+
+            ////////
+            form.ondrop = (event) =>
+            {
+                this.drop(event, 1, 0);
+            };
+
+            form.ondragover = (event) =>
+            {
+                this.allowDrop(event);
+            };
+
+            form.ondragstart = (event) =>
+            {
+                this.dragStart(event);
+            };
+
+            form.ondrag = (event) =>
+            {
+                this.dragging(event);
+            };
+
+            ////////
         }
-        document.body.appendChild(form);
     }
 
-    destroyLayerSelectors ()
+    destroyLayerSelectors (layers)
     {
-        let form = document.getElementById("layer selector");
-        document.body.removeChild(form);
+        for (let index = 0; index < layers.length; index++)
+        {
+            let layer = layers[index],
+                form = document.getElementById("layer" + layer.layerType + "selector");
+
+            document.body.removeChild(form);
+        }
     }
 
     createBrushSizeSelector ()
