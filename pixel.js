@@ -207,11 +207,13 @@ export default class PixelPlugin
             {
                 this.disableDragScrollable();
                 this.currentTool = "rectangle";
+                document.getElementById(this.currentTool).checked = true;
             }
             else if (e.key === "g")
             {
                 this.enableDragScrollable();
                 this.currentTool = "grab";
+                document.getElementById(this.currentTool).checked = true;
             }
         }
 
