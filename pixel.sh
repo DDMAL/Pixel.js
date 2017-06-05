@@ -68,10 +68,11 @@ npm install
 echo "> npm install -g gulp webpack"
 npm install -g gulp webpack
 
+mkdir build
+mkdir build/css
 echo "> scp ./source/css/diva.css ./build/css/"
 scp ./source/css/diva.css ./build/css/
 fi
-
 
 echo "> gulp"
 gulp

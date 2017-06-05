@@ -8,11 +8,18 @@
 ## Quick Start
 - Download [```Diva.js v.6.0```](https://github.com/DDMAL/diva.js/tree/develop-diva6) and [```Pixel.js```](https://github.com/DDMAL/Pixel.js/tree/develop).
 - Place the entire ```Pixel.js``` folder into `diva.js/source/js/plugins`
-- Include the path to ```pixel.js``` file to the list of plugins in `diva.js/webpack.config.js`
+- In `diva.js/webpack.config.js` you should find the list of plugins included in the Diva build like the following:
 ``` js
 plugins: (process.env.NODE_ENV === "production") ? productionPlugins() : developmentPlugins()
 }, {
     entry: {
+        'download': './source/js/plugins/download.js',
+        'manipulation': './source/js/plugins/manipulation.js'
+    }
+```
+- Include the path to ```pixel.js``` file to the list of plugins your plugins entry should look like the following
+```
+entry: {
         'pixel': './source/js/plugins/Pixel.js/pixel.js',
         'download': './source/js/plugins/download.js',
         'manipulation': './source/js/plugins/manipulation.js'
@@ -23,7 +30,9 @@ plugins: (process.env.NODE_ENV === "production") ? productionPlugins() : develop
 ```bash
 $ ./pixel.sh
 ```
-This will install the dependencies, build and run Diva with the pixel plugin instantiated. By the end of the script, You might get a JSHint error. This is okay, Diva should be running on ```http://localhost:9001/``` and you can now start using Pixel by pressing on the pixel plugin icon on top of a page (black square)
+This will install the dependencies, build and run Diva with the pixel plugin instantiated. 
+- By the end of the script, You might get a JSHint error. This is okay, Diva should be running on ```http://localhost:9001/``` 
+- You can now start using Pixel by pressing on the pixel plugin icon on top of a page (black square)
 
 ## Alternative Start
 ### Instantiating Pixel.js
