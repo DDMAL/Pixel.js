@@ -64,10 +64,10 @@ export default class PixelPlugin
             layer2.addShapeToLayer(new Rectangle(new Point(48, 50, 0), 57, 5));
             layer3.addShapeToLayer(new Rectangle(new Point(50, 80, 0), 50, 10));
 
-            this.layers = [layer2, layer1, layer3, layer4, layer5];
+            this.layers = [layer1, layer2, layer3, layer4, layer5];
         }
 
-        //this.core.disableDragScrollable();
+        this.disableDragScrollable();
         this.initializeMatrix();
         this.createPluginElements(this.layers);
         this.scrollEventHandle = this.subscribeToScrollEvent();
@@ -88,8 +88,22 @@ export default class PixelPlugin
         this.repaint(); // Repaint the tiles to make the highlights disappear off the page
         this.destroyPluginElements(this.layers);
         this._ctx.clearRect(0,0,this._canvas.width, this._canvas.height);
-        //this.core.enableDragScrollable();
+        this.enableDragScrollable();
         this.activated = false;
+    }
+
+    disableDragScrollable ()
+    {
+        console.log("Disabling from Pixel");
+        if (!this.core.viewerState.viewportObject.hasAttribute('nochilddrag'))
+            this.core.viewerState.viewportObject.setAttribute('nochilddrag', "");
+    }
+
+    enableDragScrollable ()
+    {
+        console.log("Enabling from Pixel");
+        if (this.core.viewerState.viewportObject.hasAttribute('nochilddrag'))
+            this.core.viewerState.viewportObject.removeAttribute('nochilddrag');
     }
 
     /**
@@ -98,13 +112,13 @@ export default class PixelPlugin
      * ===============================================
      **/
 
-    // TODO: Unsubscribe from ZoomLevelWillChange Event
     subscribeToZoomLevelWillChangeEvent ()
     {
         let handle = Diva.Events.subscribe('ZoomLevelWillChange', (zoomLevel) =>
         {
             this.drawHighlights(zoomLevel);
         });
+
         return handle;
     }
 
@@ -186,17 +200,17 @@ export default class PixelPlugin
             }
             else if (e.key === "b")
             {
-                this.core.disableDragScrollable();
+                this.disableDragScrollable();
                 this.currentTool = "brush";
             }
             else if (e.key === "r")
             {
-                this.core.disableDragScrollable();
+                this.disableDragScrollable();
                 this.currentTool = "rectangle";
             }
             else if (e.key === "g")
             {
-                this.core.enableDragScrollable();
+                this.enableDragScrollable();
                 this.currentTool = "grab";
             }
         }
@@ -1172,7 +1186,6 @@ export class Circle extends Shape
         {
             for(var  x = circleLeft.getAbsolutePaddedCoordinates(zoomLevel, pageIndex, renderer).x;
                 x <= circleRight.getAbsolutePaddedCoordinates(zoomLevel, pageIndex, renderer).x; x++){
-
                 let point1highlightOffset = this.origin.getAbsolutePaddedCoordinates(zoomLevel, pageIndex, renderer);
 
 
