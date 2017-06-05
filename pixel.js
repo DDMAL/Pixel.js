@@ -629,11 +629,11 @@ export default class PixelPlugin
                     let lastWidth = lastShape.relativeRectWidth;
                     lastShape.relativeRectWidth = relativeCoords.x - lastShape.origin.relativeOriginX;
 
-                    let squareInBounds = this.isInPageBounds(lastShape.origin.relativeOriginX + lastShape.relativeRectWidth,
-                        lastShape.origin.relativeOriginY + lastShape.relativeRectWidth);
-
                     if (this.shiftDown)
                     {
+                        let squareInBounds = this.isInPageBounds(lastShape.origin.relativeOriginX + lastShape.relativeRectWidth,
+                            lastShape.origin.relativeOriginY + lastShape.relativeRectWidth);
+
                         if (squareInBounds)
                         {
                             lastShape.relativeRectHeight = lastShape.relativeRectWidth;
@@ -653,11 +653,11 @@ export default class PixelPlugin
                     let lastWidth = lastShape.relativeRectWidth;
                     lastShape.relativeRectWidth = relativeCoords.x - lastShape.origin.relativeOriginX;
 
-                    let squareInBounds = this.isInPageBounds(lastShape.origin.relativeOriginX + lastShape.relativeRectWidth,
-                        lastShape.origin.relativeOriginY + lastShape.relativeRectWidth);
-
                     if (this.shiftDown)
                     {
+                        let squareInBounds = this.isInPageBounds(lastShape.origin.relativeOriginX - lastShape.relativeRectWidth,
+                            lastShape.origin.relativeOriginY - lastShape.relativeRectWidth);
+
                         if (squareInBounds)
                         {
                             lastShape.relativeRectHeight = - lastShape.relativeRectWidth;
