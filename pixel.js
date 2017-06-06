@@ -31,8 +31,8 @@ export default class PixelPlugin
         this.currentTool = "brush";
         this.lastRelCoordsX = null;
         this.lastRelCoordsY = null;
-        this._canvas = null;
-        this._ctx = null;
+        this.overlay = null;
+        this.context = null;
     }
 
     /**
@@ -41,7 +41,7 @@ export default class PixelPlugin
      * ===============================================
      **/
 
-    handleClick (event, settings, publicInstance, pageIndex)
+    handleClick ()
     {
         if (!this.activated)
             this.activatePlugin();
@@ -49,8 +49,31 @@ export default class PixelPlugin
             this.deactivatePlugin();
     }
 
+    tutorial()
+    {
+        let overlay = document.createElement('canvas');
+        overlay.setAttribute("id", "tutorial canvas");
+        overlay.setAttribute("style", "position: absolute; top: 0; left: 0;");
+        overlay.width = window.innerWidth;
+        overlay.height = window.innerHeight;
+        let context = overlay.getContext('2d');
+        context.fillStyle = "rgba(0,0,0,0.8)";
+        context.fillRect(0, 0,overlay.width,overlay.height);
+
+        let h1 = document.createElement('h1');
+        h1.setAttribute("style", "position: absolute; top: 0; left: 0; color: #FFFFFF; font-family: sans-serif");
+        let text = document.createTextNode("Hello World");
+
+        h1.appendChild(text);
+
+        document.body.appendChild(overlay);
+        document.body.appendChild(h1);
+    }
+
     activatePlugin ()
     {
+        // this.tutorial();
+
         if (this.layers === null)
         {
             // Start by creating layers
@@ -87,7 +110,7 @@ export default class PixelPlugin
         this.unsubscribeFromKeyboardPress();
         this.repaint(); // Repaint the tiles to make the highlights disappear off the page
         this.destroyPluginElements(this.layers);
-        this._ctx.clearRect(0,0,this._canvas.width, this._canvas.height);
+        this.context.clearRect(0,0,this.overlay.width, this.overlay.height);
         this.enableDragScrollable();
         this.activated = false;
     }
@@ -169,11 +192,25 @@ export default class PixelPlugin
             {
                 this.layers.forEach ((layer) =>
                 {
-                    if (layer.layerType ===  key - KEY_1)
+                    let lastSelectedLayer = this.selectedLayer;
+
+                    this.layers.forEach ((layer) =>
                     {
-                        this.selectedLayer = this.layers.indexOf(layer);
-                        document.getElementById("layer " + layer.layerType).checked = true;
-                    }
+                        // Not triple equality because layer.LayerType and layerDiv value are of different types
+                        if (layer.layerType == key - KEY_1)
+                        {
+                            let div = document.getElementById("Layer " + layer.layerType + " Selector");
+
+                            if (!div.hasAttribute("selected-layer"))
+                                div.classList.add("selected-layer");
+                            this.selectedLayer = this.layers.indexOf(layer);
+                        }
+                        else if (layer.layerType == lastSelectedLayer)
+                        {
+                            let div = document.getElementById("Layer " + layer.layerType + " Selector");
+                            div.classList.remove("selected-layer");
+                        }
+                    });
                 });
 
                 if (lastLayer !== this.selectedLayer && this.mousePressed)
@@ -215,7 +252,7 @@ export default class PixelPlugin
                 this.currentTool = "grab";
                 document.getElementById(this.currentTool).checked = true;
             }
-        }
+        };
 
         document.addEventListener("keyup", this.handleKeyUp);
         document.addEventListener("keydown", this.handleKeyDown);
@@ -255,16 +292,16 @@ export default class PixelPlugin
 
     createPluginElements (layers)
     {
-        this.createToolsView(["brush", "rectangle", "grab"]);
         this.createPixelCanvas();
         this.createUndoButton();
         this.createRedoButton();
         this.createLayerSelectors(layers);
         this.createBrushSizeSelector();
+        this.createToolsView(["brush", "rectangle", "grab"]);
         this.createExportButton();
     }
 
-    destroyPluginElements (layers)
+    destroyPluginElements ()
     {
         this.destroyLayerSelectors();
         this.destroyBrushSizeSelector();
@@ -272,7 +309,6 @@ export default class PixelPlugin
         this.destroyRedoButton();
         this.destroyExportButton();
         this.destroyPixelCanvas();
-
         this.destroyToolsView(["brush", "rectangle", "grab"]);
     }
 
@@ -301,7 +337,7 @@ export default class PixelPlugin
                     this.enableDragScrollable();
 
                 else
-                    this.disableDragScrollable()
+                    this.disableDragScrollable();
             };
 
             if (tool === "brush")      // Layer at position 0 is checked by default
@@ -315,7 +351,7 @@ export default class PixelPlugin
         document.body.appendChild(form);
     }
 
-    destroyToolsView(tools)
+    destroyToolsView()
     {
         let form = document.getElementById("tool selector");
         document.body.removeChild(form);
@@ -323,20 +359,20 @@ export default class PixelPlugin
 
     createPixelCanvas()
     {
-        this._canvas = document.createElement('canvas');
-        this._canvas.setAttribute("id", "pixelCanvas");
-        this._canvas.setAttribute("style", "position: absolute; top: 0; left: 0;");
-        this._canvas.width = this.core.getSettings().renderer._canvas.width;
-        this._canvas.height = this.core.getSettings().renderer._canvas.height;
-        this._ctx = this._canvas.getContext('2d');
+        this.overlay = document.createElement('canvas');
+        this.overlay.setAttribute("id", "pixelCanvas");
+        this.overlay.setAttribute("style", "position: absolute; top: 0; left: 0;");
+        this.overlay.width = this.core.getSettings().renderer._canvas.width;
+        this.overlay.height = this.core.getSettings().renderer._canvas.height;
+        this.context = this.overlay.getContext('2d');
         let div = document.getElementById('diva-1-outer');
-        div.insertBefore(this._canvas, div.firstChild.nextSibling);
+        div.insertBefore(this.overlay, div.firstChild.nextSibling);
     }
 
     destroyPixelCanvas()
     {
         let div = document.getElementById('diva-1-outer');
-        div.removeChild(this._canvas);
+        div.removeChild(this.overlay);
     }
 
 
@@ -395,43 +431,70 @@ export default class PixelPlugin
         document.body.removeChild(opacitySlider);
     }
 
+    //Zeyad
     createLayerSelectors (layers)
     {
-        let form = document.createElement("form");
+        let RETURN_KEY = 13;
 
+        let form = document.createElement("form");
         form.setAttribute("id", "layer selector");
-        form.setAttribute("action", "");
 
         for (var index = layers.length - 1; index >= 0; index--)
         {
             let layer = layers[index],
-                radio = document.createElement("input"),
-                content = document.createTextNode("Layer " + (layer.layerType + 1)),
-                br = document.createElement("br");
+                layerDiv = document.createElement("div"),
+                layerName = document.createElement("input"),
+                colourDiv = document.createElement("div");
 
-            radio.setAttribute("id", "layer " + layer.layerType);
-            radio.setAttribute("type", "radio");
-            radio.setAttribute("value", layer.layerType);
-            radio.setAttribute("name", "layer selector");
-            radio.onclick = () =>
-            {
+            layerDiv.setAttribute("class", "input-color");
+            layerDiv.setAttribute("id", "Layer " + layer.layerType + " Selector");
+            layerDiv.setAttribute("value", layer.layerType);
+            layerName.setAttribute("type", "text");
+            layerName.setAttribute("value", "Layer " + (layer.layerType + 1));
+            colourDiv.setAttribute("class", "color-box");
+            colourDiv.setAttribute("style", "background-color: " + layer.colour.toHexString() + ";");
+
+            if (layer.layerType === this.layers[0].layerType)      // Layer at position 0 is checked by default
+                layerDiv.classList.add("selected-layer");
+
+
+            colourDiv.addEventListener("click", () => {console.log("colour clicked")});
+            layerName.setAttribute("readonly", "true");
+            layerName.addEventListener('keypress', function (e) {
+                var key = e.which || e.keyCode;
+                if (key === RETURN_KEY) {
+                    // Save new layer name
+                    layerName.setAttribute("readonly", "true");
+                }
+            });
+            layerName.setAttribute("ondblclick", "this.readOnly='';");
+
+            layerDiv.onclick = () => {
+                // Remove selection from previous layer
+                let lastSelectedLayer = this.selectedLayer;
+
                 this.layers.forEach ((layer) =>
                 {
-                    // Not triple equality because layer.LayerType and radio.value are of different types
-                    if (layer.layerType == radio.value)
+                    // Not triple equality because layer.LayerType and layerDiv value are of different types
+                    if (layer.layerType == layerDiv.getAttribute('value'))
                     {
+                        if (!layerDiv.hasAttribute("selected-layer"))
+                            layerDiv.classList.add("selected-layer");
                         this.selectedLayer = this.layers.indexOf(layer);
+                    }
+                    else if (layer.layerType == lastSelectedLayer)
+                    {
+                        let div = document.getElementById("Layer " + layer.layerType + " Selector");
+                        div.classList.remove("selected-layer");
                     }
                 });
             };
 
-            if (layer.layerType === this.layers[0].layerType)      // Layer at position 0 is checked by default
-                radio.checked = true;
 
-            form.appendChild(radio);
-            form.appendChild(content);
-            this.createOpacitySlider(layer, form);
-            form.appendChild(br);
+            layerDiv.appendChild(layerName);
+            layerDiv.appendChild(colourDiv);
+            form.appendChild(layerDiv);
+            this.createOpacitySlider(layer,form);
         }
         document.body.appendChild(form);
     }
@@ -660,7 +723,6 @@ export default class PixelPlugin
     initializeRectanglePreview (canvas, evt)
     {
         let pageIndex = this.core.getSettings().currentPageIndex,
-            zoomLevel = this.core.getSettings().zoomLevel,
             mousePos = this.getMousePos(canvas, evt),
             relativeCoords = this.getRelativeCoordinates(mousePos.x, mousePos.y);
 
@@ -678,9 +740,7 @@ export default class PixelPlugin
     {
         if (this.mousePressed)
         {
-            let pageIndex = this.core.getSettings().currentPageIndex,
-                zoomLevel = this.core.getSettings().zoomLevel,
-                mousePos = this.getMousePos(canvas, evt),
+            let mousePos = this.getMousePos(canvas, evt),
                 relativeCoords = this.getRelativeCoordinates(mousePos.x, mousePos.y),
                 lastShape = this.layers[this.selectedLayer].getCurrentShape();
 
@@ -896,14 +956,14 @@ export default class PixelPlugin
 
             if (isDown)
             {
-                this._ctx.beginPath();
-                this._ctx.strokeStyle = layer.colour.toString();
-                this._ctx.lineWidth = brushSize * scaleRatio;
-                this._ctx.lineJoin = "round";
-                this._ctx.moveTo(this.lastX, this.lastY);
-                this._ctx.lineTo(highlightXOffset, highlightYOffset);
-                this._ctx.closePath();
-                this._ctx.stroke();
+                this.context.beginPath();
+                this.context.strokeStyle = layer.colour.toString();
+                this.context.lineWidth = brushSize * scaleRatio;
+                this.context.lineJoin = "round";
+                this.context.moveTo(this.lastX, this.lastY);
+                this.context.lineTo(highlightXOffset, highlightYOffset);
+                this.context.closePath();
+                this.context.stroke();
             }
 
             this.lastX = highlightXOffset;
@@ -971,7 +1031,7 @@ export default class PixelPlugin
 
     drawHighlights (zoomLevel)
     {
-        this._ctx.clearRect(0,0,this._canvas.width, this._canvas.height);
+        this.context.clearRect(0,0,this.overlay.width, this.overlay.height);
         let renderer = this.core.getSettings().renderer;
 
         renderer._renderedPages.forEach((pageIndex) =>
@@ -982,7 +1042,7 @@ export default class PixelPlugin
 
                 shapes.forEach((shape) =>
                     {
-                        shape.draw(layer, pageIndex, zoomLevel, this.core.getSettings().renderer, this._ctx);
+                        shape.draw(layer, pageIndex, zoomLevel, this.core.getSettings().renderer, this.context);
                     }
                 );
 
@@ -999,13 +1059,13 @@ export default class PixelPlugin
                     }
                 );
             });
-        })
+        });
     }
 
     printMatrix ()
     {
         // Need to implement a buffering page
-        let renderer = this.core.getSettings().renderer;
+        // let renderer = this.core.getSettings().renderer;
         let rowlen = this.matrix[0].length;
 
 
@@ -1019,12 +1079,12 @@ export default class PixelPlugin
                     {
                         if (layer.layerType === this.matrix[row][col])
                         {
-                            this._ctx.fillStyle = layer.colour.toString();
-                            this._ctx.beginPath();
-                            this._ctx.arc(col, row, 0.2,0,2*Math.PI);
-                            this._ctx.fill();
+                            this.context.fillStyle = layer.colour.toString();
+                            this.context.beginPath();
+                            this.context.arc(col, row, 0.2,0,2*Math.PI);
+                            this.context.fill();
                         }
-                    })
+                    });
                 }
             }
         }
@@ -1142,7 +1202,7 @@ export class Shape
                         intersectionPoints.push({
                             absolutePaddedX: roundedX,
                             absolutePaddedY: y
-                        })
+                        });
                     }
                 }
             }
@@ -1378,7 +1438,7 @@ export class Point
         return {
             x: this.relativeOriginX * scaleRatio,
             y: this.relativeOriginY * scaleRatio
-        }
+        };
     }
 
     /**
@@ -1405,7 +1465,7 @@ export class Point
         return {
             x: offsetX,
             y: offsetY
-        }
+        };
     }
 
     /**
@@ -1424,7 +1484,7 @@ export class Point
         return {
             x: Math.round(paddedX - (renderer._getImageOffset(pageIndex).left - renderer._viewport.left + viewportPaddingX)),
             y: Math.round(paddedY - (renderer._getImageOffset(pageIndex).top - renderer._viewport.top + viewportPaddingY))
-        }
+        };
     }
 
 }
@@ -1458,7 +1518,7 @@ export class Line extends Shape
         let endPointAbsolutePaddedCoords = this.endPoint.getAbsolutePaddedCoordinates(zoomLevel, pageIndex, renderer);
 
         return Math.atan2(endPointAbsolutePaddedCoords.y - startPointAbsolutePaddedCoords.y,
-            endPointAbsolutePaddedCoords.x - startPointAbsolutePaddedCoords.x)
+            endPointAbsolutePaddedCoords.x - startPointAbsolutePaddedCoords.x);
     }
 
     /**
@@ -1512,6 +1572,30 @@ export class Colour
     toString ()
     {
         return "rgba(" + this.red +  ", " + this.green + ", " + this.blue + ", " + this.opacity + ")";
+    }
+
+    toHexString ()
+    {
+        let hexString = "#";
+
+        let red = this.red.toString(16);
+        let green = this.green.toString(16);
+        let blue = this.blue.toString(16);
+
+        if (red.length === 1)
+            hexString = hexString.concat("0");
+        hexString = hexString.concat(red);
+
+        if (green.length === 1)
+            hexString = hexString.concat("0");
+        hexString = hexString.concat(green);
+
+        if (blue.length === 1)
+            hexString = hexString.concat("0");
+        hexString = hexString.concat(blue);
+
+
+        return hexString;
     }
 }
 
