@@ -444,6 +444,7 @@ export default class PixelPlugin
             let layer = layers[index],
                 layerDiv = document.createElement("div"),
                 layerName = document.createElement("input"),
+                layerToolsDiv = document.createElement("div"),
                 colourDiv = document.createElement("div");
 
             layerDiv.setAttribute("class", "input-color");
@@ -453,6 +454,7 @@ export default class PixelPlugin
             layerName.setAttribute("value", "Layer " + (layer.layerType + 1));
             colourDiv.setAttribute("class", "color-box");
             colourDiv.setAttribute("style", "background-color: " + layer.colour.toHexString() + ";");
+            layerToolsDiv.setAttribute("class", "layer-toolbox");
 
             if (layer.layerType === this.layers[0].layerType)      // Layer at position 0 is checked by default
                 layerDiv.classList.add("selected-layer");
@@ -492,6 +494,7 @@ export default class PixelPlugin
 
 
             layerDiv.appendChild(layerName);
+            layerDiv.appendChild(layerToolsDiv);
             layerDiv.appendChild(colourDiv);
             form.appendChild(layerDiv);
             this.createOpacitySlider(layer,form);
