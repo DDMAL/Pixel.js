@@ -3,11 +3,6 @@
 
 scp ./index.html ../../../../
 
-mkdir build
-mkdir build/css
-echo "> scp ./source/css/diva.css ./build/css/"
-scp ./diva.css ../../../../build/css/
-
 cd ../../../../
 
 pwd
@@ -80,6 +75,12 @@ echo "
 "
 fi
 
+mkdir build
+mkdir build/css
+echo "> scp ./source/css/diva.css ./build/css/"
+scp ./source/css/diva.css ./build/css/
+
+
 read -p "Compile and run on http://localhost:9001/ (You might get a JSHint failed message, that should be ok, Diva will be still running)? y/n " RUN
 
 if [ "$RUN" = "y" ]
@@ -87,5 +88,3 @@ then
 echo "> gulp"
 gulp
 fi
-
-
