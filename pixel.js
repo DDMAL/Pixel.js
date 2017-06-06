@@ -277,7 +277,7 @@ export default class PixelPlugin
 
         if (departureLayerIndex > destinationLayerIndex)
         {
-            for (let i = 1; i < (departureLayerIndex - destinationLayerIndex); i++)
+            for (let i = 1; i <= (departureLayerIndex - destinationLayerIndex); i++)
             {
                 this.layers[departureLayerIndex - i + 1] = this.layers[departureLayerIndex - i];
             }
@@ -285,7 +285,7 @@ export default class PixelPlugin
         }
         else if (departureLayerIndex < destinationLayerIndex)
         {
-            for (let i = 1; i < (destinationLayerIndex - departureLayerIndex); i++)
+            for (let i = 1; i <= (destinationLayerIndex - departureLayerIndex); i++)
             {
                 this.layers[departureLayerIndex + i - 1] = this.layers[departureLayerIndex + i];
             }
