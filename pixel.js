@@ -375,23 +375,23 @@ export default class PixelPlugin
     {
         var opacitySlider = document.createElement("input");
 
-        opacitySlider.setAttribute("id", "layer " + layer.layerType + " opacity");
+        opacitySlider.setAttribute("id", "layer" + layer.layerType + "opacity");
         opacitySlider.setAttribute("type", "range");
         opacitySlider.setAttribute('max', 100);
         opacitySlider.setAttribute('min', 0);
         opacitySlider.setAttribute('value', layer.getOpacity() * 100);
+        opacitySlider.setAttribute("draggable", "false");
         opacitySlider.addEventListener("input", () =>
         {
             layer.setOpacity(opacitySlider.value/100);
             this.repaint();
         });
-
         parentElement.appendChild(opacitySlider);
     }
 
     destroyOpacitySlider (layers)
     {
-        let opacitySlider = document.getElementById("layer " + layers.layerType + " opacity");
+        let opacitySlider = document.getElementById("layer" + layers.layerType + "opacity");
         document.body.removeChild(opacitySlider);
     }
 
@@ -401,14 +401,16 @@ export default class PixelPlugin
         {
             let layer = layers[index],
                 radio = document.createElement("input"),
-                p = document.createElement("p"),
                 content = document.createTextNode("Layer " + (layer.layerType + 1)),
+                dragNode = document.createElement("button"),
                 br = document.createElement("br");
+
+            dragNode.setAttribute("draggable", "true");
 
             let form = document.createElement("form");
             form.setAttribute("id", "layer" + layer.layerType + "selector");
             form.setAttribute("value", layer.layerType);
-            form.setAttribute("draggable", "true");
+            //form.setAttribute("draggable", "true");
             form.setAttribute("action", "");
 
             radio.setAttribute("id", "layer " + layer.layerType);
@@ -431,34 +433,32 @@ export default class PixelPlugin
                 radio.checked = true;
 
             form.appendChild(radio);
-            // p.appendChild(content);
-            form.appendChild(content);
+            //form.appendChild(content);
+            dragNode.appendChild(content);
+            form.appendChild(dragNode);
             this.createOpacitySlider(layer, form);
             form.appendChild(br);
             document.body.appendChild(form);
 
-            ////////
-            form.ondrop = (event) =>
+            dragNode.ondrop = (event) =>
             {
-                this.drop(event, 1, 0);
+                this.drop(event, 0, 4);
             };
 
-            form.ondragover = (event) =>
+            dragNode.ondragover = (event) =>
             {
                 this.allowDrop(event);
             };
 
-            form.ondragstart = (event) =>
+            dragNode.ondragstart = (event) =>
             {
                 this.dragStart(event);
             };
 
-            form.ondrag = (event) =>
+            dragNode.ondrag = (event) =>
             {
                 this.dragging(event);
             };
-
-            ////////
         }
     }
 
