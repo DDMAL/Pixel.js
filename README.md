@@ -7,7 +7,7 @@
 
 ## Quick Start
 - Download [```Diva.js v.6.0```](https://github.com/DDMAL/diva.js/tree/develop-diva6) and [```Pixel.js```](https://github.com/DDMAL/Pixel.js/tree/develop).
-- Place the entire ```Pixel.js``` folder into `diva.js/source/js/plugins`
+- If necessary, rename the pixel folder to ```Pixel.js``` and place the entire folder into `diva.js/source/js/plugins`
 - In `diva.js/webpack.config.js` you should find the list of plugins included in the Diva build like the following:
 
 ``` js
