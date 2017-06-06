@@ -7,6 +7,7 @@ cd ../../../../
 
 pwd
 
+echo "Building this project requires npm, gulp and webpack. You can install these with homebrew."
 read -p "Would you like to install homebrew? y/n " BREW
 
 if [ "$BREW" = "y" ]
@@ -72,7 +73,19 @@ mkdir build
 mkdir build/css
 echo "> scp ./source/css/diva.css ./build/css/"
 scp ./source/css/diva.css ./build/css/
+echo "
+
+
+
+"
 fi
 
+read -p "Compile and run on http://localhost:9001/? y/n " RUN
+
+if [ "$RUN" = "y" ]
+then
 echo "> gulp"
 gulp
+fi
+
+
