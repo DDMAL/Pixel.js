@@ -269,10 +269,8 @@ export default class PixelPlugin
     drop (event, departureLayerIndex, destinationLayerIndex)
     {
         event.preventDefault();
-        let data = event.dataTransfer.getData("Text"),
-            tempLayerStorage;
+        let tempLayerStorage;
 
-        //event.target.appendChild(document.getElementById(data));
         tempLayerStorage = this.layers[departureLayerIndex];
 
         if (departureLayerIndex > destinationLayerIndex)
@@ -283,6 +281,7 @@ export default class PixelPlugin
             }
             this.layers[destinationLayerIndex] = tempLayerStorage;
         }
+
         else if (departureLayerIndex < destinationLayerIndex)
         {
             for (let i = 1; i <= (destinationLayerIndex - departureLayerIndex); i++)
@@ -293,7 +292,7 @@ export default class PixelPlugin
         }
         this.destroyPluginElements(this.layers);
         this.createPluginElements(this.layers);
-        //event.target.appendChild(document.getElementById(data));
+        this.repaint();
     }
 
 
