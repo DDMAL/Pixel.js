@@ -407,7 +407,7 @@ export default class PixelPlugin
         return pageToolsIcon;
     }
 
-    createOpacitySlider (layer, parentElement)
+    createOpacitySlider (layer, parentElement, referenceNode)
     {
         var opacitySlider = document.createElement("input");
 
@@ -422,16 +422,16 @@ export default class PixelPlugin
             this.repaint();
         });
 
-        parentElement.appendChild(opacitySlider);
+        parentElement.insertBefore(opacitySlider, referenceNode.nextSibling);
     }
 
     destroyOpacitySlider (layer)
     {
         let opacitySlider = document.getElementById("layer " + layer.layerType + " opacity");
-        document.body.removeChild(opacitySlider);
+        console.log(opacitySlider);
+        opacitySlider.parentElement.removeChild(opacitySlider);
     }
 
-    //Zeyad
     createLayerSelectors (layers)
     {
         let RETURN_KEY = 13;
@@ -447,20 +447,23 @@ export default class PixelPlugin
                 layerToolsDiv = document.createElement("div"),
                 colourDiv = document.createElement("div");
 
-            layerDiv.setAttribute("class", "input-color");
+            layerDiv.setAttribute("class", "layerDiv");
             layerDiv.setAttribute("id", "Layer " + layer.layerType + " Selector");
             layerDiv.setAttribute("value", layer.layerType);
             layerName.setAttribute("type", "text");
             layerName.setAttribute("value", "Layer " + (layer.layerType + 1));
             colourDiv.setAttribute("class", "color-box");
             colourDiv.setAttribute("style", "background-color: " + layer.colour.toHexString() + ";");
-            layerToolsDiv.setAttribute("class", "layer-toolbox");
+            layerToolsDiv.setAttribute("class", "unchecked-layer-settings");
+            layerToolsDiv.setAttribute("id", "Layer " + layer.layerType + " Tools");
 
             if (layer.layerType === this.layers[0].layerType)      // Layer at position 0 is checked by default
                 layerDiv.classList.add("selected-layer");
 
-
+            // Change Colour
             colourDiv.addEventListener("click", () => {console.log("colour clicked")});
+
+            // Only edit layer name on double click
             layerName.setAttribute("readonly", "true");
             layerName.addEventListener('keypress', function (e) {
                 var key = e.which || e.keyCode;
@@ -471,6 +474,7 @@ export default class PixelPlugin
             });
             layerName.setAttribute("ondblclick", "this.readOnly='';");
 
+            // Select Layer on click
             layerDiv.onclick = () => {
                 // Remove selection from previous layer
                 let lastSelectedLayer = this.selectedLayer;
@@ -480,7 +484,7 @@ export default class PixelPlugin
                     // Not triple equality because layer.LayerType and layerDiv value are of different types
                     if (layer.layerType == layerDiv.getAttribute('value'))
                     {
-                        if (!layerDiv.hasAttribute("selected-layer"))
+                        if (!layerToolsDiv.classList.contains("selected-layer"))
                             layerDiv.classList.add("selected-layer");
                         this.selectedLayer = this.layers.indexOf(layer);
                     }
@@ -492,12 +496,28 @@ export default class PixelPlugin
                 });
             };
 
+            // Open toolbox on click
+            layerToolsDiv.onclick = () =>
+            {
+                if (layerToolsDiv.classList.contains("unchecked-layer-settings")) //It is unchecked, check it
+                {
+                    layerToolsDiv.classList.remove("unchecked-layer-settings");
+                    layerToolsDiv.classList.add("checked-layer-settings");
+                    this.createOpacitySlider(layer, layerToolsDiv.parentElement.parentElement, layerToolsDiv.parentElement);
+                }
+                else
+                {
+                    layerToolsDiv.classList.remove("checked-layer-settings");
+                    layerToolsDiv.classList.add("unchecked-layer-settings");
+                    this.destroyOpacitySlider(layer);
+                }
+            };
+
 
             layerDiv.appendChild(layerName);
             layerDiv.appendChild(layerToolsDiv);
             layerDiv.appendChild(colourDiv);
             form.appendChild(layerDiv);
-            this.createOpacitySlider(layer,form);
         }
         document.body.appendChild(form);
     }
