@@ -80,7 +80,7 @@ echo "
 "
 fi
 
-read -p "Compile and run on http://localhost:9001/? y/n " RUN
+read -p "Compile and run on http://localhost:9001/ (You might get a JSHint failed message, that should be ok, Diva will be still running)? y/n " RUN
 
 if [ "$RUN" = "y" ]
 then
