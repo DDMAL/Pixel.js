@@ -269,7 +269,7 @@ export default class PixelPlugin
     drop (event, departureLayerIndex, destinationLayerIndex)
     {
         event.preventDefault();
-        let tempLayerStorage;
+        var tempLayerStorage;
 
         tempLayerStorage = this.layers[departureLayerIndex];
 
@@ -286,7 +286,7 @@ export default class PixelPlugin
         {
             for (let i = 1; i <= (destinationLayerIndex - departureLayerIndex); i++)
             {
-                this.layers[departureLayerIndex + i - 1] = this.layers[departureLayerIndex + i];
+                this.layers[departureLayerIndex - 1 + i] = this.layers[parseFloat(departureLayerIndex) + i];
             }
             this.layers[destinationLayerIndex] = tempLayerStorage;
         }
@@ -397,6 +397,9 @@ export default class PixelPlugin
 
     createLayerSelectors (layers)
     {
+        var departureIndex,
+            destinationIndex;
+
         for (let index = layers.length - 1; index >= 0; index--)
         {
             let layer = layers[index],
@@ -406,6 +409,7 @@ export default class PixelPlugin
                 br = document.createElement("br");
 
             dragNode.setAttribute("draggable", "true");
+            dragNode.setAttribute("value", layer.layerType);
 
             let form = document.createElement("form");
             form.setAttribute("id", "layer" + layer.layerType + "selector");
@@ -429,7 +433,7 @@ export default class PixelPlugin
                 });
             };
 
-            if (layer.layerType === this.layers[0].layerType)      // Layer at position 0 is checked by default
+            if (layer.layerType === this.layers[0].layerType)      // Layer at position 0 is selected by default
                 radio.checked = true;
 
             form.appendChild(radio);
@@ -440,14 +444,24 @@ export default class PixelPlugin
             form.appendChild(br);
             document.body.appendChild(form);
 
+            dragNode.onmousedown = () =>
+            {
+                departureIndex = dragNode.value;
+                console.log("departure index: ");
+                console.log(departureIndex);
+            }
+
             dragNode.ondrop = (event) =>
             {
-                this.drop(event, 0, 4);
+                this.drop(event, departureIndex, destinationIndex);
             };
 
             dragNode.ondragover = (event) =>
             {
                 this.allowDrop(event);
+                destinationIndex = dragNode.value;
+                console.log("destination index: ");
+                console.log(destinationIndex);
             };
 
             dragNode.ondragstart = (event) =>
