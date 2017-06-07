@@ -400,6 +400,7 @@ export default class PixelPlugin
         var departureIndex,
             destinationIndex;
 
+        //Backwards because layers' display should be the same as visual "z-index" priority
         for (let index = layers.length - 1; index >= 0; index--)
         {
             let layer = layers[index],
@@ -409,7 +410,7 @@ export default class PixelPlugin
                 br = document.createElement("br");
 
             dragNode.setAttribute("draggable", "true");
-            dragNode.setAttribute("value", layer.layerType);
+            dragNode.setAttribute("value", index);
 
             let form = document.createElement("form");
             form.setAttribute("id", "layer" + layer.layerType + "selector");
@@ -437,7 +438,6 @@ export default class PixelPlugin
                 radio.checked = true;
 
             form.appendChild(radio);
-            //form.appendChild(content);
             dragNode.appendChild(content);
             form.appendChild(dragNode);
             this.createOpacitySlider(layer, form);
@@ -447,9 +447,7 @@ export default class PixelPlugin
             dragNode.onmousedown = () =>
             {
                 departureIndex = dragNode.value;
-                console.log("departure index: ");
-                console.log(departureIndex);
-            }
+            };
 
             dragNode.ondrop = (event) =>
             {
@@ -460,8 +458,6 @@ export default class PixelPlugin
             {
                 this.allowDrop(event);
                 destinationIndex = dragNode.value;
-                console.log("destination index: ");
-                console.log(destinationIndex);
             };
 
             dragNode.ondragstart = (event) =>
