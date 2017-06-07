@@ -82,7 +82,7 @@ export default class PixelPlugin
                 layer3 = new Layer(2, new Colour(255, 255, 10, 0.8)),
                 layer4 = new Layer(3, new Colour(10, 180, 50, 0.8)),
                 layer5 = new Layer(4, new Colour(255, 137, 0, 0.8));
-            
+
             layer1.addShapeToLayer(new Rectangle(new Point(23, 42, 0), 24, 24));
             layer2.addShapeToLayer(new Rectangle(new Point(48, 50, 0), 57, 5));
             layer3.addShapeToLayer(new Rectangle(new Point(50, 80, 0), 50, 10));
@@ -117,14 +117,12 @@ export default class PixelPlugin
 
     disableDragScrollable ()
     {
-        console.log("Disabling from Pixel");
         if (!this.core.viewerState.viewportObject.hasAttribute('nochilddrag'))
             this.core.viewerState.viewportObject.setAttribute('nochilddrag', "");
     }
 
     enableDragScrollable ()
     {
-        console.log("Enabling from Pixel");
         if (this.core.viewerState.viewportObject.hasAttribute('nochilddrag'))
             this.core.viewerState.viewportObject.removeAttribute('nochilddrag');
     }
@@ -141,6 +139,7 @@ export default class PixelPlugin
         {
             this.drawHighlights(zoomLevel);
         });
+
         return handle;
     }
 
@@ -190,28 +189,7 @@ export default class PixelPlugin
 
             if (key >= KEY_1 && key < KEY_1 + numberOfLayers && key <= KEY_9)
             {
-                this.layers.forEach ((layer) =>
-                {
-                    let lastSelectedLayer = this.selectedLayer;
-
-                    this.layers.forEach ((layer) =>
-                    {
-                        // Not triple equality because layer.LayerType and layerDiv value are of different types
-                        if (layer.layerType == key - KEY_1)
-                        {
-                            let div = document.getElementById("Layer " + layer.layerType + " Selector");
-
-                            if (!div.hasAttribute("selected-layer"))
-                                div.classList.add("selected-layer");
-                            this.selectedLayer = this.layers.indexOf(layer);
-                        }
-                        else if (layer.layerType == lastSelectedLayer)
-                        {
-                            let div = document.getElementById("Layer " + layer.layerType + " Selector");
-                            div.classList.remove("selected-layer");
-                        }
-                    });
-                });
+                this.highlightSelectedLayer(key - KEY_1);
 
                 if (lastLayer !== this.selectedLayer && this.mousePressed)
                     this.keyboardChangingLayers = true;
@@ -286,6 +264,57 @@ export default class PixelPlugin
 
     /**
      * ===============================================
+     *           Drag & Drop Layers Events
+     * ===============================================
+     **/
+
+    dragStart (event)
+    {
+        event.dataTransfer.setData("Text", event.target.id);
+    }
+
+    dragging (event)
+    {
+
+    }
+
+    allowDrop (event)
+    {
+        event.preventDefault();
+    }
+
+    drop (event, departureLayerIndex, destinationLayerIndex)
+    {
+        event.preventDefault();
+        var tempLayerStorage;
+
+        tempLayerStorage = this.layers[departureLayerIndex];
+
+        if (departureLayerIndex > destinationLayerIndex)
+        {
+            for (let i = 1; i <= (departureLayerIndex - destinationLayerIndex); i++)
+            {
+                this.layers[departureLayerIndex - i + 1] = this.layers[departureLayerIndex - i];
+            }
+            this.layers[destinationLayerIndex] = tempLayerStorage;
+        }
+
+        else if (departureLayerIndex < destinationLayerIndex)
+        {
+            for (let i = 1; i <= (destinationLayerIndex - departureLayerIndex); i++)
+            {
+                this.layers[departureLayerIndex - 1 + i] = this.layers[parseFloat(departureLayerIndex) + i];
+            }
+            this.layers[destinationLayerIndex] = tempLayerStorage;
+        }
+        this.destroyPluginElements(this.layers);
+        this.createPluginElements(this.layers);
+        this.repaint();
+    }
+
+
+    /**
+     * ===============================================
      *                HTML UI Elements
      * ===============================================
      **/
@@ -301,9 +330,9 @@ export default class PixelPlugin
         this.createExportButton();
     }
 
-    destroyPluginElements ()
+    destroyPluginElements (layers)
     {
-        this.destroyLayerSelectors();
+        this.destroyLayerSelectors(layers);
         this.destroyBrushSizeSelector();
         this.destroyUndoButton();
         this.destroyRedoButton();
@@ -375,7 +404,6 @@ export default class PixelPlugin
         div.removeChild(this._canvas);
     }
 
-
     createIcon ()
     {
         const pageToolsIcon = document.createElement('div');
@@ -411,11 +439,12 @@ export default class PixelPlugin
     {
         var opacitySlider = document.createElement("input");
 
-        opacitySlider.setAttribute("id", "layer " + layer.layerType + " opacity");
+        opacitySlider.setAttribute("id", "layer" + layer.layerType + "opacity");
         opacitySlider.setAttribute("type", "range");
         opacitySlider.setAttribute('max', 100);
         opacitySlider.setAttribute('min', 0);
-        opacitySlider.setAttribute('value', layer.getOpacity()*100);
+        opacitySlider.setAttribute('value', layer.getOpacity() * 100);
+        opacitySlider.setAttribute("draggable", "false");
         opacitySlider.addEventListener("input", () =>
         {
             layer.setOpacity(opacitySlider.value/100);
@@ -427,18 +456,21 @@ export default class PixelPlugin
 
     destroyOpacitySlider (layer)
     {
-        let opacitySlider = document.getElementById("layer " + layer.layerType + " opacity");
-        console.log(opacitySlider);
+        let opacitySlider = document.getElementById("layer" + layer.layerType + "opacity");
         opacitySlider.parentElement.removeChild(opacitySlider);
     }
 
     createLayerSelectors (layers)
     {
+        var departureIndex,
+            destinationIndex;
+
         let RETURN_KEY = 13;
 
         let form = document.createElement("form");
         form.setAttribute("id", "layer selector");
 
+        //Backwards because layers' display should be the same as visual "z-index" priority
         for (var index = layers.length - 1; index >= 0; index--)
         {
             let layer = layers[index],
@@ -450,6 +482,8 @@ export default class PixelPlugin
             layerDiv.setAttribute("class", "layerDiv");
             layerDiv.setAttribute("id", "Layer " + layer.layerType + " Selector");
             layerDiv.setAttribute("value", layer.layerType);
+            layerDiv.setAttribute("index", index);
+            layerDiv.setAttribute("draggable", "true");
             layerName.setAttribute("type", "text");
             layerName.setAttribute("value", "Layer " + (layer.layerType + 1));
             colourDiv.setAttribute("class", "color-box");
@@ -457,7 +491,7 @@ export default class PixelPlugin
             layerToolsDiv.setAttribute("class", "unchecked-layer-settings");
             layerToolsDiv.setAttribute("id", "Layer " + layer.layerType + " Tools");
 
-            if (layer.layerType === this.layers[0].layerType)      // Layer at position 0 is checked by default
+            if (layer.layerType === this.selectedLayer)      // Layer at position 0 is checked by default
                 layerDiv.classList.add("selected-layer");
 
             // Change Colour
@@ -474,26 +508,35 @@ export default class PixelPlugin
             });
             layerName.setAttribute("ondblclick", "this.readOnly='';");
 
-            // Select Layer on click
-            layerDiv.onclick = () => {
-                // Remove selection from previous layer
-                let lastSelectedLayer = this.selectedLayer;
+            layerDiv.onmousedown = () =>
+            {
+                let index = layerDiv.getAttribute("index");
+                departureIndex = index;
+                this.highlightSelectedLayer(layerDiv.getAttribute("value"));
+            };
 
-                this.layers.forEach ((layer) =>
-                {
-                    // Not triple equality because layer.LayerType and layerDiv value are of different types
-                    if (layer.layerType == layerDiv.getAttribute('value'))
-                    {
-                        if (!layerToolsDiv.classList.contains("selected-layer"))
-                            layerDiv.classList.add("selected-layer");
-                        this.selectedLayer = this.layers.indexOf(layer);
-                    }
-                    else if (layer.layerType == lastSelectedLayer)
-                    {
-                        let div = document.getElementById("Layer " + layer.layerType + " Selector");
-                        div.classList.remove("selected-layer");
-                    }
-                });
+            layerDiv.ondrop = (event) =>
+            {
+                this.drop(event, departureIndex, destinationIndex);
+                this.selectedLayer = destinationIndex;
+                this.highlightSelectedLayer(this.layers[this.selectedLayer].layerType); // Layer Type and not index
+            };
+
+            layerDiv.ondragover = (event) =>
+            {
+                this.allowDrop(event);
+                let index = layerDiv.getAttribute("index");
+                destinationIndex = index;
+            };
+
+            layerDiv.ondragstart = (event) =>
+            {
+                this.dragStart(event);
+            };
+
+            layerDiv.ondrag = (event) =>
+            {
+                this.dragging(event);
             };
 
             // Open toolbox on click
@@ -513,19 +556,19 @@ export default class PixelPlugin
                 }
             };
 
-
             layerDiv.appendChild(layerName);
             layerDiv.appendChild(layerToolsDiv);
             layerDiv.appendChild(colourDiv);
             form.appendChild(layerDiv);
         }
+
         document.body.appendChild(form);
     }
 
     destroyLayerSelectors ()
     {
         let form = document.getElementById("layer selector");
-        document.body.removeChild(form);
+        form.parentNode.removeChild(form);
     }
 
     createBrushSizeSelector ()
@@ -673,6 +716,28 @@ export default class PixelPlugin
         }
     }
 
+    highlightSelectedLayer(layerType)
+    {
+        this.layers.forEach ((layer) =>
+        {
+            // Not triple equality because layer.LayerType and layerDiv value are of different types
+            if (layer.layerType == layerType)
+            {
+                let div = document.getElementById("Layer " + layer.layerType + " Selector");
+
+                if (!div.hasAttribute("selected-layer"))
+                    div.classList.add("selected-layer");
+                this.selectedLayer = this.layers.indexOf(layer);
+            }
+            else
+            {
+                let div = document.getElementById("Layer " + layer.layerType + " Selector");
+                if (div.classList.contains("selected-layer"))
+                    div.classList.remove("selected-layer");
+            }
+        });
+    }
+
     initializeNewPath (canvas, evt)
     {
         let pageIndex = this.core.getSettings().currentPageIndex,
@@ -771,7 +836,7 @@ export default class PixelPlugin
             {
                 // If cursor is to the south east or north west of the point of origin
                 if ((relativeCoords.x < lastShape.origin.relativeOriginX && relativeCoords.y < lastShape.origin.relativeOriginY)
-                || (relativeCoords.x > lastShape.origin.relativeOriginX && relativeCoords.y > lastShape.origin.relativeOriginY))
+                    || (relativeCoords.x > lastShape.origin.relativeOriginX && relativeCoords.y > lastShape.origin.relativeOriginY))
                 {
                     let lastWidth = lastShape.relativeRectWidth;
                     lastShape.relativeRectWidth = relativeCoords.x - lastShape.origin.relativeOriginX;
@@ -914,7 +979,7 @@ export default class PixelPlugin
         let pageIndex = this.core.getSettings().currentPageIndex,
             zoomLevel = this.core.getSettings().zoomLevel,
             renderer = this.core.getSettings().renderer,
-            scaleRatio = Math.pow(2,zoomLevel);
+            scaleRatio = Math.pow(2, zoomLevel);
 
         const viewportPaddingX = Math.max(0, (renderer._viewport.width - renderer.layout.dimensions.width) / 2);
         const viewportPaddingY = Math.max(0, (renderer._viewport.height - renderer.layout.dimensions.height) / 2);
@@ -935,7 +1000,7 @@ export default class PixelPlugin
         let pageIndex = this.core.getSettings().currentPageIndex,
             zoomLevel = this.core.getSettings().zoomLevel,
             renderer = this.core.getSettings().renderer,
-            scaleRatio = Math.pow(2,zoomLevel);
+            scaleRatio = Math.pow(2, zoomLevel);
 
         const viewportPaddingX = Math.max(0, (renderer._viewport.width - renderer.layout.dimensions.width) / 2);
         const viewportPaddingY = Math.max(0, (renderer._viewport.height - renderer.layout.dimensions.height) / 2);
@@ -957,7 +1022,7 @@ export default class PixelPlugin
     drawPath (layer, point, pageIndex, zoomLevel, brushSize, isDown)
     {
         let renderer = this.core.getSettings().renderer,
-            scaleRatio = Math.pow(2,zoomLevel);
+            scaleRatio = Math.pow(2, zoomLevel);
 
         const viewportPaddingX = Math.max(0, (renderer._viewport.width - renderer.layout.dimensions.width) / 2);
         const viewportPaddingY = Math.max(0, (renderer._viewport.height - renderer.layout.dimensions.height) / 2);
@@ -1023,29 +1088,29 @@ export default class PixelPlugin
 
             // These are values with padding
             var start1 = {
-                absolutePaddedX: point1highlightOffset.x + Math.cos(ang + Math.PI / 2) * absoluteLineWidth/2,
-                absolutePaddedY: point1highlightOffset.y + Math.sin(ang + Math.PI/2)* absoluteLineWidth/2
+                absolutePaddedX: point1highlightOffset.x + Math.cos(ang + Math.PI / 2) * absoluteLineWidth / 2,
+                absolutePaddedY: point1highlightOffset.y + Math.sin(ang + Math.PI / 2) * absoluteLineWidth / 2
             };
             var end1 = {
-                absolutePaddedX: point2highlightOffset.x + Math.cos(ang + Math.PI / 2) * absoluteLineWidth/2,
-                absolutePaddedY: point2highlightOffset.y + Math.sin(ang + Math.PI/2)* absoluteLineWidth/2
+                absolutePaddedX: point2highlightOffset.x + Math.cos(ang + Math.PI / 2) * absoluteLineWidth / 2,
+                absolutePaddedY: point2highlightOffset.y + Math.sin(ang + Math.PI / 2) * absoluteLineWidth / 2
             };
 
             // find the second point on the circumference that is orthogonal
             // to the line intersecting the two circle origos
             var start2 = {
-                absolutePaddedX: point1highlightOffset.x + Math.cos(ang - Math.PI / 2) * absoluteLineWidth/2,
-                absolutePaddedY: point1highlightOffset.y + Math.sin(ang - Math.PI/2)* absoluteLineWidth/2
+                absolutePaddedX: point1highlightOffset.x + Math.cos(ang - Math.PI / 2) * absoluteLineWidth / 2,
+                absolutePaddedY: point1highlightOffset.y + Math.sin(ang - Math.PI / 2) * absoluteLineWidth / 2
             };
             var end2 = {
-                absolutePaddedX: point2highlightOffset.x + Math.cos(ang - Math.PI / 2) * absoluteLineWidth/2,
-                absolutePaddedY: point2highlightOffset.y + Math.sin(ang - Math.PI/2)* absoluteLineWidth/2
+                absolutePaddedX: point2highlightOffset.x + Math.cos(ang - Math.PI / 2) * absoluteLineWidth / 2,
+                absolutePaddedY: point2highlightOffset.y + Math.sin(ang - Math.PI / 2) * absoluteLineWidth / 2
             };
 
             // 1. get ymax and ymin
             let ymax = Math.round(Math.max(start1.absolutePaddedY, start2.absolutePaddedY, end1.absolutePaddedY, end2.absolutePaddedY));
             let ymin = Math.round(Math.min(start1.absolutePaddedY, start2.absolutePaddedY, end1.absolutePaddedY, end2.absolutePaddedY));
-            let pairOfEdges = [[start1,end1], [start2, end2], [start1, start2], [end1, end2]];
+            let pairOfEdges = [[start1, end1], [start2, end2], [start1, start2], [end1, end2]];
 
             // Logic for scanning lines
             new Shape().getPixels(layer, pageIndex, zoomLevel, renderer, ymax, ymin, pairOfEdges, this.matrix);
@@ -1104,7 +1169,7 @@ export default class PixelPlugin
                         {
                             this._ctx.fillStyle = layer.colour.toString();
                             this._ctx.beginPath();
-                            this._ctx.arc(col, row, 0.2,0,2*Math.PI);
+                            this._ctx.arc(col, row, 0.2, 0, 2 * Math.PI);
                             this._ctx.fill();
                         }
                     });
@@ -1319,7 +1384,6 @@ export class Circle extends Shape
         {
             for(var  x = circleLeft.getAbsolutePaddedCoordinates(zoomLevel, pageIndex, renderer).x;
                 x <= circleRight.getAbsolutePaddedCoordinates(zoomLevel, pageIndex, renderer).x; x++){
-
                 let point1highlightOffset = this.origin.getAbsolutePaddedCoordinates(zoomLevel, pageIndex, renderer);
 
 
