@@ -31,8 +31,8 @@ export default class PixelPlugin
         this.currentTool = "brush";
         this.lastRelCoordsX = null;
         this.lastRelCoordsY = null;
-        this.overlay = null;
-        this.context = null;
+        this._canvas = null;
+        this._ctx = null;
     }
 
     /**
@@ -110,7 +110,7 @@ export default class PixelPlugin
         this.unsubscribeFromKeyboardPress();
         this.repaint(); // Repaint the tiles to make the highlights disappear off the page
         this.destroyPluginElements(this.layers);
-        this.context.clearRect(0,0,this.overlay.width, this.overlay.height);
+        this._ctx.clearRect(0,0,this._canvas.width, this._canvas.height);
         this.enableDragScrollable();
         this.activated = false;
     }
@@ -359,20 +359,20 @@ export default class PixelPlugin
 
     createPixelCanvas()
     {
-        this.overlay = document.createElement('canvas');
-        this.overlay.setAttribute("id", "pixelCanvas");
-        this.overlay.setAttribute("style", "position: absolute; top: 0; left: 0;");
-        this.overlay.width = this.core.getSettings().renderer._canvas.width;
-        this.overlay.height = this.core.getSettings().renderer._canvas.height;
-        this.context = this.overlay.getContext('2d');
+        this._canvas = document.createElement('canvas');
+        this._canvas.setAttribute("id", "pixelCanvas");
+        this._canvas.setAttribute("style", "position: absolute; top: 0; left: 0;");
+        this._canvas.width = this.core.getSettings().renderer._canvas.width;
+        this._canvas.height = this.core.getSettings().renderer._canvas.height;
+        this._ctx = this._canvas.getContext('2d');
         let div = document.getElementById('diva-1-outer');
-        div.insertBefore(this.overlay, div.firstChild.nextSibling);
+        div.insertBefore(this._canvas, div.firstChild.nextSibling);
     }
 
     destroyPixelCanvas()
     {
         let div = document.getElementById('diva-1-outer');
-        div.removeChild(this.overlay);
+        div.removeChild(this._canvas);
     }
 
 
@@ -979,14 +979,14 @@ export default class PixelPlugin
 
             if (isDown)
             {
-                this.context.beginPath();
-                this.context.strokeStyle = layer.colour.toString();
-                this.context.lineWidth = brushSize * scaleRatio;
-                this.context.lineJoin = "round";
-                this.context.moveTo(this.lastX, this.lastY);
-                this.context.lineTo(highlightXOffset, highlightYOffset);
-                this.context.closePath();
-                this.context.stroke();
+                this._ctx.beginPath();
+                this._ctx.strokeStyle = layer.colour.toString();
+                this._ctx.lineWidth = brushSize * scaleRatio;
+                this._ctx.lineJoin = "round";
+                this._ctx.moveTo(this.lastX, this.lastY);
+                this._ctx.lineTo(highlightXOffset, highlightYOffset);
+                this._ctx.closePath();
+                this._ctx.stroke();
             }
 
             this.lastX = highlightXOffset;
@@ -1054,7 +1054,7 @@ export default class PixelPlugin
 
     drawHighlights (zoomLevel)
     {
-        this.context.clearRect(0,0,this.overlay.width, this.overlay.height);
+        this._ctx.clearRect(0,0,this._canvas.width, this._canvas.height);
         let renderer = this.core.getSettings().renderer;
 
         renderer._renderedPages.forEach((pageIndex) =>
@@ -1065,7 +1065,7 @@ export default class PixelPlugin
 
                 shapes.forEach((shape) =>
                     {
-                        shape.draw(layer, pageIndex, zoomLevel, this.core.getSettings().renderer, this.context);
+                        shape.draw(layer, pageIndex, zoomLevel, this.core.getSettings().renderer, this._ctx);
                     }
                 );
 
@@ -1102,10 +1102,10 @@ export default class PixelPlugin
                     {
                         if (layer.layerType === this.matrix[row][col])
                         {
-                            this.context.fillStyle = layer.colour.toString();
-                            this.context.beginPath();
-                            this.context.arc(col, row, 0.2,0,2*Math.PI);
-                            this.context.fill();
+                            this._ctx.fillStyle = layer.colour.toString();
+                            this._ctx.beginPath();
+                            this._ctx.arc(col, row, 0.2,0,2*Math.PI);
+                            this._ctx.fill();
                         }
                     });
                 }
