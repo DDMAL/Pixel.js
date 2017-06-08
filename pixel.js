@@ -22,15 +22,16 @@ export default class PixelPlugin
         this.matrix = null;
         this.mousePressed = false;
         this.keyboardPress = false;
-        this.lastX, this.lastY;
+        this.lastAbsX = null;
+        this.lastAbsY = null;
         this.selectedLayerIndex = 0;
-        this.keyboardPressedMidDraw = false;
+        this.layerChangedMidDraw = false;
         this.actions = [];
         this.undoneActions = [];
         this.shiftDown = false;
         this.currentTool = "brush";
-        this.lastRelCoordsX = null;
-        this.lastRelCoordsY = null;
+        this.lastRelCoordX = null;
+        this.lastRelCoordY = null;
         this._canvas = null;
         this._ctx = null;
     }
@@ -412,6 +413,7 @@ export default class PixelPlugin
         brushSizeSelector.setAttribute('max', 50);
         brushSizeSelector.setAttribute('min', 1);
         brushSizeSelector.setAttribute('value', 10);
+
         document.body.appendChild(brushSizeSelector);
     }
 
@@ -423,12 +425,12 @@ export default class PixelPlugin
 
     createUndoButton ()
     {
-        let undoButton = document.createElement("button"),
-            text = document.createTextNode("Undo");
+        let undoButton = document.createElement("button");
+        let text = document.createTextNode("Undo");
 
         this.undo = () => { this.undoAction(); };
 
-        undoButton.setAttribute("id", "undo button");
+        undoButton.setAttribute("id", "undo-button");
         undoButton.appendChild(text);
         undoButton.addEventListener("click", this.undo);
 
@@ -437,34 +439,28 @@ export default class PixelPlugin
 
     destroyUndoButton ()
     {
-        let undoButton = document.getElementById("undo button");
-        document.body.removeChild(undoButton);
+        let undoButton = document.getElementById("undo-button");
+        undoButton.parentNode.removeChild(undoButton);
     }
 
     createRedoButton ()
     {
-        let redoButton = document.createElement("button"),
-            text = document.createTextNode("Redo"),
-            br = document.createElement("br");
+        let redoButton = document.createElement("button");
+        let text = document.createTextNode("Redo");
 
         this.redo = () => { this.redoAction(); };
 
-        br.setAttribute("id", "redo button break");
-        redoButton.setAttribute("id", "redo button");
+        redoButton.setAttribute("id", "redo-button");
         redoButton.appendChild(text);
         redoButton.addEventListener("click", this.redo);
 
         document.body.appendChild(redoButton);
-        document.body.appendChild(br);
     }
 
     destroyRedoButton ()
     {
-        let redoButton = document.getElementById("redo button");
-        document.body.removeChild(redoButton);
-
-        let br = document.getElementById("redo button break");
-        document.body.removeChild(br);
+        let redoButton = document.getElementById("redo-button");
+        redoButton.parentNode.removeChild(redoButton);
     }
 
     createExportButton ()
@@ -474,7 +470,7 @@ export default class PixelPlugin
 
         this.export = () => { this.populateMatrix(); };
 
-        exportButton.setAttribute("id", "export button");
+        exportButton.setAttribute("id", "export-button");
         exportButton.appendChild(text);
         exportButton.addEventListener("click", this.export);
 
@@ -483,8 +479,8 @@ export default class PixelPlugin
 
     destroyExportButton ()
     {
-        let exportButton = document.getElementById("export button");
-        document.body.removeChild(exportButton);
+        let exportButton = document.getElementById("export-button");
+        exportButton.parentNode.removeChild(exportButton);
     }
 
     createIcon ()
@@ -598,7 +594,7 @@ export default class PixelPlugin
             this.highlightSelectedLayer(key - KEY_1);
 
             if (lastLayer !== this.selectedLayerIndex && this.mousePressed)
-                this.keyboardPressedMidDraw = true;
+                this.layerChangedMidDraw = true;
         }
         if (key === SHIFT_KEY)
             this.shiftDown = false;
@@ -684,6 +680,64 @@ export default class PixelPlugin
     }
 
     /**
+     * -----------------------------------------------
+     *                   Undo / Redo
+     * -----------------------------------------------
+     **/
+
+    redoAction ()
+    {
+        if (this.undoneActions.length > 0)
+        {
+            let actionToRedo = this.undoneActions[this.undoneActions.length - 1];
+
+            if (actionToRedo.action.type === "path")
+            {
+                actionToRedo.layer.addPathToLayer(actionToRedo.action);
+                this.actions.push(actionToRedo);
+                this.undoneActions.splice(this.undoneActions.length - 1,1);
+            }
+
+            else if (actionToRedo.action.type === "shape")
+            {
+                actionToRedo.layer.addShapeToLayer(actionToRedo.action);
+                this.actions.push(actionToRedo);
+                this.undoneActions.splice(this.undoneActions.length - 1,1);
+            }
+            this.repaint();
+        }
+    }
+
+    undoAction ()
+    {
+        if (this.actions.length > 0)
+        {
+            let actionToRemove = this.actions[this.actions.length - 1];
+            this.undoneActions.push(actionToRemove);
+            this.removeAction(this.actions.length - 1);
+        }
+    }
+
+    removeAction (index)
+    {
+        if (this.actions.length > 0 && this.actions.length >= index)
+        {
+            let actionToRemove = this.actions[index];
+            if (actionToRemove.action.type === "path")
+            {
+                actionToRemove.layer.removePathFromLayer(actionToRemove.action);
+                this.actions.splice(index, 1);
+            }
+            else if (actionToRemove.action.type === "shape")
+            {
+                actionToRemove.layer.removeShapeFromLayer(actionToRemove.action);
+                this.actions.splice(index, 1);
+            }
+            this.repaint();
+        }
+    }
+
+    /**
      * ===============================================
      *                   Drawing
      * ===============================================
@@ -745,7 +799,8 @@ export default class PixelPlugin
         }
     }
 
-    highlightSelectedLayer(layerType)
+    // Specify the class of the selected div. CSS takes care of the rest
+    highlightSelectedLayer (layerType)
     {
         this.layers.forEach ((layer) =>
         {
@@ -774,18 +829,21 @@ export default class PixelPlugin
             mousePos = this.getMousePos(canvas, evt),
             relativeCoords = this.getRelativeCoordinates(mousePos.x, mousePos.y);
 
+        // Make sure user is not drawing outside of a diva page
         if (this.isInPageBounds(relativeCoords.x, relativeCoords.y))
         {
             let selectedLayer = this.layers[this.selectedLayerIndex],
                 point = new Point(relativeCoords.x, relativeCoords.y, pageIndex),
                 brushSize = document.getElementById("brush-size-selector").value / 10;
 
-            this.lastRelCoordsX = relativeCoords.x;
-            this.lastRelCoordsY = relativeCoords.y;
+            this.lastRelCoordX = relativeCoords.x;
+            this.lastRelCoordY = relativeCoords.y;
 
+            // Create New Path in Layer
             selectedLayer.createNewPath(brushSize);
             selectedLayer.addToCurrentPath(point);
 
+            // Add path to list of actions (used for undo/redo)
             this.actions.push(new Action(selectedLayer.getCurrentPath(), selectedLayer));
             this.drawPath(selectedLayer, point, pageIndex, zoomLevel, brushSize, false);
         }
@@ -797,12 +855,14 @@ export default class PixelPlugin
 
     setupPointPainting (canvas, evt)
     {
-        var point,
+        let point,
             horizontalMove = false,
             mousePos = this.getMousePos(canvas, evt),
             relativeCoords = this.getRelativeCoordinates(mousePos.x, mousePos.y);
 
-        if (Math.abs(relativeCoords.x - this.lastRelCoordsX) >= Math.abs(relativeCoords.y - this.lastRelCoordsY))
+        // FIXME: direction of line drawing should be calculated only after the first shift button press
+        // Right now it is being caluclated at every point
+        if (Math.abs(relativeCoords.x - this.lastRelCoordX) >= Math.abs(relativeCoords.y - this.lastRelCoordY))
             horizontalMove = true;
 
         if (!this.mousePressed)
@@ -811,7 +871,7 @@ export default class PixelPlugin
         if (!this.isInPageBounds(relativeCoords.x, relativeCoords.y))
             return;
 
-        if (!this.keyboardPressedMidDraw)
+        if (!this.layerChangedMidDraw)
         {
             let pageIndex = this.core.getSettings().currentPageIndex;
             let zoomLevel = this.core.getSettings().zoomLevel;
@@ -819,22 +879,25 @@ export default class PixelPlugin
             if (this.mousePressed && this.shiftDown)
             {
                 if (!horizontalMove)
-                    point = new Point(this.lastRelCoordsX, relativeCoords.y, pageIndex);
-
+                    point = new Point(this.lastRelCoordX, relativeCoords.y, pageIndex);
                 else
-                    point = new Point(relativeCoords.x, this.lastRelCoordsY, pageIndex);
+                    point = new Point(relativeCoords.x, this.lastRelCoordY, pageIndex);
             }
             else
             {
                 point = new Point(relativeCoords.x, relativeCoords.y, pageIndex);
             }
+
+            // Draw path with new point
             let brushSize = this.layers[this.selectedLayerIndex].getCurrentPath().brushSize;
             this.layers[this.selectedLayerIndex].addToCurrentPath(point);
             this.drawPath(this.layers[this.selectedLayerIndex], point, pageIndex, zoomLevel, brushSize, true);
             return;
         }
+
+        // If layer changed mid drawing then create a new path on selected layer
         this.initializeNewPath(canvas, evt);
-        this.keyboardPressedMidDraw = false;
+        this.layerChangedMidDraw = false;
     }
 
     initializeRectanglePreview (canvas, evt)
@@ -861,116 +924,60 @@ export default class PixelPlugin
                 relativeCoords = this.getRelativeCoordinates(mousePos.x, mousePos.y),
                 lastShape = this.layers[this.selectedLayerIndex].getCurrentShape();
 
-            if (this.isInPageBounds(relativeCoords.x, relativeCoords.y))
+            if (!this.isInPageBounds(relativeCoords.x, relativeCoords.y))
+                return;
+
+            // If cursor is to the main diagonal (south east or north west of the point of origin)
+            if (this.isInMainDiagonal(relativeCoords, lastShape))
             {
-                // If cursor is to the south east or north west of the point of origin
-                if ((relativeCoords.x < lastShape.origin.relativeOriginX && relativeCoords.y < lastShape.origin.relativeOriginY)
-                    || (relativeCoords.x > lastShape.origin.relativeOriginX && relativeCoords.y > lastShape.origin.relativeOriginY))
+                let lastWidth = lastShape.relativeRectWidth;
+                lastShape.relativeRectWidth = relativeCoords.x - lastShape.origin.relativeOriginX;
+
+                // Draw a square on shift down
+                if (this.shiftDown)
                 {
-                    let lastWidth = lastShape.relativeRectWidth;
-                    lastShape.relativeRectWidth = relativeCoords.x - lastShape.origin.relativeOriginX;
+                    let squareInBounds = this.isInPageBounds(lastShape.origin.relativeOriginX + lastShape.relativeRectWidth,
+                        lastShape.origin.relativeOriginY + lastShape.relativeRectWidth);
 
-                    if (this.shiftDown)
-                    {
-                        let squareInBounds = this.isInPageBounds(lastShape.origin.relativeOriginX + lastShape.relativeRectWidth,
-                            lastShape.origin.relativeOriginY + lastShape.relativeRectWidth);
-
-                        if (squareInBounds)
-                        {
-                            lastShape.relativeRectHeight = lastShape.relativeRectWidth;
-                        }
-                        else
-                        {
-                            lastShape.relativeRectWidth = lastWidth;
-                        }
-                    }
+                    if (squareInBounds)
+                        lastShape.relativeRectHeight = lastShape.relativeRectWidth;
                     else
-                    {
-                        lastShape.relativeRectHeight = relativeCoords.y - lastShape.origin.relativeOriginY;
-                    }
+                        lastShape.relativeRectWidth = lastWidth;
                 }
-                else        // If cursor to the north east or south west of the point of origin
+                else
+                    lastShape.relativeRectHeight = relativeCoords.y - lastShape.origin.relativeOriginY;
+            }
+            else        // If cursor is to the antidiagonal (north east or south west of the point of origin)
+            {
+                let lastWidth = lastShape.relativeRectWidth;
+                lastShape.relativeRectWidth = relativeCoords.x - lastShape.origin.relativeOriginX;
+
+                if (this.shiftDown)
                 {
-                    let lastWidth = lastShape.relativeRectWidth;
-                    lastShape.relativeRectWidth = relativeCoords.x - lastShape.origin.relativeOriginX;
+                    let squareInBounds = this.isInPageBounds(lastShape.origin.relativeOriginX + lastShape.relativeRectWidth,
+                        lastShape.origin.relativeOriginY - lastShape.relativeRectWidth);
 
-                    if (this.shiftDown)
-                    {
-                        let squareInBounds = this.isInPageBounds(lastShape.origin.relativeOriginX + lastShape.relativeRectWidth,
-                            lastShape.origin.relativeOriginY - lastShape.relativeRectWidth);
-
-                        if (squareInBounds)
-                        {
-                            lastShape.relativeRectHeight = - lastShape.relativeRectWidth;
-                        }
-                        else
-                        {
-                            lastShape.relativeRectWidth = lastWidth;
-                        }
-                    }
+                    if (squareInBounds)
+                        lastShape.relativeRectHeight = - lastShape.relativeRectWidth;
                     else
-                    {
-                        lastShape.relativeRectHeight = relativeCoords.y - lastShape.origin.relativeOriginY;
-                    }
+                        lastShape.relativeRectWidth = lastWidth;
                 }
-
-
-                this.repaint();
-            }
-        }
-    }
-
-    redoAction ()
-    {
-        if (this.undoneActions.length > 0)
-        {
-            let actionToRedo = this.undoneActions[this.undoneActions.length - 1];
-
-            if (actionToRedo.action.type === "path")
-            {
-                actionToRedo.layer.addPathToLayer(actionToRedo.action);
-                this.actions.push(actionToRedo);
-                this.undoneActions.splice(this.undoneActions.length - 1,1);
-            }
-
-            else if (actionToRedo.action.type === "shape")
-            {
-                actionToRedo.layer.addShapeToLayer(actionToRedo.action);
-                this.actions.push(actionToRedo);
-                this.undoneActions.splice(this.undoneActions.length - 1,1);
+                else
+                    lastShape.relativeRectHeight = relativeCoords.y - lastShape.origin.relativeOriginY;
             }
             this.repaint();
         }
     }
 
-
-    undoAction ()
+    // TODO: Generalize so that function returns any general relative position using enums
+    isInMainDiagonal (relativeCoords, lastShape)
     {
-        if (this.actions.length > 0)
-        {
-            let actionToRemove = this.actions[this.actions.length - 1];
-            this.undoneActions.push(actionToRemove);
-            this.removeAction(this.actions.length - 1);
-        }
-    }
+        if (relativeCoords.x < lastShape.origin.relativeOriginX && relativeCoords.y < lastShape.origin.relativeOriginY)
+            return true;
+        else if (relativeCoords.x > lastShape.origin.relativeOriginX && relativeCoords.y > lastShape.origin.relativeOriginY)
+            return true;
 
-    removeAction (index)
-    {
-        if (this.actions.length > 0 && this.actions.length >= index)
-        {
-            let actionToRemove = this.actions[index];
-            if (actionToRemove.action.type === "path")
-            {
-                actionToRemove.layer.removePathFromLayer(actionToRemove.action);
-                this.actions.splice(index, 1);
-            }
-            else if (actionToRemove.action.type === "shape")
-            {
-                actionToRemove.layer.removeShapeFromLayer(actionToRemove.action);
-                this.actions.splice(index, 1);
-            }
-            this.repaint();
-        }
+        return false;
     }
 
     repaint ()
@@ -987,9 +994,8 @@ export default class PixelPlugin
             relativeBounds = this.getRelativeCoordinates(absolutePageWidthOffset, absolutePageHeightOffset);
 
         if (relativeX < 0 || relativeY < 0 || relativeX > relativeBounds.x || relativeY > relativeBounds.y)
-        {
             return false;
-        }
+
         return true;
     }
 
@@ -1047,7 +1053,7 @@ export default class PixelPlugin
             y: absoluteOffsetY
         };
     }
-
+    
     drawPath (layer, point, pageIndex, zoomLevel, brushSize, isDown)
     {
         let renderer = this.core.getSettings().renderer,
@@ -1077,14 +1083,14 @@ export default class PixelPlugin
                 this._ctx.strokeStyle = layer.colour.toHTMLColour();
                 this._ctx.lineWidth = brushSize * scaleRatio;
                 this._ctx.lineJoin = "round";
-                this._ctx.moveTo(this.lastX, this.lastY);
+                this._ctx.moveTo(this.lastAbsX, this.lastAbsY);
                 this._ctx.lineTo(highlightXOffset, highlightYOffset);
                 this._ctx.closePath();
                 this._ctx.stroke();
             }
 
-            this.lastX = highlightXOffset;
-            this.lastY = highlightYOffset;
+            this.lastAbsX = highlightXOffset;
+            this.lastAbsY = highlightYOffset;
         }
     }
 
