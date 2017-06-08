@@ -88,8 +88,6 @@ export default class PixelPlugin
             layer2.addShapeToLayer(new Rectangle(new Point(48, 50, 0), 57, 5, "add"));
             layer3.addShapeToLayer(new Rectangle(new Point(50, 80, 0), 50, 10, "add"));
 
-            console.log(layer1);
-
             this.layers = [layer1, layer2, layer3, layer4, layer5];
         }
 
@@ -696,27 +694,6 @@ export default class PixelPlugin
         this.undoneActions = [];
     }
 
-    erase (canvas, evt)
-    {
-        if (this.mousePressed)
-        {
-            let scaleRatio = Math.pow(2, this.core.getSettings().zoomLevel);
-            let brushSize = document.getElementById("brush-size-selector").value / 10;
-
-            let pageIndex = this.core.getSettings().currentPageIndex,
-                mousePos = this.getMousePos(canvas, evt),
-                relativeCoords = this.getRelativeCoordinatesFromPadded(mousePos.x, mousePos.y);
-
-            if (this.isInPageBounds(relativeCoords.x, relativeCoords.y))
-            {
-                let selectedLayer = this.layers[this.selectedLayerIndex];
-                selectedLayer.addShapeToLayer(new Rectangle(new Point(relativeCoords.x,relativeCoords.y,pageIndex), brushSize, brushSize, "subtract"));
-                this.actions.push(new Action(selectedLayer.getCurrentShape(), selectedLayer));
-                this.repaint();
-            }
-        }
-    }
-
     onMouseMove (evt)
     {
         let canvas = document.getElementById("diva-1-outer");
@@ -746,6 +723,10 @@ export default class PixelPlugin
                 break;
             case "rectangle":
                 this.mousePressed = false;
+                break;
+            case "erase":
+                this.mousePressed = false;
+                this.repaint();
                 break;
             default:
                 this.mousePressed = false;
