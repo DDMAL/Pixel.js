@@ -336,8 +336,6 @@ export default class PixelPlugin
         let departureIndex;
         let destinationIndex;
 
-        const RETURN_KEY = 13;
-
         let layersViewDiv = document.createElement("div");
         layersViewDiv.setAttribute("id", "layers-view");
 
@@ -346,95 +344,53 @@ export default class PixelPlugin
         {
             let layer = layers[index];
             let layerDiv = document.createElement("div");
-            let layerName = document.createElement("input");
-            let layerToolsDiv = document.createElement("div");
             let colourDiv = document.createElement("div");
+            let layerName = document.createElement("input");
+            let layerOptionsDiv = document.createElement("div");
 
-            layerDiv.setAttribute("class", "layerDiv");
-            layerDiv.setAttribute("id", "Layer " + layer.layerId + " Selector");
-            layerDiv.setAttribute("value", layer.layerId);
             layerDiv.setAttribute("index", index);
             layerDiv.setAttribute("draggable", "true");
+            layerDiv.setAttribute("class", "layer-div");
+            layerDiv.setAttribute("value", layer.layerId);
+            layerDiv.setAttribute("id", "layer-" + layer.layerId + "-selector");
 
             layerName.setAttribute("type", "text");
+            layerName.setAttribute("readonly", "true");
             layerName.setAttribute("value", layer.layerName);
+            layerName.setAttribute("ondblclick", "this.readOnly='';");
 
             colourDiv.setAttribute("class", "color-box");
             colourDiv.setAttribute("style", "background-color: " + layer.colour.toHexString() + ";");
 
-            layerToolsDiv.setAttribute("class", "unchecked-layer-settings");
-            layerToolsDiv.setAttribute("id", "Layer " + layer.layerId + " Tools");
+            layerOptionsDiv.setAttribute("class", "unchecked-layer-settings");
+            layerOptionsDiv.setAttribute("id", "layer-" + layer.layerId + "-options");
 
-            if (layer.layerId === this.selectedLayerIndex)      // Layer at position 0 is checked by default
-                layerDiv.classList.add("selected-layer");
-
-            // Change Colour
-            colourDiv.addEventListener("click", () => {console.log("colour clicked")});
-
-            // Only edit layer name on double click
-            layerName.setAttribute("readonly", "true");
-            layerName.addEventListener('keypress', (e) =>
+            if (layer.layerId === this.selectedLayerIndex)
             {
-                // TODO: Listen for changes when clicked outside of LayerName
-                var key = e.which || e.keyCode;
-                if (key === RETURN_KEY)
-                {
-                    this.layers[this.selectedLayerIndex].updateLayerName(layerName.value);
-                    layerName.setAttribute("readonly", "true");
-                }
-            });
-            layerName.setAttribute("ondblclick", "this.readOnly='';");
+                layerDiv.classList.add("selected-layer");
+            }
 
+            colourDiv.addEventListener("click", () => { this.displayColourOptions(); });
+            layerName.addEventListener('keypress', (e) => { this.editLayerName(e, layerName); });
+            layerOptionsDiv.onclick = () => { this.displayLayerOptions(layer, layerOptionsDiv); };
+
+            layerDiv.ondrag = (evt) => { this.dragging(evt); };
+            layerDiv.ondragstart = (evt) => { this.dragStart(evt); };
+            layerDiv.ondrop = (evt) => { this.drop(evt, departureIndex, destinationIndex); };
             layerDiv.onmousedown = () =>
             {
-                let index = layerDiv.getAttribute("index");
-                departureIndex = index;
+                departureIndex = layerDiv.getAttribute("index");
                 this.highlightSelectedLayer(layerDiv.getAttribute("value"));
             };
 
-            layerDiv.ondrop = (event) =>
+            layerDiv.ondragover = (evt) =>
             {
-                this.drop(event, departureIndex, destinationIndex);
-                this.selectedLayerIndex = destinationIndex;
-                this.highlightSelectedLayer(this.layers[this.selectedLayerIndex].layerId); // Layer Type and not index
-            };
-
-            layerDiv.ondragover = (event) =>
-            {
-                this.allowDrop(event);
-                let index = layerDiv.getAttribute("index");
-                destinationIndex = index;
-            };
-
-            layerDiv.ondragstart = (event) =>
-            {
-                this.dragStart(event);
-            };
-
-            layerDiv.ondrag = (event) =>
-            {
-                this.dragging(event);
-            };
-
-            // Open toolbox on click
-            layerToolsDiv.onclick = () =>
-            {
-                if (layerToolsDiv.classList.contains("unchecked-layer-settings")) //It is unchecked, check it
-                {
-                    layerToolsDiv.classList.remove("unchecked-layer-settings");
-                    layerToolsDiv.classList.add("checked-layer-settings");
-                    this.createOpacitySlider(layer, layerToolsDiv.parentElement.parentElement, layerToolsDiv.parentElement);
-                }
-                else
-                {
-                    layerToolsDiv.classList.remove("checked-layer-settings");
-                    layerToolsDiv.classList.add("unchecked-layer-settings");
-                    this.destroyOpacitySlider(layer);
-                }
+                this.allowDrop(evt);
+                destinationIndex = layerDiv.getAttribute("index");
             };
 
             layerDiv.appendChild(layerName);
-            layerDiv.appendChild(layerToolsDiv);
+            layerDiv.appendChild(layerOptionsDiv);
             layerDiv.appendChild(colourDiv);
             layersViewDiv.appendChild(layerDiv);
         }
@@ -451,7 +407,7 @@ export default class PixelPlugin
     createBrushSizeSelector ()
     {
         let brushSizeSelector = document.createElement("input");
-        brushSizeSelector.setAttribute("id", "brush size selector");
+        brushSizeSelector.setAttribute("id", "brush-size-selector");
         brushSizeSelector.setAttribute("type", "range");
         brushSizeSelector.setAttribute('max', 50);
         brushSizeSelector.setAttribute('min', 1);
@@ -461,8 +417,8 @@ export default class PixelPlugin
 
     destroyBrushSizeSelector ()
     {
-        let brushSizeSelector = document.getElementById("brush size selector");
-        document.body.removeChild(brushSizeSelector);
+        let brushSizeSelector = document.getElementById("brush-size-selector");
+        brushSizeSelector.parentNode.removeChild(brushSizeSelector);
     }
 
     createUndoButton ()
@@ -616,6 +572,8 @@ export default class PixelPlugin
         }
         this.destroyPluginElements(this.layers);
         this.createPluginElements(this.layers);
+        this.selectedLayerIndex = destinationLayerIndex;
+        this.highlightSelectedLayer(this.layers[this.selectedLayerIndex].layerId); // Layer Type and not index
         this.repaint();
     }
 
@@ -681,6 +639,49 @@ export default class PixelPlugin
             document.getElementById(this.currentTool).checked = true;
         }
     };
+
+    editLayerName (e, layerName)
+    {
+        console.log("editing");
+        const RETURN_KEY = 13;
+
+        // TODO: Listen for changes when clicked outside of LayerName
+        // TODO: Unsubscribe from other keyboard listeners
+        var key = e.which || e.keyCode;
+        if (key === RETURN_KEY)
+        {
+            // TODO: Subscribe to other keyboard listeners
+            this.layers[this.selectedLayerIndex].updateLayerName(layerName.value);
+            layerName.setAttribute("readonly", "true");
+        }
+    }
+
+    /**
+     * -----------------------------------------------
+     *                 Tools Selection
+     * -----------------------------------------------
+     **/
+
+    displayColourOptions ()
+    {
+        console.log("colour clicked here");
+    }
+
+    displayLayerOptions (layer, layerOptionsDiv)
+    {
+        if (layerOptionsDiv.classList.contains("unchecked-layer-settings")) //It is unchecked, check it
+        {
+            layerOptionsDiv.classList.remove("unchecked-layer-settings");
+            layerOptionsDiv.classList.add("checked-layer-settings");
+            this.createOpacitySlider(layer, layerOptionsDiv.parentElement.parentElement, layerOptionsDiv.parentElement);
+        }
+        else
+        {
+            layerOptionsDiv.classList.remove("checked-layer-settings");
+            layerOptionsDiv.classList.add("unchecked-layer-settings");
+            this.destroyOpacitySlider(layer);
+        }
+    }
 
     /**
      * ===============================================
@@ -751,7 +752,7 @@ export default class PixelPlugin
             // Not triple equality because layer.LayerType and layerDiv value are of different types
             if (layer.layerId == layerType)
             {
-                let div = document.getElementById("Layer " + layer.layerId + " Selector");
+                let div = document.getElementById("layer-" + layer.layerId + "-selector");
 
                 if (!div.hasAttribute("selected-layer"))
                     div.classList.add("selected-layer");
@@ -759,7 +760,7 @@ export default class PixelPlugin
             }
             else
             {
-                let div = document.getElementById("Layer " + layer.layerId + " Selector");
+                let div = document.getElementById("layer-" + layer.layerId + "-selector");
                 if (div.classList.contains("selected-layer"))
                     div.classList.remove("selected-layer");
             }
@@ -777,7 +778,7 @@ export default class PixelPlugin
         {
             let selectedLayer = this.layers[this.selectedLayerIndex],
                 point = new Point(relativeCoords.x, relativeCoords.y, pageIndex),
-                brushSize = document.getElementById("brush size selector").value/10;
+                brushSize = document.getElementById("brush-size-selector").value / 10;
 
             this.lastRelCoordsX = relativeCoords.x;
             this.lastRelCoordsY = relativeCoords.y;
@@ -1747,8 +1748,8 @@ export class Layer
     {
         if (this.paths.length === 0)
         {
-            let brushSizeSelector = document.getElementById("brush size selector");
-            this.createNewPath(brushSizeSelector.value/10);
+            let brushSizeSelector = document.getElementById("brush-size-selector");
+            this.createNewPath(brushSizeSelector.value / 10);
         }
         this.paths[this.paths.length - 1].addPointToPath(point);
     }
