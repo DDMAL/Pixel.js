@@ -22,15 +22,16 @@ export default class PixelPlugin
         this.matrix = null;
         this.mousePressed = false;
         this.keyboardPress = false;
-        this.lastX, this.lastY;
-        this.selectedLayer = 0;
-        this.keyboardChangingLayers = false;
+        this.lastAbsX = null;
+        this.lastAbsY = null;
+        this.selectedLayerIndex = 0;
+        this.layerChangedMidDraw = false;
         this.actions = [];
         this.undoneActions = [];
         this.shiftDown = false;
         this.currentTool = "brush";
-        this.lastRelCoordsX = null;
-        this.lastRelCoordsY = null;
+        this.lastRelCoordX = null;
+        this.lastRelCoordY = null;
         this._canvas = null;
         this._ctx = null;
     }
@@ -77,11 +78,11 @@ export default class PixelPlugin
         if (this.layers === null)
         {
             // Start by creating layers
-            let layer1 = new Layer(0, new Colour(51, 102, 255, 0.8)),
-                layer2 = new Layer(1, new Colour(255, 51, 102, 0.8)),
-                layer3 = new Layer(2, new Colour(255, 255, 10, 0.8)),
-                layer4 = new Layer(3, new Colour(10, 180, 50, 0.8)),
-                layer5 = new Layer(4, new Colour(255, 137, 0, 0.8));
+            let layer1 = new Layer(0, new Colour(51, 102, 255, 0.8), "Layer 1"),
+                layer2 = new Layer(1, new Colour(255, 51, 102, 0.8), "Layer 2"),
+                layer3 = new Layer(2, new Colour(255, 255, 10, 0.8), "Layer 3"),
+                layer4 = new Layer(3, new Colour(10, 180, 50, 0.8), "Layer 4"),
+                layer5 = new Layer(4, new Colour(255, 137, 0, 0.8), "Layer 5");
 
             layer1.addShapeToLayer(new Rectangle(new Point(23, 42, 0), 24, 24));
             layer2.addShapeToLayer(new Rectangle(new Point(48, 50, 0), 57, 5));
@@ -115,16 +116,16 @@ export default class PixelPlugin
         this.activated = false;
     }
 
-    disableDragScrollable ()
-    {
-        if (!this.core.viewerState.viewportObject.hasAttribute('nochilddrag'))
-            this.core.viewerState.viewportObject.setAttribute('nochilddrag', "");
-    }
-
     enableDragScrollable ()
     {
         if (this.core.viewerState.viewportObject.hasAttribute('nochilddrag'))
             this.core.viewerState.viewportObject.removeAttribute('nochilddrag');
+    }
+
+    disableDragScrollable ()
+    {
+        if (!this.core.viewerState.viewportObject.hasAttribute('nochilddrag'))
+            this.core.viewerState.viewportObject.setAttribute('nochilddrag', "");
     }
 
     /**
@@ -145,8 +146,6 @@ export default class PixelPlugin
 
     subscribeToScrollEvent()
     {
-        this.drawHighlights(this.core.getSettings().zoomLevel);
-
         let handle = Diva.Events.subscribe('ViewerDidScroll', () =>
         {
             this.drawHighlights(this.core.getSettings().zoomLevel);
@@ -168,6 +167,7 @@ export default class PixelPlugin
         canvas.addEventListener('mouseleave', this.mouseUp);
         canvas.addEventListener('mousemove', this.mouseMove);
 
+        // Used for unsubscription
         this.mouseHandles = {
             mouseDownHandle: this.mouseDown,
             mouseMoveHandle: this.mouseMove,
@@ -177,64 +177,13 @@ export default class PixelPlugin
 
     subscribeToKeyboardEvents ()
     {
-        this.handleKeyUp = (e) =>
-        {
-            const KEY_1 = 49;
-            const KEY_9 = 56;
-            const SHIFT_KEY = 16;
-
-            let lastLayer = this.selectedLayer,
-                numberOfLayers = this.layers.length,
-                key = e.keyCode ? e.keyCode : e.which;
-
-            if (key >= KEY_1 && key < KEY_1 + numberOfLayers && key <= KEY_9)
-            {
-                this.highlightSelectedLayer(key - KEY_1);
-
-                if (lastLayer !== this.selectedLayer && this.mousePressed)
-                    this.keyboardChangingLayers = true;
-            }
-            if (key === SHIFT_KEY)
-                this.shiftDown = false;
-        };
-
-        this.handleKeyDown = (e) =>
-        {
-            if (e.code === "KeyZ" && e.shiftKey === false)
-            {
-                this.undoAction();
-            }
-            else if (e.code === "KeyZ" && e.shiftKey === true)
-            {
-                this.redoAction();
-            }
-            else if (e.key === "Shift")
-            {
-                this.shiftDown = true;
-            }
-            else if (e.key === "b")
-            {
-                this.disableDragScrollable();
-                this.currentTool = "brush";
-                document.getElementById(this.currentTool).checked = true;
-            }
-            else if (e.key === "r")
-            {
-                this.disableDragScrollable();
-                this.currentTool = "rectangle";
-                document.getElementById(this.currentTool).checked = true;
-            }
-            else if (e.key === "g")
-            {
-                this.enableDragScrollable();
-                this.currentTool = "grab";
-                document.getElementById(this.currentTool).checked = true;
-            }
-        };
+        this.handleKeyUp = (e) => { this.onKeyUp(e); };
+        this.handleKeyDown = (e) => { this.onKeyDown(e); };
 
         document.addEventListener("keyup", this.handleKeyUp);
         document.addEventListener("keydown", this.handleKeyDown);
 
+        // Used for unsubscription
         this.keyboardHandles = {
             keyup: this.handleKeyUp,
             keydown: this.handleKeyDown
@@ -264,58 +213,7 @@ export default class PixelPlugin
 
     /**
      * ===============================================
-     *           Drag & Drop Layers Events
-     * ===============================================
-     **/
-
-    dragStart (event)
-    {
-        event.dataTransfer.setData("Text", event.target.id);
-    }
-
-    dragging (event)
-    {
-
-    }
-
-    allowDrop (event)
-    {
-        event.preventDefault();
-    }
-
-    drop (event, departureLayerIndex, destinationLayerIndex)
-    {
-        event.preventDefault();
-        var tempLayerStorage;
-
-        tempLayerStorage = this.layers[departureLayerIndex];
-
-        if (departureLayerIndex > destinationLayerIndex)
-        {
-            for (let i = 1; i <= (departureLayerIndex - destinationLayerIndex); i++)
-            {
-                this.layers[departureLayerIndex - i + 1] = this.layers[departureLayerIndex - i];
-            }
-            this.layers[destinationLayerIndex] = tempLayerStorage;
-        }
-
-        else if (departureLayerIndex < destinationLayerIndex)
-        {
-            for (let i = 1; i <= (destinationLayerIndex - departureLayerIndex); i++)
-            {
-                this.layers[departureLayerIndex - 1 + i] = this.layers[parseFloat(departureLayerIndex) + i];
-            }
-            this.layers[destinationLayerIndex] = tempLayerStorage;
-        }
-        this.destroyPluginElements(this.layers);
-        this.createPluginElements(this.layers);
-        this.repaint();
-    }
-
-
-    /**
-     * ===============================================
-     *                HTML UI Elements
+     *            Creating HTML UI Elements
      * ===============================================
      **/
 
@@ -341,12 +239,13 @@ export default class PixelPlugin
         this.destroyToolsView(["brush", "rectangle", "grab"]);
     }
 
-    // Tools are strings or enums masalan
-    createToolsView(tools)
+    // Tools are strings or enums
+    createToolsView (tools)
     {
         let form = document.createElement("form");
-        form.setAttribute("id", "tool selector");
+        form.setAttribute("id", "tool-selector");
 
+        // Create an element for each tool and
         for (var index = 0; index < tools.length; index++)
         {
             let tool = tools[index],
@@ -357,7 +256,7 @@ export default class PixelPlugin
             radio.setAttribute("id", tool);
             radio.setAttribute("type", "radio");
             radio.setAttribute("value", tool);
-            radio.setAttribute("name", "tool selector");
+            radio.setAttribute("name", "tool-selector");
             radio.onclick = () =>
             {
                 this.currentTool = radio.value;
@@ -369,9 +268,10 @@ export default class PixelPlugin
                     this.disableDragScrollable();
             };
 
+            // TODO: this.selectedTool (fixes tool selection after deactivating and activating plugin)
+            // Currently on reactivation, selected radio button does not correspond to tool
             if (tool === "brush")      // Layer at position 0 is checked by default
                 radio.checked = true;
-
 
             form.appendChild(radio);
             form.appendChild(content);
@@ -380,28 +280,205 @@ export default class PixelPlugin
         document.body.appendChild(form);
     }
 
-    destroyToolsView()
+    destroyToolsView ()
     {
-        let form = document.getElementById("tool selector");
-        document.body.removeChild(form);
+        let form = document.getElementById("tool-selector");
+        form.parentNode.removeChild(form);
     }
 
-    createPixelCanvas()
+    createPixelCanvas ()
     {
         this._canvas = document.createElement('canvas');
-        this._canvas.setAttribute("id", "pixelCanvas");
+        this._canvas.setAttribute("id", "pixel-canvas");
         this._canvas.setAttribute("style", "position: absolute; top: 0; left: 0;");
         this._canvas.width = this.core.getSettings().renderer._canvas.width;
         this._canvas.height = this.core.getSettings().renderer._canvas.height;
         this._ctx = this._canvas.getContext('2d');
-        let div = document.getElementById('diva-1-outer');
-        div.insertBefore(this._canvas, div.firstChild.nextSibling);
+
+        // pixel canvas has to be placed on top of diva canvas and before the diva-viewport
+        // This means it should be appended as its next sibling
+        // Otherwise it will block diva's scrolling functionality
+        let divaCanvas = this.core.getSettings().renderer._canvas;
+        divaCanvas.parentNode.insertBefore(this._canvas, divaCanvas.nextSibling);
     }
 
-    destroyPixelCanvas()
+    destroyPixelCanvas ()
     {
-        let div = document.getElementById('diva-1-outer');
-        div.removeChild(this._canvas);
+        this._canvas.parentNode.removeChild(this._canvas);
+    }
+
+    createOpacitySlider (layer, parentElement, referenceNode)
+    {
+        var opacitySlider = document.createElement("input");
+
+        opacitySlider.setAttribute("id", "layer-" + layer.layerId + "-opacity-slider");
+        opacitySlider.setAttribute("type", "range");
+        opacitySlider.setAttribute('max', 100);
+        opacitySlider.setAttribute('min', 0);
+        opacitySlider.setAttribute('value', layer.getOpacity() * 100);
+        opacitySlider.setAttribute("draggable", "false");
+        opacitySlider.addEventListener("input", () =>
+        {
+            layer.setOpacity(opacitySlider.value / 100);
+            this.repaint();
+        });
+
+        parentElement.insertBefore(opacitySlider, referenceNode.nextSibling);
+    }
+
+    destroyOpacitySlider (layer)
+    {
+        let opacitySlider = document.getElementById("layer-" + layer.layerId + "-opacity-slider");
+        opacitySlider.parentElement.removeChild(opacitySlider);
+    }
+
+    createLayerSelectors (layers)
+    {
+        let departureIndex, destinationIndex;
+
+        let layersViewDiv = document.createElement("div");
+        layersViewDiv.setAttribute("id", "layers-view");
+
+        // Backwards because layers' display should be the same as visual "z-index" priority (depth)
+        for (var index = layers.length - 1; index >= 0; index--)
+        {
+            let layer = layers[index],
+                layerDiv = document.createElement("div"),
+                colourDiv = document.createElement("div"),
+                layerName = document.createElement("input"),
+                layerOptionsDiv = document.createElement("div");
+
+            layerDiv.setAttribute("index", index);
+            layerDiv.setAttribute("draggable", "true");
+            layerDiv.setAttribute("class", "layer-div");
+            layerDiv.setAttribute("value", layer.layerId);
+            layerDiv.setAttribute("id", "layer-" + layer.layerId + "-selector");
+
+            layerName.setAttribute("type", "text");
+            layerName.setAttribute("readonly", "true");
+            layerName.setAttribute("value", layer.layerName);
+            layerName.setAttribute("ondblclick", "this.readOnly='';");
+
+            colourDiv.setAttribute("class", "color-box");
+            colourDiv.setAttribute("style", "background-color: " + layer.colour.toHexString() + ";");
+
+            layerOptionsDiv.setAttribute("class", "unchecked-layer-settings");
+            layerOptionsDiv.setAttribute("id", "layer-" + layer.layerId + "-options");
+
+            if (layer.layerId === this.selectedLayerIndex)
+            {
+                layerDiv.classList.add("selected-layer");
+            }
+
+            colourDiv.addEventListener("click", () => { this.displayColourOptions(); });
+            layerName.addEventListener('keypress', (e) => { this.editLayerName(e, layerName); });
+            layerOptionsDiv.onclick = () => { this.displayLayerOptions(layer, layerOptionsDiv); };
+
+            layerDiv.ondrag = (evt) => { this.dragging(evt); };
+            layerDiv.ondragstart = (evt) => { this.dragStart(evt); };
+            layerDiv.ondrop = (evt) => { this.drop(evt, departureIndex, destinationIndex); };
+            layerDiv.onmousedown = () =>
+            {
+                departureIndex = layerDiv.getAttribute("index");
+                this.highlightSelectedLayer(layerDiv.getAttribute("value"));
+            };
+
+            layerDiv.ondragover = (evt) =>
+            {
+                this.allowDrop(evt);
+                destinationIndex = layerDiv.getAttribute("index");
+            };
+
+            layerDiv.appendChild(layerName);
+            layerDiv.appendChild(layerOptionsDiv);
+            layerDiv.appendChild(colourDiv);
+            layersViewDiv.appendChild(layerDiv);
+        }
+        document.body.appendChild(layersViewDiv);
+    }
+
+    destroyLayerSelectors ()
+    {
+        let layersViewDiv = document.getElementById("layers-view");
+        layersViewDiv.parentNode.removeChild(layersViewDiv);
+    }
+
+    createBrushSizeSelector ()
+    {
+        let brushSizeSelector = document.createElement("input");
+        brushSizeSelector.setAttribute("id", "brush-size-selector");
+        brushSizeSelector.setAttribute("type", "range");
+        brushSizeSelector.setAttribute('max', 50);
+        brushSizeSelector.setAttribute('min', 1);
+        brushSizeSelector.setAttribute('value', 10);
+
+        document.body.appendChild(brushSizeSelector);
+    }
+
+    destroyBrushSizeSelector ()
+    {
+        let brushSizeSelector = document.getElementById("brush-size-selector");
+        brushSizeSelector.parentNode.removeChild(brushSizeSelector);
+    }
+
+    createUndoButton ()
+    {
+        let undoButton = document.createElement("button"),
+            text = document.createTextNode("Undo");
+
+        this.undo = () => { this.undoAction(); };
+
+        undoButton.setAttribute("id", "undo-button");
+        undoButton.appendChild(text);
+        undoButton.addEventListener("click", this.undo);
+
+        document.body.appendChild(undoButton);
+    }
+
+    destroyUndoButton ()
+    {
+        let undoButton = document.getElementById("undo-button");
+        undoButton.parentNode.removeChild(undoButton);
+    }
+
+    createRedoButton ()
+    {
+        let redoButton = document.createElement("button"),
+            text = document.createTextNode("Redo");
+
+        this.redo = () => { this.redoAction(); };
+
+        redoButton.setAttribute("id", "redo-button");
+        redoButton.appendChild(text);
+        redoButton.addEventListener("click", this.redo);
+
+        document.body.appendChild(redoButton);
+    }
+
+    destroyRedoButton ()
+    {
+        let redoButton = document.getElementById("redo-button");
+        redoButton.parentNode.removeChild(redoButton);
+    }
+
+    createExportButton ()
+    {
+        let exportButton = document.createElement("button"),
+            text = document.createTextNode("Export as Matrix");
+
+        this.export = () => { this.populateMatrix(); };
+
+        exportButton.setAttribute("id", "export-button");
+        exportButton.appendChild(text);
+        exportButton.addEventListener("click", this.export);
+
+        document.body.appendChild(exportButton);
+    }
+
+    destroyExportButton ()
+    {
+        let exportButton = document.getElementById("export-button");
+        exportButton.parentNode.removeChild(exportButton);
     }
 
     createIcon ()
@@ -435,230 +512,159 @@ export default class PixelPlugin
         return pageToolsIcon;
     }
 
-    createOpacitySlider (layer, parentElement, referenceNode)
-    {
-        var opacitySlider = document.createElement("input");
-
-        opacitySlider.setAttribute("id", "layer" + layer.layerType + "opacity");
-        opacitySlider.setAttribute("type", "range");
-        opacitySlider.setAttribute('max', 100);
-        opacitySlider.setAttribute('min', 0);
-        opacitySlider.setAttribute('value', layer.getOpacity() * 100);
-        opacitySlider.setAttribute("draggable", "false");
-        opacitySlider.addEventListener("input", () =>
-        {
-            layer.setOpacity(opacitySlider.value/100);
-            this.repaint();
-        });
-
-        parentElement.insertBefore(opacitySlider, referenceNode.nextSibling);
-    }
-
-    destroyOpacitySlider (layer)
-    {
-        let opacitySlider = document.getElementById("layer" + layer.layerType + "opacity");
-        opacitySlider.parentElement.removeChild(opacitySlider);
-    }
-
-    createLayerSelectors (layers)
-    {
-        var departureIndex,
-            destinationIndex;
-
-        let RETURN_KEY = 13;
-
-        let form = document.createElement("form");
-        form.setAttribute("id", "layer selector");
-
-        //Backwards because layers' display should be the same as visual "z-index" priority
-        for (var index = layers.length - 1; index >= 0; index--)
-        {
-            let layer = layers[index],
-                layerDiv = document.createElement("div"),
-                layerName = document.createElement("input"),
-                layerToolsDiv = document.createElement("div"),
-                colourDiv = document.createElement("div");
-
-            layerDiv.setAttribute("class", "layerDiv");
-            layerDiv.setAttribute("id", "Layer " + layer.layerType + " Selector");
-            layerDiv.setAttribute("value", layer.layerType);
-            layerDiv.setAttribute("index", index);
-            layerDiv.setAttribute("draggable", "true");
-            layerName.setAttribute("type", "text");
-            layerName.setAttribute("value", "Layer " + (layer.layerType + 1));
-            colourDiv.setAttribute("class", "color-box");
-            colourDiv.setAttribute("style", "background-color: " + layer.colour.toHexString() + ";");
-            layerToolsDiv.setAttribute("class", "unchecked-layer-settings");
-            layerToolsDiv.setAttribute("id", "Layer " + layer.layerType + " Tools");
-
-            if (layer.layerType === this.selectedLayer)      // Layer at position 0 is checked by default
-                layerDiv.classList.add("selected-layer");
-
-            // Change Colour
-            colourDiv.addEventListener("click", () => {console.log("colour clicked")});
-
-            // Only edit layer name on double click
-            layerName.setAttribute("readonly", "true");
-            layerName.addEventListener('keypress', function (e) {
-                var key = e.which || e.keyCode;
-                if (key === RETURN_KEY) {
-                    // Save new layer name
-                    layerName.setAttribute("readonly", "true");
-                }
-            });
-            layerName.setAttribute("ondblclick", "this.readOnly='';");
-
-            layerDiv.onmousedown = () =>
-            {
-                let index = layerDiv.getAttribute("index");
-                departureIndex = index;
-                this.highlightSelectedLayer(layerDiv.getAttribute("value"));
-            };
-
-            layerDiv.ondrop = (event) =>
-            {
-                this.drop(event, departureIndex, destinationIndex);
-                this.selectedLayer = destinationIndex;
-                this.highlightSelectedLayer(this.layers[this.selectedLayer].layerType); // Layer Type and not index
-            };
-
-            layerDiv.ondragover = (event) =>
-            {
-                this.allowDrop(event);
-                let index = layerDiv.getAttribute("index");
-                destinationIndex = index;
-            };
-
-            layerDiv.ondragstart = (event) =>
-            {
-                this.dragStart(event);
-            };
-
-            layerDiv.ondrag = (event) =>
-            {
-                this.dragging(event);
-            };
-
-            // Open toolbox on click
-            layerToolsDiv.onclick = () =>
-            {
-                if (layerToolsDiv.classList.contains("unchecked-layer-settings")) //It is unchecked, check it
-                {
-                    layerToolsDiv.classList.remove("unchecked-layer-settings");
-                    layerToolsDiv.classList.add("checked-layer-settings");
-                    this.createOpacitySlider(layer, layerToolsDiv.parentElement.parentElement, layerToolsDiv.parentElement);
-                }
-                else
-                {
-                    layerToolsDiv.classList.remove("checked-layer-settings");
-                    layerToolsDiv.classList.add("unchecked-layer-settings");
-                    this.destroyOpacitySlider(layer);
-                }
-            };
-
-            layerDiv.appendChild(layerName);
-            layerDiv.appendChild(layerToolsDiv);
-            layerDiv.appendChild(colourDiv);
-            form.appendChild(layerDiv);
-        }
-
-        document.body.appendChild(form);
-    }
-
-    destroyLayerSelectors ()
-    {
-        let form = document.getElementById("layer selector");
-        form.parentNode.removeChild(form);
-    }
-
-    createBrushSizeSelector ()
-    {
-        let brushSizeSelector = document.createElement("input");
-        brushSizeSelector.setAttribute("id", "brush size selector");
-        brushSizeSelector.setAttribute("type", "range");
-        brushSizeSelector.setAttribute('max', 50);
-        brushSizeSelector.setAttribute('min', 1);
-        brushSizeSelector.setAttribute('value', 10);
-        document.body.appendChild(brushSizeSelector);
-    }
-
-    destroyBrushSizeSelector ()
-    {
-        let brushSizeSelector = document.getElementById("brush size selector");
-        document.body.removeChild(brushSizeSelector);
-    }
-
-    createUndoButton ()
-    {
-        let undoButton = document.createElement("button"),
-            text = document.createTextNode("Undo");
-
-        this.undo = () => { this.undoAction(); };
-
-        undoButton.setAttribute("id", "undo button");
-        undoButton.appendChild(text);
-        undoButton.addEventListener("click", this.undo);
-
-        document.body.appendChild(undoButton);
-    }
-
-    destroyUndoButton ()
-    {
-        let undoButton = document.getElementById("undo button");
-        document.body.removeChild(undoButton);
-    }
-
-    createRedoButton ()
-    {
-        let redoButton = document.createElement("button"),
-            text = document.createTextNode("Redo"),
-            br = document.createElement("br");
-
-        this.redo = () => { this.redoAction(); };
-
-        br.setAttribute("id", "redo button break");
-        redoButton.setAttribute("id", "redo button");
-        redoButton.appendChild(text);
-        redoButton.addEventListener("click", this.redo);
-
-        document.body.appendChild(redoButton);
-        document.body.appendChild(br);
-    }
-
-    destroyRedoButton ()
-    {
-        let redoButton = document.getElementById("redo button");
-        document.body.removeChild(redoButton);
-
-        let br = document.getElementById("redo button break");
-        document.body.removeChild(br);
-    }
-
-    createExportButton ()
-    {
-        let exportButton = document.createElement("button");
-        let text = document.createTextNode("Export as Matrix");
-
-        this.export = () => { this.populateMatrix(); };
-
-        exportButton.setAttribute("id", "export button");
-        exportButton.appendChild(text);
-        exportButton.addEventListener("click", this.export);
-
-        document.body.appendChild(exportButton);
-    }
-
-    destroyExportButton ()
-    {
-        let exportButton = document.getElementById("export button");
-        document.body.removeChild(exportButton);
-    }
 
     /**
      * ===============================================
-     *                   Drawing
+     *       Handling Keyboard and Mouse Events
      * ===============================================
      **/
+
+    /**
+     * -----------------------------------------------
+     *         Layer reordering (Drag and Drop)
+     * -----------------------------------------------
+     **/
+
+    // Determines which element is being picked up
+    dragStart (event)
+    {
+        event.dataTransfer.setData("Text", event.target.id);
+    }
+
+    dragging (event)
+    {
+        // Do nothing
+    }
+
+    // Mark area as a drop zone on hover
+    allowDrop (event)
+    {
+        event.preventDefault();
+    }
+
+    drop (event, departureLayerIndex, destinationLayerIndex)
+    {
+        event.preventDefault();
+        let tempLayerStorage = this.layers[departureLayerIndex];
+
+        if (departureLayerIndex > destinationLayerIndex)
+        {
+            for (let i = 1; i <= (departureLayerIndex - destinationLayerIndex); i++)
+            {
+                this.layers[departureLayerIndex - i + 1] = this.layers[departureLayerIndex - i];
+            }
+            this.layers[destinationLayerIndex] = tempLayerStorage;
+        }
+
+        else if (departureLayerIndex < destinationLayerIndex)
+        {
+            for (let i = 1; i <= (destinationLayerIndex - departureLayerIndex); i++)
+            {
+                this.layers[departureLayerIndex - 1 + i] = this.layers[parseFloat(departureLayerIndex) + i];
+            }
+            this.layers[destinationLayerIndex] = tempLayerStorage;
+        }
+        this.destroyPluginElements(this.layers);
+        this.createPluginElements(this.layers);
+        this.selectedLayerIndex = destinationLayerIndex;
+        this.highlightSelectedLayer(this.layers[this.selectedLayerIndex].layerId); // Layer Type and not index
+        this.repaint();
+    }
+
+    /**
+     * -----------------------------------------------
+     *                Keyboard Events
+     * -----------------------------------------------
+     **/
+
+    onKeyUp (e)
+    {
+        const KEY_1 = 49;
+        const KEY_9 = 56;
+        const SHIFT_KEY = 16;
+
+        let lastLayer = this.selectedLayerIndex,
+            numberOfLayers = this.layers.length,
+            key = e.keyCode ? e.keyCode : e.which;
+
+        if (key >= KEY_1 && key < KEY_1 + numberOfLayers && key <= KEY_9)
+        {
+            this.highlightSelectedLayer(key - KEY_1);
+
+            if (lastLayer !== this.selectedLayerIndex && this.mousePressed)
+                this.layerChangedMidDraw = true;
+        }
+        if (key === SHIFT_KEY)
+            this.shiftDown = false;
+    };
+
+    onKeyDown (e)
+    {
+        // Cmd + Shift + Z
+        if (e.code === "KeyZ" && e.shiftKey === false)
+        {
+            this.undoAction();
+        }
+        // Cmd + Z
+        else if (e.code === "KeyZ" && e.shiftKey === true)
+        {
+            this.redoAction();
+        }
+        else if (e.key === "Shift")
+        {
+            this.shiftDown = true;
+        }
+        else if (e.key === "b")
+        {
+            this.disableDragScrollable();
+            this.currentTool = "brush";
+            document.getElementById(this.currentTool).checked = true;
+        }
+        else if (e.key === "r")
+        {
+            this.disableDragScrollable();
+            this.currentTool = "rectangle";
+            document.getElementById(this.currentTool).checked = true;
+        }
+        else if (e.key === "g")
+        {
+            this.enableDragScrollable();
+            this.currentTool = "grab";
+            document.getElementById(this.currentTool).checked = true;
+        }
+    };
+
+    editLayerName (e, layerName)
+    {
+        console.log("editing");
+        const RETURN_KEY = 13;
+
+        // TODO: Listen for changes when clicked outside of LayerName
+        // TODO: Unsubscribe from other keyboard listeners
+        var key = e.which || e.keyCode;
+        if (key === RETURN_KEY)
+        {
+            // TODO: Subscribe to other keyboard listeners
+            this.layers[this.selectedLayerIndex].updateLayerName(layerName.value);
+            layerName.setAttribute("readonly", "true");
+        }
+    }
+
+    /**
+     * -----------------------------------------------
+     *                Mouse Events
+     * -----------------------------------------------
+     **/
+
+    getMousePos (canvas, evt)
+    {
+        let rect = canvas.getBoundingClientRect();
+
+        return {
+            x: evt.clientX - rect.left,
+            y: evt.clientY - rect.top
+        };
+    }
 
     onMouseDown (evt)
     {
@@ -716,180 +722,38 @@ export default class PixelPlugin
         }
     }
 
-    highlightSelectedLayer(layerType)
-    {
-        this.layers.forEach ((layer) =>
-        {
-            // Not triple equality because layer.LayerType and layerDiv value are of different types
-            if (layer.layerType == layerType)
-            {
-                let div = document.getElementById("Layer " + layer.layerType + " Selector");
+    /**
+     * -----------------------------------------------
+     *                 Tools Selection
+     * -----------------------------------------------
+     **/
 
-                if (!div.hasAttribute("selected-layer"))
-                    div.classList.add("selected-layer");
-                this.selectedLayer = this.layers.indexOf(layer);
-            }
-            else
-            {
-                let div = document.getElementById("Layer " + layer.layerType + " Selector");
-                if (div.classList.contains("selected-layer"))
-                    div.classList.remove("selected-layer");
-            }
-        });
+    displayColourOptions ()
+    {
+        console.log("colour clicked here");
     }
 
-    initializeNewPath (canvas, evt)
+    displayLayerOptions (layer, layerOptionsDiv)
     {
-        let pageIndex = this.core.getSettings().currentPageIndex,
-            zoomLevel = this.core.getSettings().zoomLevel,
-            mousePos = this.getMousePos(canvas, evt),
-            relativeCoords = this.getRelativeCoordinates(mousePos.x, mousePos.y);
-
-        if (this.isInPageBounds(relativeCoords.x, relativeCoords.y))
+        if (layerOptionsDiv.classList.contains("unchecked-layer-settings")) //It is unchecked, check it
         {
-            let selectedLayer = this.layers[this.selectedLayer],
-                point = new Point(relativeCoords.x, relativeCoords.y, pageIndex),
-                brushSize = document.getElementById("brush size selector").value/10;
-
-            this.lastRelCoordsX = relativeCoords.x;
-            this.lastRelCoordsY = relativeCoords.y;
-
-            selectedLayer.createNewPath(brushSize);
-            selectedLayer.addToCurrentPath(point);
-
-            this.actions.push(new Action(selectedLayer.getCurrentPath(), selectedLayer));
-            this.drawPath(selectedLayer, point, pageIndex, zoomLevel, brushSize, false);
+            layerOptionsDiv.classList.remove("unchecked-layer-settings");
+            layerOptionsDiv.classList.add("checked-layer-settings");
+            this.createOpacitySlider(layer, layerOptionsDiv.parentElement.parentElement, layerOptionsDiv.parentElement);
         }
         else
         {
-            this.mousePressed = false;
+            layerOptionsDiv.classList.remove("checked-layer-settings");
+            layerOptionsDiv.classList.add("unchecked-layer-settings");
+            this.destroyOpacitySlider(layer);
         }
     }
 
-    setupPointPainting (canvas, evt)
-    {
-        var point,
-            horizontalMove = false,
-            mousePos = this.getMousePos(canvas, evt),
-            relativeCoords = this.getRelativeCoordinates(mousePos.x, mousePos.y);
-
-        if (Math.abs(relativeCoords.x - this.lastRelCoordsX) >= Math.abs(relativeCoords.y - this.lastRelCoordsY))
-            horizontalMove = true;
-
-        if (!this.mousePressed)
-            return;
-
-        if (!this.isInPageBounds(relativeCoords.x, relativeCoords.y))
-            return;
-
-        if (!this.keyboardChangingLayers)
-        {
-            let pageIndex = this.core.getSettings().currentPageIndex;
-            let zoomLevel = this.core.getSettings().zoomLevel;
-
-            if (this.mousePressed && this.shiftDown)
-            {
-                if (!horizontalMove)
-                    point = new Point(this.lastRelCoordsX, relativeCoords.y, pageIndex);
-
-                else
-                    point = new Point(relativeCoords.x, this.lastRelCoordsY, pageIndex);
-            }
-            else
-            {
-                point = new Point(relativeCoords.x, relativeCoords.y, pageIndex);
-            }
-            let brushSize = this.layers[this.selectedLayer].getCurrentPath().brushSize;
-            this.layers[this.selectedLayer].addToCurrentPath(point);
-            this.drawPath(this.layers[this.selectedLayer], point, pageIndex, zoomLevel, brushSize, true);
-            return;
-        }
-        this.initializeNewPath(canvas, evt);
-        this.keyboardChangingLayers = false;
-    }
-
-    initializeRectanglePreview (canvas, evt)
-    {
-        let pageIndex = this.core.getSettings().currentPageIndex,
-            mousePos = this.getMousePos(canvas, evt),
-            relativeCoords = this.getRelativeCoordinates(mousePos.x, mousePos.y);
-
-        if (this.isInPageBounds(relativeCoords.x, relativeCoords.y))
-        {
-            let selectedLayer = this.layers[this.selectedLayer];
-            selectedLayer.addShapeToLayer(new Rectangle(new Point(relativeCoords.x,relativeCoords.y,pageIndex), 0, 0));
-            this.actions.push(new Action(selectedLayer.getCurrentShape(), selectedLayer));
-
-            this.repaint();
-        }
-    }
-
-    rectanglePreview (canvas, evt)
-    {
-        if (this.mousePressed)
-        {
-            let mousePos = this.getMousePos(canvas, evt),
-                relativeCoords = this.getRelativeCoordinates(mousePos.x, mousePos.y),
-                lastShape = this.layers[this.selectedLayer].getCurrentShape();
-
-            if (this.isInPageBounds(relativeCoords.x, relativeCoords.y))
-            {
-                // If cursor is to the south east or north west of the point of origin
-                if ((relativeCoords.x < lastShape.origin.relativeOriginX && relativeCoords.y < lastShape.origin.relativeOriginY)
-                    || (relativeCoords.x > lastShape.origin.relativeOriginX && relativeCoords.y > lastShape.origin.relativeOriginY))
-                {
-                    let lastWidth = lastShape.relativeRectWidth;
-                    lastShape.relativeRectWidth = relativeCoords.x - lastShape.origin.relativeOriginX;
-
-                    if (this.shiftDown)
-                    {
-                        let squareInBounds = this.isInPageBounds(lastShape.origin.relativeOriginX + lastShape.relativeRectWidth,
-                            lastShape.origin.relativeOriginY + lastShape.relativeRectWidth);
-
-                        if (squareInBounds)
-                        {
-                            lastShape.relativeRectHeight = lastShape.relativeRectWidth;
-                        }
-                        else
-                        {
-                            lastShape.relativeRectWidth = lastWidth;
-                        }
-                    }
-                    else
-                    {
-                        lastShape.relativeRectHeight = relativeCoords.y - lastShape.origin.relativeOriginY;
-                    }
-                }
-                else        // If cursor to the north east or south west of the point of origin
-                {
-                    let lastWidth = lastShape.relativeRectWidth;
-                    lastShape.relativeRectWidth = relativeCoords.x - lastShape.origin.relativeOriginX;
-
-                    if (this.shiftDown)
-                    {
-                        let squareInBounds = this.isInPageBounds(lastShape.origin.relativeOriginX + lastShape.relativeRectWidth,
-                            lastShape.origin.relativeOriginY - lastShape.relativeRectWidth);
-
-                        if (squareInBounds)
-                        {
-                            lastShape.relativeRectHeight = - lastShape.relativeRectWidth;
-                        }
-                        else
-                        {
-                            lastShape.relativeRectWidth = lastWidth;
-                        }
-                    }
-                    else
-                    {
-                        lastShape.relativeRectHeight = relativeCoords.y - lastShape.origin.relativeOriginY;
-                    }
-                }
-
-
-                this.repaint();
-            }
-        }
-    }
+    /**
+     * -----------------------------------------------
+     *                   Undo / Redo
+     * -----------------------------------------------
+     **/
 
     redoAction ()
     {
@@ -913,7 +777,6 @@ export default class PixelPlugin
             this.repaint();
         }
     }
-
 
     undoAction ()
     {
@@ -944,6 +807,192 @@ export default class PixelPlugin
         }
     }
 
+    /**
+     * ===============================================
+     *                   Drawing
+     * ===============================================
+     **/
+
+    // Specify the class of the selected div. CSS takes care of the rest
+    highlightSelectedLayer (layerType)
+    {
+        this.layers.forEach ((layer) =>
+        {
+            // Not triple equality because layer.LayerType and layerDiv value are of different types
+            if (layer.layerId == layerType)
+            {
+                let div = document.getElementById("layer-" + layer.layerId + "-selector");
+
+                if (!div.hasAttribute("selected-layer"))
+                    div.classList.add("selected-layer");
+                this.selectedLayerIndex = this.layers.indexOf(layer);
+            }
+            else
+            {
+                let div = document.getElementById("layer-" + layer.layerId + "-selector");
+                if (div.classList.contains("selected-layer"))
+                    div.classList.remove("selected-layer");
+            }
+        });
+    }
+
+    initializeNewPath (canvas, evt)
+    {
+        let pageIndex = this.core.getSettings().currentPageIndex,
+            zoomLevel = this.core.getSettings().zoomLevel,
+            mousePos = this.getMousePos(canvas, evt),
+            relativeCoords = this.getRelativeCoordinatesFromPadded(mousePos.x, mousePos.y);
+
+        // Make sure user is not drawing outside of a diva page
+        if (this.isInPageBounds(relativeCoords.x, relativeCoords.y))
+        {
+            let selectedLayer = this.layers[this.selectedLayerIndex],
+                point = new Point(relativeCoords.x, relativeCoords.y, pageIndex),
+                brushSize = document.getElementById("brush-size-selector").value / 10;
+
+            this.lastRelCoordX = relativeCoords.x;
+            this.lastRelCoordY = relativeCoords.y;
+
+            // Create New Path in Layer
+            selectedLayer.createNewPath(brushSize);
+            selectedLayer.addToCurrentPath(point);
+
+            // Add path to list of actions (used for undo/redo)
+            this.actions.push(new Action(selectedLayer.getCurrentPath(), selectedLayer));
+            this.drawPath(selectedLayer, point, pageIndex, zoomLevel, brushSize, false);
+        }
+        else
+        {
+            this.mousePressed = false;
+        }
+    }
+
+    setupPointPainting (canvas, evt)
+    {
+        let point,
+            horizontalMove = false,
+            mousePos = this.getMousePos(canvas, evt),
+            relativeCoords = this.getRelativeCoordinatesFromPadded(mousePos.x, mousePos.y);
+
+        // FIXME: direction of line drawing should be calculated only after the first shift button press
+        // Right now it is being caluclated at every point
+        if (Math.abs(relativeCoords.x - this.lastRelCoordX) >= Math.abs(relativeCoords.y - this.lastRelCoordY))
+            horizontalMove = true;
+
+        if (!this.mousePressed)
+            return;
+
+        if (!this.isInPageBounds(relativeCoords.x, relativeCoords.y))
+            return;
+
+        if (!this.layerChangedMidDraw)
+        {
+            let pageIndex = this.core.getSettings().currentPageIndex,
+                zoomLevel = this.core.getSettings().zoomLevel;
+
+            if (this.mousePressed && this.shiftDown)
+            {
+                if (!horizontalMove)
+                    point = new Point(this.lastRelCoordX, relativeCoords.y, pageIndex);
+                else
+                    point = new Point(relativeCoords.x, this.lastRelCoordY, pageIndex);
+            }
+            else
+            {
+                point = new Point(relativeCoords.x, relativeCoords.y, pageIndex);
+            }
+
+            // Draw path with new point
+            let brushSize = this.layers[this.selectedLayerIndex].getCurrentPath().brushSize;
+            this.layers[this.selectedLayerIndex].addToCurrentPath(point);
+            this.drawPath(this.layers[this.selectedLayerIndex], point, pageIndex, zoomLevel, brushSize, true);
+            return;
+        }
+
+        // If layer changed mid drawing then create a new path on selected layer
+        this.initializeNewPath(canvas, evt);
+        this.layerChangedMidDraw = false;
+    }
+
+    initializeRectanglePreview (canvas, evt)
+    {
+        let pageIndex = this.core.getSettings().currentPageIndex,
+            mousePos = this.getMousePos(canvas, evt),
+            relativeCoords = this.getRelativeCoordinatesFromPadded(mousePos.x, mousePos.y);
+
+        if (this.isInPageBounds(relativeCoords.x, relativeCoords.y))
+        {
+            let selectedLayer = this.layers[this.selectedLayerIndex];
+            selectedLayer.addShapeToLayer(new Rectangle(new Point(relativeCoords.x,relativeCoords.y,pageIndex), 0, 0));
+            this.actions.push(new Action(selectedLayer.getCurrentShape(), selectedLayer));
+            this.repaint();
+        }
+    }
+
+    rectanglePreview (canvas, evt)
+    {
+        if (this.mousePressed)
+        {
+            let mousePos = this.getMousePos(canvas, evt),
+                relativeCoords = this.getRelativeCoordinatesFromPadded(mousePos.x, mousePos.y),
+                lastShape = this.layers[this.selectedLayerIndex].getCurrentShape();
+
+            if (!this.isInPageBounds(relativeCoords.x, relativeCoords.y))
+                return;
+
+            // If cursor is to the main diagonal (south east or north west of the point of origin)
+            if (this.isInMainDiagonal(relativeCoords, lastShape))
+            {
+                let lastWidth = lastShape.relativeRectWidth;
+                lastShape.relativeRectWidth = relativeCoords.x - lastShape.origin.relativeOriginX;
+
+                // Draw a square on shift down
+                if (this.shiftDown)
+                {
+                    let squareInBounds = this.isInPageBounds(lastShape.origin.relativeOriginX + lastShape.relativeRectWidth,
+                        lastShape.origin.relativeOriginY + lastShape.relativeRectWidth);
+
+                    if (squareInBounds)
+                        lastShape.relativeRectHeight = lastShape.relativeRectWidth;
+                    else
+                        lastShape.relativeRectWidth = lastWidth;
+                }
+                else
+                    lastShape.relativeRectHeight = relativeCoords.y - lastShape.origin.relativeOriginY;
+            }
+            else        // If cursor is to the antidiagonal (north east or south west of the point of origin)
+            {
+                let lastWidth = lastShape.relativeRectWidth;
+                lastShape.relativeRectWidth = relativeCoords.x - lastShape.origin.relativeOriginX;
+
+                if (this.shiftDown)
+                {
+                    let squareInBounds = this.isInPageBounds(lastShape.origin.relativeOriginX + lastShape.relativeRectWidth,
+                        lastShape.origin.relativeOriginY - lastShape.relativeRectWidth);
+
+                    if (squareInBounds)
+                        lastShape.relativeRectHeight = - lastShape.relativeRectWidth;
+                    else
+                        lastShape.relativeRectWidth = lastWidth;
+                }
+                else
+                    lastShape.relativeRectHeight = relativeCoords.y - lastShape.origin.relativeOriginY;
+            }
+            this.repaint();
+        }
+    }
+
+    // TODO: Generalize so that function returns any general relative position using enums
+    isInMainDiagonal (relativeCoords, lastShape)
+    {
+        if (relativeCoords.x < lastShape.origin.relativeOriginX && relativeCoords.y < lastShape.origin.relativeOriginY)
+            return true;
+        else if (relativeCoords.x > lastShape.origin.relativeOriginX && relativeCoords.y > lastShape.origin.relativeOriginY)
+            return true;
+
+        return false;
+    }
+
     repaint ()
     {
         this.drawHighlights(this.core.getSettings().zoomLevel);
@@ -951,30 +1000,23 @@ export default class PixelPlugin
 
     isInPageBounds (relativeX, relativeY)
     {
+        let pageIndex = this.core.getSettings().currentPageIndex,
+            zoomLevel = this.core.getSettings().zoomLevel,
+            renderer  = this.core.getSettings().renderer;
+
         let pageDimensions = this.core.publicInstance.getCurrentPageDimensionsAtCurrentZoomLevel(),
-            absolutePageOrigin = this.getAbsoluteCoordinates(0,0),
+            absolutePageOrigin = new Point(0,0).getAbsolutePaddedCoordinates(zoomLevel,pageIndex,renderer),
             absolutePageWidthOffset = pageDimensions.width + absolutePageOrigin.x,  //Taking into account the padding, etc...
             absolutePageHeightOffset = pageDimensions.height + absolutePageOrigin.y,
-            relativeBounds = this.getRelativeCoordinates(absolutePageWidthOffset, absolutePageHeightOffset);
+            relativeBounds = this.getRelativeCoordinatesFromPadded(absolutePageWidthOffset, absolutePageHeightOffset);
 
         if (relativeX < 0 || relativeY < 0 || relativeX > relativeBounds.x || relativeY > relativeBounds.y)
-        {
             return false;
-        }
+
         return true;
     }
 
-    getMousePos (canvas, evt)
-    {
-        let rect = canvas.getBoundingClientRect();
-
-        return {
-            x: evt.clientX - rect.left,
-            y: evt.clientY - rect.top
-        };
-    }
-
-    getRelativeCoordinates (highlightXOffset, highlightYOffset)
+    getRelativeCoordinatesFromPadded (paddedX, paddedY)
     {
         let pageIndex = this.core.getSettings().currentPageIndex,
             zoomLevel = this.core.getSettings().zoomLevel,
@@ -986,36 +1028,12 @@ export default class PixelPlugin
 
         // Calculates where the highlights should be drawn as a function of the whole webpage coordinates
         // (to make it look like it is on top of a page in Diva)
-        let absoluteRectOriginX = highlightXOffset - renderer._getImageOffset(pageIndex).left + renderer._viewport.left -  viewportPaddingX,
-            absoluteRectOriginY = highlightYOffset - renderer._getImageOffset(pageIndex).top + renderer._viewport.top - viewportPaddingY;
+        let absoluteRectOriginX = paddedX - renderer._getImageOffset(pageIndex).left + renderer._viewport.left -  viewportPaddingX,
+            absoluteRectOriginY = paddedY - renderer._getImageOffset(pageIndex).top + renderer._viewport.top - viewportPaddingY;
 
         return{
             x: absoluteRectOriginX/scaleRatio,
             y: absoluteRectOriginY/scaleRatio
-        };
-    }
-
-    getAbsoluteCoordinates (relativeX, relativeY)
-    {
-        let pageIndex = this.core.getSettings().currentPageIndex,
-            zoomLevel = this.core.getSettings().zoomLevel,
-            renderer = this.core.getSettings().renderer,
-            scaleRatio = Math.pow(2, zoomLevel);
-
-        const viewportPaddingX = Math.max(0, (renderer._viewport.width - renderer.layout.dimensions.width) / 2);
-        const viewportPaddingY = Math.max(0, (renderer._viewport.height - renderer.layout.dimensions.height) / 2);
-
-        let absoluteX = relativeX * scaleRatio,
-            absoluteY = relativeY * scaleRatio;
-
-        // Calculates where the highlights should be drawn as a function of the whole webpage coordinates
-        // (to make it look like it is on top of a page in Diva)
-        let absoluteOffsetX = renderer._getImageOffset(pageIndex).left - renderer._viewport.left + viewportPaddingX + absoluteX,
-            absoluteOffsetY = renderer._getImageOffset(pageIndex).top - renderer._viewport.top + viewportPaddingY + absoluteY;
-
-        return{
-            x: absoluteOffsetX,
-            y: absoluteOffsetY
         };
     }
 
@@ -1024,97 +1042,84 @@ export default class PixelPlugin
         let renderer = this.core.getSettings().renderer,
             scaleRatio = Math.pow(2, zoomLevel);
 
-        const viewportPaddingX = Math.max(0, (renderer._viewport.width - renderer.layout.dimensions.width) / 2);
-        const viewportPaddingY = Math.max(0, (renderer._viewport.height - renderer.layout.dimensions.height) / 2);
+        if (!pageIndex === point.pageIndex)
+            return;
 
-        // The following absolute values are experimental values to highlight the square on the first page of Salzinnes, CDN-Hsmu M2149.L4
-        // The relative values are used to scale the highlights according to the zoom level on the page itself
-        let absoluteRectOriginX = point.relativeOriginX * scaleRatio,
-            absoluteRectOriginY = point.relativeOriginY * scaleRatio;
+        // Calculates where the highlights should be drawn as a function of the whole webpage coordinates
+        // (to make it look like it is on top of a page in Diva)
+        let absolutePaddedCoords = point.getAbsolutePaddedCoordinates(zoomLevel, pageIndex, renderer);
 
-        // This indicates the page on top of which the highlights are supposed to be drawn
-        let highlightPageIndex = point.pageIndex;
+        let highlightXOffset = absolutePaddedCoords.x,
+            highlightYOffset = absolutePaddedCoords.y;
 
-        if (pageIndex === highlightPageIndex)
+        if (isDown)
         {
-            // Calculates where the highlights should be drawn as a function of the whole webpage coordinates
-            // (to make it look like it is on top of a page in Diva)
-            let highlightXOffset = renderer._getImageOffset(pageIndex).left - renderer._viewport.left + viewportPaddingX + absoluteRectOriginX,
-                highlightYOffset = renderer._getImageOffset(pageIndex).top - renderer._viewport.top + viewportPaddingY + absoluteRectOriginY;
-
-            if (isDown)
-            {
-                this._ctx.beginPath();
-                this._ctx.strokeStyle = layer.colour.toString();
-                this._ctx.lineWidth = brushSize * scaleRatio;
-                this._ctx.lineJoin = "round";
-                this._ctx.moveTo(this.lastX, this.lastY);
-                this._ctx.lineTo(highlightXOffset, highlightYOffset);
-                this._ctx.closePath();
-                this._ctx.stroke();
-            }
-
-            this.lastX = highlightXOffset;
-            this.lastY = highlightYOffset;
+            this._ctx.beginPath();
+            this._ctx.strokeStyle = layer.colour.toHTMLColour();
+            this._ctx.lineWidth = brushSize * scaleRatio;
+            this._ctx.lineJoin = "round";
+            this._ctx.moveTo(this.lastAbsX, this.lastAbsY);
+            this._ctx.lineTo(highlightXOffset, highlightYOffset);
+            this._ctx.closePath();
+            this._ctx.stroke();
         }
+
+        this.lastAbsX = highlightXOffset;
+        this.lastAbsY = highlightYOffset;
     }
 
     fillPath(layer, point1, point2, zoomLevel, pageIndex, brushSize)
     {
-        let renderer = this.core.getSettings().renderer;
-        let scaleRatio = Math.pow(2,zoomLevel);
-        let lineWidth = brushSize;
-        let absoluteLineWidth = lineWidth * scaleRatio;
+        let renderer = this.core.getSettings().renderer,
+            scaleRatio = Math.pow(2,zoomLevel),
+            lineWidth = brushSize,
+            absoluteLineWidth = lineWidth * scaleRatio,
+            highlightPageIndex = point1.pageIndex;
 
-        // This indicates the page on top of which the highlights are supposed to be drawn
-        let highlightPageIndex = point1.pageIndex;
+        if (!pageIndex === highlightPageIndex)
+            return;
 
-        if (pageIndex === highlightPageIndex)
-        {
-            //new Line(point1, point2, brushSize, "round").draw(this.layers[4],pageIndex,zoomLevel,this.core.getSettings().renderer);
+        // Calculates where the highlights should be drawn as a function of the whole webpage coordinates
+        // (to make it look like it is on top of a page in Diva)
+        let point1highlightOffset = point1.getAbsolutePaddedCoordinates(zoomLevel, pageIndex, renderer);
+        var point2highlightOffset = point2.getAbsolutePaddedCoordinates(zoomLevel,pageIndex,renderer);
 
-            // Calculates where the highlights should be drawn as a function of the whole webpage coordinates
-            // (to make it look like it is on top of a page in Diva)
-            let point1highlightOffset = point1.getAbsolutePaddedCoordinates(zoomLevel, pageIndex, renderer);
-            var point2highlightOffset = point2.getAbsolutePaddedCoordinates(zoomLevel,pageIndex,renderer);
+        new Circle(point1, lineWidth/2).getPixels(layer, pageIndex, zoomLevel, renderer, this.matrix);
+        new Circle(point2, lineWidth/2).getPixels(layer, pageIndex, zoomLevel, renderer, this.matrix);
 
-            new Circle(point1, lineWidth/2).getPixels(layer, pageIndex, zoomLevel, renderer, this.matrix);
-            new Circle(point2, lineWidth/2).getPixels(layer, pageIndex, zoomLevel, renderer, this.matrix);
+        let ang = new Line(point1, point2).getAngleRad(zoomLevel,pageIndex,renderer);
 
-            let ang = new Line(point1, point2).getAngleRad(zoomLevel,pageIndex,renderer);
+        // find the first point on the circumference that is orthogonal
+        // to the line intersecting the two circle origos
 
-            // find the first point on the circumference that is orthogonal
-            // to the line intersecting the two circle origos
+        // These are values with padding
+        var start1 = {
+            absolutePaddedX: point1highlightOffset.x + Math.cos(ang + Math.PI / 2) * absoluteLineWidth / 2,
+            absolutePaddedY: point1highlightOffset.y + Math.sin(ang + Math.PI / 2) * absoluteLineWidth / 2
+        };
+        var end1 = {
+            absolutePaddedX: point2highlightOffset.x + Math.cos(ang + Math.PI / 2) * absoluteLineWidth / 2,
+            absolutePaddedY: point2highlightOffset.y + Math.sin(ang + Math.PI / 2) * absoluteLineWidth / 2
+        };
 
-            // These are values with padding
-            var start1 = {
-                absolutePaddedX: point1highlightOffset.x + Math.cos(ang + Math.PI / 2) * absoluteLineWidth / 2,
-                absolutePaddedY: point1highlightOffset.y + Math.sin(ang + Math.PI / 2) * absoluteLineWidth / 2
-            };
-            var end1 = {
-                absolutePaddedX: point2highlightOffset.x + Math.cos(ang + Math.PI / 2) * absoluteLineWidth / 2,
-                absolutePaddedY: point2highlightOffset.y + Math.sin(ang + Math.PI / 2) * absoluteLineWidth / 2
-            };
+        // find the second point on the circumference that is orthogonal
+        // to the line intersecting the two circle origos
+        var start2 = {
+            absolutePaddedX: point1highlightOffset.x + Math.cos(ang - Math.PI / 2) * absoluteLineWidth / 2,
+            absolutePaddedY: point1highlightOffset.y + Math.sin(ang - Math.PI / 2) * absoluteLineWidth / 2
+        };
+        var end2 = {
+            absolutePaddedX: point2highlightOffset.x + Math.cos(ang - Math.PI / 2) * absoluteLineWidth / 2,
+            absolutePaddedY: point2highlightOffset.y + Math.sin(ang - Math.PI / 2) * absoluteLineWidth / 2
+        };
 
-            // find the second point on the circumference that is orthogonal
-            // to the line intersecting the two circle origos
-            var start2 = {
-                absolutePaddedX: point1highlightOffset.x + Math.cos(ang - Math.PI / 2) * absoluteLineWidth / 2,
-                absolutePaddedY: point1highlightOffset.y + Math.sin(ang - Math.PI / 2) * absoluteLineWidth / 2
-            };
-            var end2 = {
-                absolutePaddedX: point2highlightOffset.x + Math.cos(ang - Math.PI / 2) * absoluteLineWidth / 2,
-                absolutePaddedY: point2highlightOffset.y + Math.sin(ang - Math.PI / 2) * absoluteLineWidth / 2
-            };
+        // 1. get ymax and ymin
+        let ymax = Math.round(Math.max(start1.absolutePaddedY, start2.absolutePaddedY, end1.absolutePaddedY, end2.absolutePaddedY));
+        let ymin = Math.round(Math.min(start1.absolutePaddedY, start2.absolutePaddedY, end1.absolutePaddedY, end2.absolutePaddedY));
+        let pairOfEdges = [[start1, end1], [start2, end2], [start1, start2], [end1, end2]];
 
-            // 1. get ymax and ymin
-            let ymax = Math.round(Math.max(start1.absolutePaddedY, start2.absolutePaddedY, end1.absolutePaddedY, end2.absolutePaddedY));
-            let ymin = Math.round(Math.min(start1.absolutePaddedY, start2.absolutePaddedY, end1.absolutePaddedY, end2.absolutePaddedY));
-            let pairOfEdges = [[start1, end1], [start2, end2], [start1, start2], [end1, end2]];
-
-            // Logic for scanning lines
-            new Shape().getPixels(layer, pageIndex, zoomLevel, renderer, ymax, ymin, pairOfEdges, this.matrix);
-        }
+        // Logic for polygon fill using scan lines
+        new Shape().getPixels(layer, pageIndex, zoomLevel, renderer, ymax, ymin, pairOfEdges, this.matrix);
     }
 
     drawHighlights (zoomLevel)
@@ -1126,19 +1131,15 @@ export default class PixelPlugin
         {
             this.layers.forEach((layer) =>
             {
-                let shapes = layer.shapes;
-
-                shapes.forEach((shape) =>
+                layer.shapes.forEach((shape) =>
                     {
                         shape.draw(layer, pageIndex, zoomLevel, this.core.getSettings().renderer, this._ctx);
                     }
                 );
 
-                let paths = layer.paths;
-                paths.forEach((path) =>
+                layer.paths.forEach((path) =>
                     {
                         let isDown = false;
-
                         path.points.forEach((point) =>
                         {
                             this.drawPath(layer, point, pageIndex, zoomLevel, path.brushSize, isDown);
@@ -1156,7 +1157,6 @@ export default class PixelPlugin
         // let renderer = this.core.getSettings().renderer;
         let rowlen = this.matrix[0].length;
 
-
         for (var row = 0; row < this.matrix.length; row++)
         {
             for (var col = 0; col < rowlen; col++)
@@ -1165,9 +1165,9 @@ export default class PixelPlugin
                 {
                     this.layers.forEach((layer) =>
                     {
-                        if (layer.layerType === this.matrix[row][col])
+                        if (layer.layerId === this.matrix[row][col])
                         {
-                            this._ctx.fillStyle = layer.colour.toString();
+                            this._ctx.fillStyle = layer.colour.toHTMLColour();
                             this._ctx.beginPath();
                             this._ctx.arc(col, row, 0.2, 0, 2 * Math.PI);
                             this._ctx.fill();
@@ -1208,16 +1208,13 @@ export default class PixelPlugin
 
         this.layers.forEach((layer) =>
         {
-            let shapes = layer.shapes;
-
-            shapes.forEach((shape) =>
+            layer.shapes.forEach((shape) =>
                 {
                     shape.getPixels(layer, pageIndex, maxZoomLevel, this.core.getSettings().renderer, this.matrix);
                 }
             );
 
-            let paths = layer.paths;
-            paths.forEach((path) =>
+            layer.paths.forEach((path) =>
                 {
                     for (let index = 0; index < path.points.length - 1; index++)
                     {
@@ -1268,7 +1265,7 @@ export class Shape
         {
             let intersectionPoints = [];
 
-            // For every line
+            // For every line calculate the intersection edges
             for (var e = 0; e < pairOfEdges.length; e++)
             {
                 // Calculate intersection with line
@@ -1300,27 +1297,28 @@ export class Shape
             });
 
             // Start filling
-            if (intersectionPoints.length > 0)
+            if (!intersectionPoints.length > 0)
+                return;
+
+            for (var index = 0; index < intersectionPoints.length - 1; index++)
             {
-                for (var index = 0; index < intersectionPoints.length - 1; index++)
+                // Draw from the first intersection to the next, stop drawing until you see a new intersection line
+                if (index % 2 === 0)
                 {
-                    if (index%2 === 0)
+                    let start = intersectionPoints[index].absolutePaddedX; // This will contain the start of the x coords to fill
+                    let end = intersectionPoints[index + 1].absolutePaddedX;    // This will contain the end of the x coords to fill
+                    let y = intersectionPoints[index].absolutePaddedY;
+
+                    for (var fill = start; fill < end; fill++)
                     {
-                        let start = intersectionPoints[index].absolutePaddedX; // This will contain the start of the x coords to fill
-                        let end = intersectionPoints[index + 1].absolutePaddedX;    // This will contain the end of the x coords to fill
+                        // Remove padding to get absolute coordinates
+                        let absoluteCoords = new Point().getAbsoluteCoordinatesFromPadded(pageIndex,renderer,fill,y);
 
-                        let y = intersectionPoints[index].absolutePaddedY;
-
-                        for (var fill = start; fill < end; fill++)
+                        // Necessary check because sometimes the brush draws outside of a page because of brush width
+                        if (absoluteCoords.y >= 0 && absoluteCoords.x >= 0
+                            && absoluteCoords.y <= matrix.length && absoluteCoords.x <= matrix[0].length)
                         {
-                            // Remove padding to get absolute coordinates
-                            let absoluteCoords = new Point().getAbsoluteCoordinatesFromPadded(pageIndex,renderer,fill,y);
-
-                            if (absoluteCoords.y >= 0 && absoluteCoords.x >= 0
-                                && absoluteCoords.y <= matrix.length && absoluteCoords.x <= matrix[0].length)
-                            {
-                                matrix[absoluteCoords.y][absoluteCoords.x] = layer.layerType;
-                            }
+                            matrix[absoluteCoords.y][absoluteCoords.x] = layer.layerId;
                         }
                     }
                 }
@@ -1355,7 +1353,7 @@ export class Circle extends Shape
             let absoluteCenterWithPadding = this.origin.getAbsolutePaddedCoordinates(zoomLevel, pageIndex, renderer);
 
             //Draw the circle
-            ctx.fillStyle = layer.colour.toString();
+            ctx.fillStyle = layer.colour.toHTMLColour();
             ctx.beginPath();
             ctx.arc(absoluteCenterWithPadding.x,absoluteCenterWithPadding.y, this.relativeRadius * scaleRatio,0,2*Math.PI);
             ctx.fill();
@@ -1386,7 +1384,6 @@ export class Circle extends Shape
                 x <= circleRight.getAbsolutePaddedCoordinates(zoomLevel, pageIndex, renderer).x; x++){
                 let point1highlightOffset = this.origin.getAbsolutePaddedCoordinates(zoomLevel, pageIndex, renderer);
 
-
                 let shiftedX = x - point1highlightOffset.x;
                 let shiftedY = y - point1highlightOffset.y;
 
@@ -1397,7 +1394,7 @@ export class Circle extends Shape
                     if (absoluteCoords.y >= 0 && absoluteCoords.x >= 0
                         && absoluteCoords.y <= matrix.length && absoluteCoords.x <= matrix[0].length)
                     {
-                        matrix[absoluteCoords.y][absoluteCoords.x] = layer.layerType;
+                        matrix[absoluteCoords.y][absoluteCoords.x] = layer.layerId;
                     }
                 }
             }
@@ -1443,7 +1440,7 @@ export class Rectangle extends Shape
                 highlightYOffset = renderer._getImageOffset(pageIndex).top - renderer._viewport.top + viewportPaddingY + absoluteRectOriginY;
 
             //Draw the rectangle
-            ctx.fillStyle = layer.colour.toString();
+            ctx.fillStyle = layer.colour.toHTMLColour();
             ctx.fillRect(highlightXOffset, highlightYOffset,absoluteRectWidth,absoluteRectHeight);
         }
     }
@@ -1475,7 +1472,7 @@ export class Rectangle extends Shape
                 for(var col = Math.round(Math.min(absoluteRectOriginX, absoluteRectOriginX + absoluteRectWidth)); col < Math.max(absoluteRectOriginX, absoluteRectOriginX + absoluteRectWidth); col++)
                 {
                     if (row >= 0 && col >= 0 && row <= matrix.length && col <= matrix[0].length)
-                        matrix[row][col] = layer.layerType;
+                        matrix[row][col] = layer.layerId;
                 }
             }
         }
@@ -1494,6 +1491,11 @@ export class Path
     addPointToPath (point)
     {
         this.points.push(point);
+    }
+
+    draw ()
+    {
+
     }
 }
 
@@ -1623,7 +1625,7 @@ export class Line extends Shape
         let endPointAbsoluteCoordsWithPadding = this.endPoint.getAbsolutePaddedCoordinates(zoomLevel, pageIndex, renderer);
 
         ctx.beginPath();
-        ctx.strokeStyle = layer.colour.toString();
+        ctx.strokeStyle = layer.colour.toHTMLColour();
         ctx.lineWidth = this.lineWidth * scaleRatio;
         ctx.lineJoin = this.lineJoin;
         ctx.moveTo(startPointAbsoluteCoordsWithPadding.x, startPointAbsoluteCoordsWithPadding.y);
@@ -1653,10 +1655,10 @@ export class Colour
     }
 
     /**
-     * Turns the red, green, blue and opacity values into an HTML color
+     * Turns the red, green, blue and opacity values into an HTML colour
      * @returns {string}
      */
-    toString ()
+    toHTMLColour ()
     {
         return "rgba(" + this.red +  ", " + this.green + ", " + this.blue + ", " + this.opacity + ")";
     }
@@ -1681,19 +1683,24 @@ export class Colour
             hexString = hexString.concat("0");
         hexString = hexString.concat(blue);
 
-
         return hexString;
     }
 }
 
 export class Layer
 {
-    constructor (layerType, colour)
+    constructor (layerId, colour, layerName)
     {
-        this.layerType = layerType;
+        this.layerId = layerId;
         this.shapes = [];
         this.paths = [];
         this.colour = colour;
+        this.layerName = layerName;
+    }
+
+    updateLayerName(newLayerName)
+    {
+        this.layerName = newLayerName;
     }
 
     addShapeToLayer (shape)
@@ -1714,8 +1721,8 @@ export class Layer
     {
         if (this.paths.length === 0)
         {
-            let brushSizeSelector = document.getElementById("brush size selector");
-            this.createNewPath(brushSizeSelector.value/10);
+            let brushSizeSelector = document.getElementById("brush-size-selector");
+            this.createNewPath(brushSizeSelector.value / 10);
         }
         this.paths[this.paths.length - 1].addPointToPath(point);
     }

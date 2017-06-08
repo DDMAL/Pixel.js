@@ -1,11 +1,11 @@
 /*Stylizing Pixel*/
-.layerDiv {
+.layer-div {
   position: relative;
 }
-.layerDiv input {
+.layer-div input {
   padding-left: 35px;
 }
-.layerDiv .color-box {
+.layer-div .color-box {
   width: 10px;
   height: 10px;
   display: inline-block;
@@ -36,7 +36,7 @@
   top: 5px;
 }
 
-.layerDiv .unchecked-layer-settings {
+.layer-div .unchecked-layer-settings {
   width: 0;
   height: 0;
   display: inline-block;
@@ -48,7 +48,7 @@
   border-color: transparent transparent transparent #000000;
 }
 
-.layerDiv .checked-layer-settings {
+.layer-div .checked-layer-settings {
   width: 0;
   height: 0;
   display: inline-block;
