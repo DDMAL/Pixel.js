@@ -24,7 +24,7 @@ export default class PixelPlugin
         this.keyboardPress = false;
         this.lastX, this.lastY;
         this.selectedLayerIndex = 0;
-        this.keyboardChangingLayers = false;
+        this.keyboardPressedMidDraw = false;
         this.actions = [];
         this.undoneActions = [];
         this.shiftDown = false;
@@ -74,8 +74,6 @@ export default class PixelPlugin
     {
         // this.tutorial();
 
-        console.log("Test");
-
         if (this.layers === null)
         {
             // Start by creating layers
@@ -117,16 +115,16 @@ export default class PixelPlugin
         this.activated = false;
     }
 
-    disableDragScrollable ()
-    {
-        if (!this.core.viewerState.viewportObject.hasAttribute('nochilddrag'))
-            this.core.viewerState.viewportObject.setAttribute('nochilddrag', "");
-    }
-
     enableDragScrollable ()
     {
         if (this.core.viewerState.viewportObject.hasAttribute('nochilddrag'))
             this.core.viewerState.viewportObject.removeAttribute('nochilddrag');
+    }
+
+    disableDragScrollable ()
+    {
+        if (!this.core.viewerState.viewportObject.hasAttribute('nochilddrag'))
+            this.core.viewerState.viewportObject.setAttribute('nochilddrag', "");
     }
 
     /**
@@ -147,8 +145,6 @@ export default class PixelPlugin
 
     subscribeToScrollEvent()
     {
-        this.drawHighlights(this.core.getSettings().zoomLevel);
-
         let handle = Diva.Events.subscribe('ViewerDidScroll', () =>
         {
             this.drawHighlights(this.core.getSettings().zoomLevel);
@@ -170,6 +166,7 @@ export default class PixelPlugin
         canvas.addEventListener('mouseleave', this.mouseUp);
         canvas.addEventListener('mousemove', this.mouseMove);
 
+        // Used for unsubscription
         this.mouseHandles = {
             mouseDownHandle: this.mouseDown,
             mouseMoveHandle: this.mouseMove,
@@ -179,64 +176,13 @@ export default class PixelPlugin
 
     subscribeToKeyboardEvents ()
     {
-        this.handleKeyUp = (e) =>
-        {
-            const KEY_1 = 49;
-            const KEY_9 = 56;
-            const SHIFT_KEY = 16;
-
-            let lastLayer = this.selectedLayerIndex,
-                numberOfLayers = this.layers.length,
-                key = e.keyCode ? e.keyCode : e.which;
-
-            if (key >= KEY_1 && key < KEY_1 + numberOfLayers && key <= KEY_9)
-            {
-                this.highlightSelectedLayer(key - KEY_1);
-
-                if (lastLayer !== this.selectedLayerIndex && this.mousePressed)
-                    this.keyboardChangingLayers = true;
-            }
-            if (key === SHIFT_KEY)
-                this.shiftDown = false;
-        };
-
-        this.handleKeyDown = (e) =>
-        {
-            if (e.code === "KeyZ" && e.shiftKey === false)
-            {
-                this.undoAction();
-            }
-            else if (e.code === "KeyZ" && e.shiftKey === true)
-            {
-                this.redoAction();
-            }
-            else if (e.key === "Shift")
-            {
-                this.shiftDown = true;
-            }
-            else if (e.key === "b")
-            {
-                this.disableDragScrollable();
-                this.currentTool = "brush";
-                document.getElementById(this.currentTool).checked = true;
-            }
-            else if (e.key === "r")
-            {
-                this.disableDragScrollable();
-                this.currentTool = "rectangle";
-                document.getElementById(this.currentTool).checked = true;
-            }
-            else if (e.key === "g")
-            {
-                this.enableDragScrollable();
-                this.currentTool = "grab";
-                document.getElementById(this.currentTool).checked = true;
-            }
-        };
+        this.handleKeyUp = (e) => { this.onKeyUp(e); };
+        this.handleKeyDown = (e) => { this.onKeyDown(e); };
 
         document.addEventListener("keyup", this.handleKeyUp);
         document.addEventListener("keydown", this.handleKeyDown);
 
+        // Used for unsubscription
         this.keyboardHandles = {
             keyup: this.handleKeyUp,
             keydown: this.handleKeyDown
@@ -266,58 +212,7 @@ export default class PixelPlugin
 
     /**
      * ===============================================
-     *           Drag & Drop Layers Events
-     * ===============================================
-     **/
-
-    dragStart (event)
-    {
-        event.dataTransfer.setData("Text", event.target.id);
-    }
-
-    dragging (event)
-    {
-
-    }
-
-    allowDrop (event)
-    {
-        event.preventDefault();
-    }
-
-    drop (event, departureLayerIndex, destinationLayerIndex)
-    {
-        event.preventDefault();
-        var tempLayerStorage;
-
-        tempLayerStorage = this.layers[departureLayerIndex];
-
-        if (departureLayerIndex > destinationLayerIndex)
-        {
-            for (let i = 1; i <= (departureLayerIndex - destinationLayerIndex); i++)
-            {
-                this.layers[departureLayerIndex - i + 1] = this.layers[departureLayerIndex - i];
-            }
-            this.layers[destinationLayerIndex] = tempLayerStorage;
-        }
-
-        else if (departureLayerIndex < destinationLayerIndex)
-        {
-            for (let i = 1; i <= (destinationLayerIndex - departureLayerIndex); i++)
-            {
-                this.layers[departureLayerIndex - 1 + i] = this.layers[parseFloat(departureLayerIndex) + i];
-            }
-            this.layers[destinationLayerIndex] = tempLayerStorage;
-        }
-        this.destroyPluginElements(this.layers);
-        this.createPluginElements(this.layers);
-        this.repaint();
-    }
-
-
-    /**
-     * ===============================================
-     *                HTML UI Elements
+     *            Creating HTML UI Elements
      * ===============================================
      **/
 
@@ -343,23 +238,24 @@ export default class PixelPlugin
         this.destroyToolsView(["brush", "rectangle", "grab"]);
     }
 
-    // Tools are strings or enums masalan
-    createToolsView(tools)
+    // Tools are strings or enums
+    createToolsView (tools)
     {
         let form = document.createElement("form");
-        form.setAttribute("id", "tool selector");
+        form.setAttribute("id", "tool-selector");
 
+        // Create an element for each tool and
         for (var index = 0; index < tools.length; index++)
         {
-            let tool = tools[index],
-                radio = document.createElement("input"),
-                content = document.createTextNode(tool),
-                br = document.createElement("br");
+            let tool = tools[index];
+            let radio = document.createElement("input");
+            let content = document.createTextNode(tool);
+            let br = document.createElement("br");
 
             radio.setAttribute("id", tool);
             radio.setAttribute("type", "radio");
             radio.setAttribute("value", tool);
-            radio.setAttribute("name", "tool selector");
+            radio.setAttribute("name", "tool-selector");
             radio.onclick = () =>
             {
                 this.currentTool = radio.value;
@@ -371,9 +267,10 @@ export default class PixelPlugin
                     this.disableDragScrollable();
             };
 
+            // TODO: this.selectedTool (fixes tool selection after deactivating and activating plugin)
+            // Currently on reactivation, selected radio button does not correspond to tool
             if (tool === "brush")      // Layer at position 0 is checked by default
                 radio.checked = true;
-
 
             form.appendChild(radio);
             form.appendChild(content);
@@ -382,66 +279,38 @@ export default class PixelPlugin
         document.body.appendChild(form);
     }
 
-    destroyToolsView()
+    destroyToolsView ()
     {
-        let form = document.getElementById("tool selector");
-        document.body.removeChild(form);
+        let form = document.getElementById("tool-selector");
+        form.parentNode.removeChild(form);
     }
 
-    createPixelCanvas()
+    createPixelCanvas ()
     {
         this._canvas = document.createElement('canvas');
-        this._canvas.setAttribute("id", "pixelCanvas");
+        this._canvas.setAttribute("id", "pixel-canvas");
         this._canvas.setAttribute("style", "position: absolute; top: 0; left: 0;");
         this._canvas.width = this.core.getSettings().renderer._canvas.width;
         this._canvas.height = this.core.getSettings().renderer._canvas.height;
         this._ctx = this._canvas.getContext('2d');
-        let div = document.getElementById('diva-1-outer');
-        div.insertBefore(this._canvas, div.firstChild.nextSibling);
+
+        // pixel canvas has to be placed on top of diva canvas and before the diva-viewport
+        // This means it should be appended as its next sibling
+        // Otherwise it will block diva's scrolling functionality
+        let divaCanvas = this.core.getSettings().renderer._canvas;
+        divaCanvas.parentNode.insertBefore(this._canvas, divaCanvas.nextSibling);
     }
 
-    destroyPixelCanvas()
+    destroyPixelCanvas ()
     {
-        let div = document.getElementById('diva-1-outer');
-        div.removeChild(this._canvas);
-    }
-
-    createIcon ()
-    {
-        const pageToolsIcon = document.createElement('div');
-        pageToolsIcon.classList.add('diva-pixel-icon');
-
-        let root = document.createElementNS("http://www.w3.org/2000/svg", "svg");
-        root.setAttribute("x", "0px");
-        root.setAttribute("y", "0px");
-        root.setAttribute("viewBox", "0 0 25 25");
-        root.id = `${this.core.settings.selector}pixel-icon`;
-
-        let g = document.createElementNS("http://www.w3.org/2000/svg", "g");
-        g.id = `${this.core.settings.selector}pixel-icon-glyph`;
-        g.setAttribute("transform", "matrix(1, 0, 0, 1, -11.5, -11.5)");
-        g.setAttribute("class", "diva-pagetool-icon");
-
-        //Placeholder icon
-        let rect = document.createElementNS("http://www.w3.org/2000/svg", "rect");
-        rect.setAttribute('x', '15');
-        rect.setAttribute('y', '10');
-        rect.setAttribute('width', '25');
-        rect.setAttribute('height', 25);
-
-        g.appendChild(rect);
-        root.appendChild(g);
-
-        pageToolsIcon.appendChild(root);
-
-        return pageToolsIcon;
+        this._canvas.parentNode.removeChild(this._canvas);
     }
 
     createOpacitySlider (layer, parentElement, referenceNode)
     {
         var opacitySlider = document.createElement("input");
 
-        opacitySlider.setAttribute("id", "layer" + layer.layerId + "opacity");
+        opacitySlider.setAttribute("id", "layer-" + layer.layerId + "-opacity-slider");
         opacitySlider.setAttribute("type", "range");
         opacitySlider.setAttribute('max', 100);
         opacitySlider.setAttribute('min', 0);
@@ -449,7 +318,7 @@ export default class PixelPlugin
         opacitySlider.setAttribute("draggable", "false");
         opacitySlider.addEventListener("input", () =>
         {
-            layer.setOpacity(opacitySlider.value/100);
+            layer.setOpacity(opacitySlider.value / 100);
             this.repaint();
         });
 
@@ -458,38 +327,41 @@ export default class PixelPlugin
 
     destroyOpacitySlider (layer)
     {
-        let opacitySlider = document.getElementById("layer" + layer.layerId + "opacity");
+        let opacitySlider = document.getElementById("layer-" + layer.layerId + "-opacity-slider");
         opacitySlider.parentElement.removeChild(opacitySlider);
     }
 
     createLayerSelectors (layers)
     {
-        var departureIndex,
-            destinationIndex;
+        let departureIndex;
+        let destinationIndex;
 
-        let RETURN_KEY = 13;
+        const RETURN_KEY = 13;
 
-        let form = document.createElement("form");
-        form.setAttribute("id", "layer selector");
+        let layersViewDiv = document.createElement("div");
+        layersViewDiv.setAttribute("id", "layers-view");
 
-        //Backwards because layers' display should be the same as visual "z-index" priority
+        // Backwards because layers' display should be the same as visual "z-index" priority (depth)
         for (var index = layers.length - 1; index >= 0; index--)
         {
-            let layer = layers[index],
-                layerDiv = document.createElement("div"),
-                layerName = document.createElement("input"),
-                layerToolsDiv = document.createElement("div"),
-                colourDiv = document.createElement("div");
+            let layer = layers[index];
+            let layerDiv = document.createElement("div");
+            let layerName = document.createElement("input");
+            let layerToolsDiv = document.createElement("div");
+            let colourDiv = document.createElement("div");
 
             layerDiv.setAttribute("class", "layerDiv");
             layerDiv.setAttribute("id", "Layer " + layer.layerId + " Selector");
             layerDiv.setAttribute("value", layer.layerId);
             layerDiv.setAttribute("index", index);
             layerDiv.setAttribute("draggable", "true");
+
             layerName.setAttribute("type", "text");
             layerName.setAttribute("value", layer.layerName);
+
             colourDiv.setAttribute("class", "color-box");
             colourDiv.setAttribute("style", "background-color: " + layer.colour.toHexString() + ";");
+
             layerToolsDiv.setAttribute("class", "unchecked-layer-settings");
             layerToolsDiv.setAttribute("id", "Layer " + layer.layerId + " Tools");
 
@@ -564,16 +436,16 @@ export default class PixelPlugin
             layerDiv.appendChild(layerName);
             layerDiv.appendChild(layerToolsDiv);
             layerDiv.appendChild(colourDiv);
-            form.appendChild(layerDiv);
+            layersViewDiv.appendChild(layerDiv);
         }
 
-        document.body.appendChild(form);
+        document.body.appendChild(layersViewDiv);
     }
 
     destroyLayerSelectors ()
     {
-        let form = document.getElementById("layer selector");
-        form.parentNode.removeChild(form);
+        let layersViewDiv = document.getElementById("layers-view");
+        layersViewDiv.parentNode.removeChild(layersViewDiv);
     }
 
     createBrushSizeSelector ()
@@ -658,6 +530,157 @@ export default class PixelPlugin
         let exportButton = document.getElementById("export button");
         document.body.removeChild(exportButton);
     }
+
+    createIcon ()
+    {
+        const pageToolsIcon = document.createElement('div');
+        pageToolsIcon.classList.add('diva-pixel-icon');
+
+        let root = document.createElementNS("http://www.w3.org/2000/svg", "svg");
+        root.setAttribute("x", "0px");
+        root.setAttribute("y", "0px");
+        root.setAttribute("viewBox", "0 0 25 25");
+        root.id = `${this.core.settings.selector}pixel-icon`;
+
+        let g = document.createElementNS("http://www.w3.org/2000/svg", "g");
+        g.id = `${this.core.settings.selector}pixel-icon-glyph`;
+        g.setAttribute("transform", "matrix(1, 0, 0, 1, -11.5, -11.5)");
+        g.setAttribute("class", "diva-pagetool-icon");
+
+        //Placeholder icon
+        let rect = document.createElementNS("http://www.w3.org/2000/svg", "rect");
+        rect.setAttribute('x', '15');
+        rect.setAttribute('y', '10');
+        rect.setAttribute('width', '25');
+        rect.setAttribute('height', 25);
+
+        g.appendChild(rect);
+        root.appendChild(g);
+
+        pageToolsIcon.appendChild(root);
+
+        return pageToolsIcon;
+    }
+
+
+    /**
+     * ===============================================
+     *       Handling Keyboard and Mouse Events
+     * ===============================================
+     **/
+
+    /**
+     * -----------------------------------------------
+     *         Layer reordering (Drag and Drop)
+     * -----------------------------------------------
+     **/
+
+    // Determines which element is being picked up
+    dragStart (event)
+    {
+        event.dataTransfer.setData("Text", event.target.id);
+    }
+
+    dragging (event)
+    {
+        // Do nothing
+    }
+
+    // Mark area as a drop zone on hover
+    allowDrop (event)
+    {
+        event.preventDefault();
+    }
+
+    drop (event, departureLayerIndex, destinationLayerIndex)
+    {
+        event.preventDefault();
+        let tempLayerStorage = this.layers[departureLayerIndex];
+
+        if (departureLayerIndex > destinationLayerIndex)
+        {
+            for (let i = 1; i <= (departureLayerIndex - destinationLayerIndex); i++)
+            {
+                this.layers[departureLayerIndex - i + 1] = this.layers[departureLayerIndex - i];
+            }
+            this.layers[destinationLayerIndex] = tempLayerStorage;
+        }
+
+        else if (departureLayerIndex < destinationLayerIndex)
+        {
+            for (let i = 1; i <= (destinationLayerIndex - departureLayerIndex); i++)
+            {
+                this.layers[departureLayerIndex - 1 + i] = this.layers[parseFloat(departureLayerIndex) + i];
+            }
+            this.layers[destinationLayerIndex] = tempLayerStorage;
+        }
+        this.destroyPluginElements(this.layers);
+        this.createPluginElements(this.layers);
+        this.repaint();
+    }
+
+    /**
+     * -----------------------------------------------
+     *                Keyboard Hotkeys
+     * -----------------------------------------------
+     **/
+
+    onKeyUp (e)
+    {
+        const KEY_1 = 49;
+        const KEY_9 = 56;
+        const SHIFT_KEY = 16;
+
+        let lastLayer = this.selectedLayerIndex;
+        let numberOfLayers = this.layers.length;
+        let key = e.keyCode ? e.keyCode : e.which;
+
+        if (key >= KEY_1 && key < KEY_1 + numberOfLayers && key <= KEY_9)
+        {
+            this.highlightSelectedLayer(key - KEY_1);
+
+            if (lastLayer !== this.selectedLayerIndex && this.mousePressed)
+                this.keyboardPressedMidDraw = true;
+        }
+        if (key === SHIFT_KEY)
+            this.shiftDown = false;
+    };
+
+    onKeyDown (e)
+    {
+        // Cmd + Shift + Z
+        if (e.code === "KeyZ" && e.shiftKey === false)
+        {
+            this.undoAction();
+        }
+        // Cmd + Z
+        else if (e.code === "KeyZ" && e.shiftKey === true)
+        {
+            this.redoAction();
+        }
+        else if (e.key === "Shift")
+        {
+            this.shiftDown = true;
+        }
+        else if (e.key === "b")
+        {
+            this.disableDragScrollable();
+            this.currentTool = "brush";
+            document.getElementById(this.currentTool).checked = true;
+        }
+        else if (e.key === "r")
+        {
+            this.disableDragScrollable();
+            this.currentTool = "rectangle";
+            document.getElementById(this.currentTool).checked = true;
+        }
+        else if (e.key === "g")
+        {
+            this.enableDragScrollable();
+            this.currentTool = "grab";
+            document.getElementById(this.currentTool).checked = true;
+        }
+    };
 
     /**
      * ===============================================
@@ -787,7 +810,7 @@ export default class PixelPlugin
         if (!this.isInPageBounds(relativeCoords.x, relativeCoords.y))
             return;
 
-        if (!this.keyboardChangingLayers)
+        if (!this.keyboardPressedMidDraw)
         {
             let pageIndex = this.core.getSettings().currentPageIndex;
             let zoomLevel = this.core.getSettings().zoomLevel;
@@ -810,7 +833,7 @@ export default class PixelPlugin
             return;
         }
         this.initializeNewPath(canvas, evt);
-        this.keyboardChangingLayers = false;
+        this.keyboardPressedMidDraw = false;
     }
 
     initializeRectanglePreview (canvas, evt)
