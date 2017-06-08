@@ -248,10 +248,10 @@ export default class PixelPlugin
         // Create an element for each tool and
         for (var index = 0; index < tools.length; index++)
         {
-            let tool = tools[index];
-            let radio = document.createElement("input");
-            let content = document.createTextNode(tool);
-            let br = document.createElement("br");
+            let tool = tools[index],
+                radio = document.createElement("input"),
+                content = document.createTextNode(tool),
+                br = document.createElement("br");
 
             radio.setAttribute("id", tool);
             radio.setAttribute("type", "radio");
@@ -334,8 +334,7 @@ export default class PixelPlugin
 
     createLayerSelectors (layers)
     {
-        let departureIndex;
-        let destinationIndex;
+        let departureIndex, destinationIndex;
 
         let layersViewDiv = document.createElement("div");
         layersViewDiv.setAttribute("id", "layers-view");
@@ -343,11 +342,11 @@ export default class PixelPlugin
         // Backwards because layers' display should be the same as visual "z-index" priority (depth)
         for (var index = layers.length - 1; index >= 0; index--)
         {
-            let layer = layers[index];
-            let layerDiv = document.createElement("div");
-            let colourDiv = document.createElement("div");
-            let layerName = document.createElement("input");
-            let layerOptionsDiv = document.createElement("div");
+            let layer = layers[index],
+                layerDiv = document.createElement("div"),
+                colourDiv = document.createElement("div"),
+                layerName = document.createElement("input"),
+                layerOptionsDiv = document.createElement("div");
 
             layerDiv.setAttribute("index", index);
             layerDiv.setAttribute("draggable", "true");
@@ -395,7 +394,6 @@ export default class PixelPlugin
             layerDiv.appendChild(colourDiv);
             layersViewDiv.appendChild(layerDiv);
         }
-
         document.body.appendChild(layersViewDiv);
     }
 
@@ -425,8 +423,8 @@ export default class PixelPlugin
 
     createUndoButton ()
     {
-        let undoButton = document.createElement("button");
-        let text = document.createTextNode("Undo");
+        let undoButton = document.createElement("button"),
+            text = document.createTextNode("Undo");
 
         this.undo = () => { this.undoAction(); };
 
@@ -445,8 +443,8 @@ export default class PixelPlugin
 
     createRedoButton ()
     {
-        let redoButton = document.createElement("button");
-        let text = document.createTextNode("Redo");
+        let redoButton = document.createElement("button"),
+            text = document.createTextNode("Redo");
 
         this.redo = () => { this.redoAction(); };
 
@@ -465,8 +463,8 @@ export default class PixelPlugin
 
     createExportButton ()
     {
-        let exportButton = document.createElement("button");
-        let text = document.createTextNode("Export as Matrix");
+        let exportButton = document.createElement("button"),
+            text = document.createTextNode("Export as Matrix");
 
         this.export = () => { this.populateMatrix(); };
 
@@ -575,7 +573,7 @@ export default class PixelPlugin
 
     /**
      * -----------------------------------------------
-     *                Keyboard Hotkeys
+     *                Keyboard Events
      * -----------------------------------------------
      **/
 
@@ -585,9 +583,9 @@ export default class PixelPlugin
         const KEY_9 = 56;
         const SHIFT_KEY = 16;
 
-        let lastLayer = this.selectedLayerIndex;
-        let numberOfLayers = this.layers.length;
-        let key = e.keyCode ? e.keyCode : e.which;
+        let lastLayer = this.selectedLayerIndex,
+            numberOfLayers = this.layers.length,
+            key = e.keyCode ? e.keyCode : e.which;
 
         if (key >= KEY_1 && key < KEY_1 + numberOfLayers && key <= KEY_9)
         {
@@ -649,6 +647,78 @@ export default class PixelPlugin
             // TODO: Subscribe to other keyboard listeners
             this.layers[this.selectedLayerIndex].updateLayerName(layerName.value);
             layerName.setAttribute("readonly", "true");
+        }
+    }
+
+    /**
+     * -----------------------------------------------
+     *                Mouse Events
+     * -----------------------------------------------
+     **/
+
+    getMousePos (canvas, evt)
+    {
+        let rect = canvas.getBoundingClientRect();
+
+        return {
+            x: evt.clientX - rect.left,
+            y: evt.clientY - rect.top
+        };
+    }
+
+    onMouseDown (evt)
+    {
+        let canvas = document.getElementById("diva-1-outer");
+        switch (this.currentTool)
+        {
+            case "brush":
+                this.mousePressed = true;
+                this.initializeNewPath(canvas, evt);
+                break;
+            case "rectangle":
+                this.mousePressed = true;
+                this.initializeRectanglePreview(canvas, evt);
+                break;
+            case "grab":
+                this.mousePressed = true;
+                break;
+            default:
+                this.mousePressed = true;
+        }
+
+        // FIXME: At deactivation mouse is down so it clears the actions to redo
+        this.undoneActions = [];
+    }
+
+    onMouseMove (evt)
+    {
+        let canvas = document.getElementById("diva-1-outer");
+        switch (this.currentTool)
+        {
+            case "brush":
+                this.setupPointPainting(canvas, evt);
+                break;
+            case "rectangle":
+                this.rectanglePreview(canvas,evt);
+                break;
+            default:
+        }
+    }
+
+    onMouseUp (evt)
+    {
+        let canvas = document.getElementById("diva-1-outer");
+        switch (this.currentTool)
+        {
+            case "brush":
+                this.mousePressed = false;
+                this.repaint();
+                break;
+            case "rectangle":
+                this.mousePressed = false;
+                break;
+            default:
+                this.mousePressed = false;
         }
     }
 
@@ -743,62 +813,6 @@ export default class PixelPlugin
      * ===============================================
      **/
 
-    onMouseDown (evt)
-    {
-        let canvas = document.getElementById("diva-1-outer");
-        switch (this.currentTool)
-        {
-            case "brush":
-                this.mousePressed = true;
-                this.initializeNewPath(canvas, evt);
-                break;
-            case "rectangle":
-                this.mousePressed = true;
-                this.initializeRectanglePreview(canvas, evt);
-                break;
-            case "grab":
-                this.mousePressed = true;
-                break;
-            default:
-                this.mousePressed = true;
-        }
-
-        // FIXME: At deactivation mouse is down so it clears the actions to redo
-        this.undoneActions = [];
-    }
-
-    onMouseMove (evt)
-    {
-        let canvas = document.getElementById("diva-1-outer");
-        switch (this.currentTool)
-        {
-            case "brush":
-                this.setupPointPainting(canvas, evt);
-                break;
-            case "rectangle":
-                this.rectanglePreview(canvas,evt);
-                break;
-            default:
-        }
-    }
-
-    onMouseUp (evt)
-    {
-        let canvas = document.getElementById("diva-1-outer");
-        switch (this.currentTool)
-        {
-            case "brush":
-                this.mousePressed = false;
-                this.repaint();
-                break;
-            case "rectangle":
-                this.mousePressed = false;
-                break;
-            default:
-                this.mousePressed = false;
-        }
-    }
-
     // Specify the class of the selected div. CSS takes care of the rest
     highlightSelectedLayer (layerType)
     {
@@ -827,7 +841,7 @@ export default class PixelPlugin
         let pageIndex = this.core.getSettings().currentPageIndex,
             zoomLevel = this.core.getSettings().zoomLevel,
             mousePos = this.getMousePos(canvas, evt),
-            relativeCoords = this.getRelativeCoordinates(mousePos.x, mousePos.y);
+            relativeCoords = this.getRelativeCoordinatesFromPadded(mousePos.x, mousePos.y);
 
         // Make sure user is not drawing outside of a diva page
         if (this.isInPageBounds(relativeCoords.x, relativeCoords.y))
@@ -858,7 +872,7 @@ export default class PixelPlugin
         let point,
             horizontalMove = false,
             mousePos = this.getMousePos(canvas, evt),
-            relativeCoords = this.getRelativeCoordinates(mousePos.x, mousePos.y);
+            relativeCoords = this.getRelativeCoordinatesFromPadded(mousePos.x, mousePos.y);
 
         // FIXME: direction of line drawing should be calculated only after the first shift button press
         // Right now it is being caluclated at every point
@@ -873,8 +887,8 @@ export default class PixelPlugin
 
         if (!this.layerChangedMidDraw)
         {
-            let pageIndex = this.core.getSettings().currentPageIndex;
-            let zoomLevel = this.core.getSettings().zoomLevel;
+            let pageIndex = this.core.getSettings().currentPageIndex,
+                zoomLevel = this.core.getSettings().zoomLevel;
 
             if (this.mousePressed && this.shiftDown)
             {
@@ -904,14 +918,13 @@ export default class PixelPlugin
     {
         let pageIndex = this.core.getSettings().currentPageIndex,
             mousePos = this.getMousePos(canvas, evt),
-            relativeCoords = this.getRelativeCoordinates(mousePos.x, mousePos.y);
+            relativeCoords = this.getRelativeCoordinatesFromPadded(mousePos.x, mousePos.y);
 
         if (this.isInPageBounds(relativeCoords.x, relativeCoords.y))
         {
             let selectedLayer = this.layers[this.selectedLayerIndex];
             selectedLayer.addShapeToLayer(new Rectangle(new Point(relativeCoords.x,relativeCoords.y,pageIndex), 0, 0));
             this.actions.push(new Action(selectedLayer.getCurrentShape(), selectedLayer));
-
             this.repaint();
         }
     }
@@ -921,7 +934,7 @@ export default class PixelPlugin
         if (this.mousePressed)
         {
             let mousePos = this.getMousePos(canvas, evt),
-                relativeCoords = this.getRelativeCoordinates(mousePos.x, mousePos.y),
+                relativeCoords = this.getRelativeCoordinatesFromPadded(mousePos.x, mousePos.y),
                 lastShape = this.layers[this.selectedLayerIndex].getCurrentShape();
 
             if (!this.isInPageBounds(relativeCoords.x, relativeCoords.y))
@@ -987,11 +1000,15 @@ export default class PixelPlugin
 
     isInPageBounds (relativeX, relativeY)
     {
+        let pageIndex = this.core.getSettings().currentPageIndex,
+            zoomLevel = this.core.getSettings().zoomLevel,
+            renderer  = this.core.getSettings().renderer;
+
         let pageDimensions = this.core.publicInstance.getCurrentPageDimensionsAtCurrentZoomLevel(),
-            absolutePageOrigin = this.getAbsoluteCoordinates(0,0),
+            absolutePageOrigin = new Point(0,0).getAbsolutePaddedCoordinates(zoomLevel,pageIndex,renderer),
             absolutePageWidthOffset = pageDimensions.width + absolutePageOrigin.x,  //Taking into account the padding, etc...
             absolutePageHeightOffset = pageDimensions.height + absolutePageOrigin.y,
-            relativeBounds = this.getRelativeCoordinates(absolutePageWidthOffset, absolutePageHeightOffset);
+            relativeBounds = this.getRelativeCoordinatesFromPadded(absolutePageWidthOffset, absolutePageHeightOffset);
 
         if (relativeX < 0 || relativeY < 0 || relativeX > relativeBounds.x || relativeY > relativeBounds.y)
             return false;
@@ -999,17 +1016,7 @@ export default class PixelPlugin
         return true;
     }
 
-    getMousePos (canvas, evt)
-    {
-        let rect = canvas.getBoundingClientRect();
-
-        return {
-            x: evt.clientX - rect.left,
-            y: evt.clientY - rect.top
-        };
-    }
-
-    getRelativeCoordinates (highlightXOffset, highlightYOffset)
+    getRelativeCoordinatesFromPadded (paddedX, paddedY)
     {
         let pageIndex = this.core.getSettings().currentPageIndex,
             zoomLevel = this.core.getSettings().zoomLevel,
@@ -1021,8 +1028,8 @@ export default class PixelPlugin
 
         // Calculates where the highlights should be drawn as a function of the whole webpage coordinates
         // (to make it look like it is on top of a page in Diva)
-        let absoluteRectOriginX = highlightXOffset - renderer._getImageOffset(pageIndex).left + renderer._viewport.left -  viewportPaddingX,
-            absoluteRectOriginY = highlightYOffset - renderer._getImageOffset(pageIndex).top + renderer._viewport.top - viewportPaddingY;
+        let absoluteRectOriginX = paddedX - renderer._getImageOffset(pageIndex).left + renderer._viewport.left -  viewportPaddingX,
+            absoluteRectOriginY = paddedY - renderer._getImageOffset(pageIndex).top + renderer._viewport.top - viewportPaddingY;
 
         return{
             x: absoluteRectOriginX/scaleRatio,
@@ -1030,126 +1037,89 @@ export default class PixelPlugin
         };
     }
 
-    getAbsoluteCoordinates (relativeX, relativeY)
-    {
-        let pageIndex = this.core.getSettings().currentPageIndex,
-            zoomLevel = this.core.getSettings().zoomLevel,
-            renderer = this.core.getSettings().renderer,
-            scaleRatio = Math.pow(2, zoomLevel);
-
-        const viewportPaddingX = Math.max(0, (renderer._viewport.width - renderer.layout.dimensions.width) / 2);
-        const viewportPaddingY = Math.max(0, (renderer._viewport.height - renderer.layout.dimensions.height) / 2);
-
-        let absoluteX = relativeX * scaleRatio,
-            absoluteY = relativeY * scaleRatio;
-
-        // Calculates where the highlights should be drawn as a function of the whole webpage coordinates
-        // (to make it look like it is on top of a page in Diva)
-        let absoluteOffsetX = renderer._getImageOffset(pageIndex).left - renderer._viewport.left + viewportPaddingX + absoluteX,
-            absoluteOffsetY = renderer._getImageOffset(pageIndex).top - renderer._viewport.top + viewportPaddingY + absoluteY;
-
-        return{
-            x: absoluteOffsetX,
-            y: absoluteOffsetY
-        };
-    }
-    
     drawPath (layer, point, pageIndex, zoomLevel, brushSize, isDown)
     {
         let renderer = this.core.getSettings().renderer,
             scaleRatio = Math.pow(2, zoomLevel);
 
-        const viewportPaddingX = Math.max(0, (renderer._viewport.width - renderer.layout.dimensions.width) / 2);
-        const viewportPaddingY = Math.max(0, (renderer._viewport.height - renderer.layout.dimensions.height) / 2);
+        if (!pageIndex === point.pageIndex)
+            return;
 
-        // The following absolute values are experimental values to highlight the square on the first page of Salzinnes, CDN-Hsmu M2149.L4
-        // The relative values are used to scale the highlights according to the zoom level on the page itself
-        let absoluteRectOriginX = point.relativeOriginX * scaleRatio,
-            absoluteRectOriginY = point.relativeOriginY * scaleRatio;
+        // Calculates where the highlights should be drawn as a function of the whole webpage coordinates
+        // (to make it look like it is on top of a page in Diva)
+        let absolutePaddedCoords = point.getAbsolutePaddedCoordinates(zoomLevel, pageIndex, renderer);
 
-        // This indicates the page on top of which the highlights are supposed to be drawn
-        let highlightPageIndex = point.pageIndex;
+        let highlightXOffset = absolutePaddedCoords.x,
+            highlightYOffset = absolutePaddedCoords.y;
 
-        if (pageIndex === highlightPageIndex)
+        if (isDown)
         {
-            // Calculates where the highlights should be drawn as a function of the whole webpage coordinates
-            // (to make it look like it is on top of a page in Diva)
-            let highlightXOffset = renderer._getImageOffset(pageIndex).left - renderer._viewport.left + viewportPaddingX + absoluteRectOriginX,
-                highlightYOffset = renderer._getImageOffset(pageIndex).top - renderer._viewport.top + viewportPaddingY + absoluteRectOriginY;
-
-            if (isDown)
-            {
-                this._ctx.beginPath();
-                this._ctx.strokeStyle = layer.colour.toHTMLColour();
-                this._ctx.lineWidth = brushSize * scaleRatio;
-                this._ctx.lineJoin = "round";
-                this._ctx.moveTo(this.lastAbsX, this.lastAbsY);
-                this._ctx.lineTo(highlightXOffset, highlightYOffset);
-                this._ctx.closePath();
-                this._ctx.stroke();
-            }
-
-            this.lastAbsX = highlightXOffset;
-            this.lastAbsY = highlightYOffset;
+            this._ctx.beginPath();
+            this._ctx.strokeStyle = layer.colour.toHTMLColour();
+            this._ctx.lineWidth = brushSize * scaleRatio;
+            this._ctx.lineJoin = "round";
+            this._ctx.moveTo(this.lastAbsX, this.lastAbsY);
+            this._ctx.lineTo(highlightXOffset, highlightYOffset);
+            this._ctx.closePath();
+            this._ctx.stroke();
         }
+
+        this.lastAbsX = highlightXOffset;
+        this.lastAbsY = highlightYOffset;
     }
 
     fillPath(layer, point1, point2, zoomLevel, pageIndex, brushSize)
     {
-        let renderer = this.core.getSettings().renderer;
-        let scaleRatio = Math.pow(2,zoomLevel);
-        let lineWidth = brushSize;
-        let absoluteLineWidth = lineWidth * scaleRatio;
+        let renderer = this.core.getSettings().renderer,
+            scaleRatio = Math.pow(2,zoomLevel),
+            lineWidth = brushSize,
+            absoluteLineWidth = lineWidth * scaleRatio,
+            highlightPageIndex = point1.pageIndex;
 
-        // This indicates the page on top of which the highlights are supposed to be drawn
-        let highlightPageIndex = point1.pageIndex;
+        if (!pageIndex === highlightPageIndex)
+            return;
 
-        if (pageIndex === highlightPageIndex)
-        {
-            //new Line(point1, point2, brushSize, "round").draw(this.layers[4],pageIndex,zoomLevel,this.core.getSettings().renderer);
+        // Calculates where the highlights should be drawn as a function of the whole webpage coordinates
+        // (to make it look like it is on top of a page in Diva)
+        let point1highlightOffset = point1.getAbsolutePaddedCoordinates(zoomLevel, pageIndex, renderer);
+        var point2highlightOffset = point2.getAbsolutePaddedCoordinates(zoomLevel,pageIndex,renderer);
 
-            // Calculates where the highlights should be drawn as a function of the whole webpage coordinates
-            // (to make it look like it is on top of a page in Diva)
-            let point1highlightOffset = point1.getAbsolutePaddedCoordinates(zoomLevel, pageIndex, renderer);
-            var point2highlightOffset = point2.getAbsolutePaddedCoordinates(zoomLevel,pageIndex,renderer);
+        new Circle(point1, lineWidth/2).getPixels(layer, pageIndex, zoomLevel, renderer, this.matrix);
+        new Circle(point2, lineWidth/2).getPixels(layer, pageIndex, zoomLevel, renderer, this.matrix);
 
-            new Circle(point1, lineWidth/2).getPixels(layer, pageIndex, zoomLevel, renderer, this.matrix);
-            new Circle(point2, lineWidth/2).getPixels(layer, pageIndex, zoomLevel, renderer, this.matrix);
+        let ang = new Line(point1, point2).getAngleRad(zoomLevel,pageIndex,renderer);
 
-            let ang = new Line(point1, point2).getAngleRad(zoomLevel,pageIndex,renderer);
+        // find the first point on the circumference that is orthogonal
+        // to the line intersecting the two circle origos
 
-            // find the first point on the circumference that is orthogonal
-            // to the line intersecting the two circle origos
+        // These are values with padding
+        var start1 = {
+            absolutePaddedX: point1highlightOffset.x + Math.cos(ang + Math.PI / 2) * absoluteLineWidth / 2,
+            absolutePaddedY: point1highlightOffset.y + Math.sin(ang + Math.PI / 2) * absoluteLineWidth / 2
+        };
+        var end1 = {
+            absolutePaddedX: point2highlightOffset.x + Math.cos(ang + Math.PI / 2) * absoluteLineWidth / 2,
+            absolutePaddedY: point2highlightOffset.y + Math.sin(ang + Math.PI / 2) * absoluteLineWidth / 2
+        };
 
-            // These are values with padding
-            var start1 = {
-                absolutePaddedX: point1highlightOffset.x + Math.cos(ang + Math.PI / 2) * absoluteLineWidth / 2,
-                absolutePaddedY: point1highlightOffset.y + Math.sin(ang + Math.PI / 2) * absoluteLineWidth / 2
-            };
-            var end1 = {
-                absolutePaddedX: point2highlightOffset.x + Math.cos(ang + Math.PI / 2) * absoluteLineWidth / 2,
-                absolutePaddedY: point2highlightOffset.y + Math.sin(ang + Math.PI / 2) * absoluteLineWidth / 2
-            };
+        // find the second point on the circumference that is orthogonal
+        // to the line intersecting the two circle origos
+        var start2 = {
+            absolutePaddedX: point1highlightOffset.x + Math.cos(ang - Math.PI / 2) * absoluteLineWidth / 2,
+            absolutePaddedY: point1highlightOffset.y + Math.sin(ang - Math.PI / 2) * absoluteLineWidth / 2
+        };
+        var end2 = {
+            absolutePaddedX: point2highlightOffset.x + Math.cos(ang - Math.PI / 2) * absoluteLineWidth / 2,
+            absolutePaddedY: point2highlightOffset.y + Math.sin(ang - Math.PI / 2) * absoluteLineWidth / 2
+        };
 
-            // find the second point on the circumference that is orthogonal
-            // to the line intersecting the two circle origos
-            var start2 = {
-                absolutePaddedX: point1highlightOffset.x + Math.cos(ang - Math.PI / 2) * absoluteLineWidth / 2,
-                absolutePaddedY: point1highlightOffset.y + Math.sin(ang - Math.PI / 2) * absoluteLineWidth / 2
-            };
-            var end2 = {
-                absolutePaddedX: point2highlightOffset.x + Math.cos(ang - Math.PI / 2) * absoluteLineWidth / 2,
-                absolutePaddedY: point2highlightOffset.y + Math.sin(ang - Math.PI / 2) * absoluteLineWidth / 2
-            };
+        // 1. get ymax and ymin
+        let ymax = Math.round(Math.max(start1.absolutePaddedY, start2.absolutePaddedY, end1.absolutePaddedY, end2.absolutePaddedY));
+        let ymin = Math.round(Math.min(start1.absolutePaddedY, start2.absolutePaddedY, end1.absolutePaddedY, end2.absolutePaddedY));
+        let pairOfEdges = [[start1, end1], [start2, end2], [start1, start2], [end1, end2]];
 
-            // 1. get ymax and ymin
-            let ymax = Math.round(Math.max(start1.absolutePaddedY, start2.absolutePaddedY, end1.absolutePaddedY, end2.absolutePaddedY));
-            let ymin = Math.round(Math.min(start1.absolutePaddedY, start2.absolutePaddedY, end1.absolutePaddedY, end2.absolutePaddedY));
-            let pairOfEdges = [[start1, end1], [start2, end2], [start1, start2], [end1, end2]];
-
-            // Logic for scanning lines
-            new Shape().getPixels(layer, pageIndex, zoomLevel, renderer, ymax, ymin, pairOfEdges, this.matrix);
-        }
+        // Logic for polygon fill using scan lines
+        new Shape().getPixels(layer, pageIndex, zoomLevel, renderer, ymax, ymin, pairOfEdges, this.matrix);
     }
 
     drawHighlights (zoomLevel)
@@ -1161,19 +1131,15 @@ export default class PixelPlugin
         {
             this.layers.forEach((layer) =>
             {
-                let shapes = layer.shapes;
-
-                shapes.forEach((shape) =>
+                layer.shapes.forEach((shape) =>
                     {
                         shape.draw(layer, pageIndex, zoomLevel, this.core.getSettings().renderer, this._ctx);
                     }
                 );
 
-                let paths = layer.paths;
-                paths.forEach((path) =>
+                layer.paths.forEach((path) =>
                     {
                         let isDown = false;
-
                         path.points.forEach((point) =>
                         {
                             this.drawPath(layer, point, pageIndex, zoomLevel, path.brushSize, isDown);
@@ -1190,7 +1156,6 @@ export default class PixelPlugin
         // Need to implement a buffering page
         // let renderer = this.core.getSettings().renderer;
         let rowlen = this.matrix[0].length;
-
 
         for (var row = 0; row < this.matrix.length; row++)
         {
@@ -1243,16 +1208,13 @@ export default class PixelPlugin
 
         this.layers.forEach((layer) =>
         {
-            let shapes = layer.shapes;
-
-            shapes.forEach((shape) =>
+            layer.shapes.forEach((shape) =>
                 {
                     shape.getPixels(layer, pageIndex, maxZoomLevel, this.core.getSettings().renderer, this.matrix);
                 }
             );
 
-            let paths = layer.paths;
-            paths.forEach((path) =>
+            layer.paths.forEach((path) =>
                 {
                     for (let index = 0; index < path.points.length - 1; index++)
                     {
@@ -1303,7 +1265,7 @@ export class Shape
         {
             let intersectionPoints = [];
 
-            // For every line
+            // For every line calculate the intersection edges
             for (var e = 0; e < pairOfEdges.length; e++)
             {
                 // Calculate intersection with line
@@ -1335,27 +1297,28 @@ export class Shape
             });
 
             // Start filling
-            if (intersectionPoints.length > 0)
+            if (!intersectionPoints.length > 0)
+                return;
+
+            for (var index = 0; index < intersectionPoints.length - 1; index++)
             {
-                for (var index = 0; index < intersectionPoints.length - 1; index++)
+                // Draw from the first intersection to the next, stop drawing until you see a new intersection line
+                if (index % 2 === 0)
                 {
-                    if (index%2 === 0)
+                    let start = intersectionPoints[index].absolutePaddedX; // This will contain the start of the x coords to fill
+                    let end = intersectionPoints[index + 1].absolutePaddedX;    // This will contain the end of the x coords to fill
+                    let y = intersectionPoints[index].absolutePaddedY;
+
+                    for (var fill = start; fill < end; fill++)
                     {
-                        let start = intersectionPoints[index].absolutePaddedX; // This will contain the start of the x coords to fill
-                        let end = intersectionPoints[index + 1].absolutePaddedX;    // This will contain the end of the x coords to fill
+                        // Remove padding to get absolute coordinates
+                        let absoluteCoords = new Point().getAbsoluteCoordinatesFromPadded(pageIndex,renderer,fill,y);
 
-                        let y = intersectionPoints[index].absolutePaddedY;
-
-                        for (var fill = start; fill < end; fill++)
+                        // Necessary check because sometimes the brush draws outside of a page because of brush width
+                        if (absoluteCoords.y >= 0 && absoluteCoords.x >= 0
+                            && absoluteCoords.y <= matrix.length && absoluteCoords.x <= matrix[0].length)
                         {
-                            // Remove padding to get absolute coordinates
-                            let absoluteCoords = new Point().getAbsoluteCoordinatesFromPadded(pageIndex,renderer,fill,y);
-
-                            if (absoluteCoords.y >= 0 && absoluteCoords.x >= 0
-                                && absoluteCoords.y <= matrix.length && absoluteCoords.x <= matrix[0].length)
-                            {
-                                matrix[absoluteCoords.y][absoluteCoords.x] = layer.layerId;
-                            }
+                            matrix[absoluteCoords.y][absoluteCoords.x] = layer.layerId;
                         }
                     }
                 }
@@ -1420,7 +1383,6 @@ export class Circle extends Shape
             for(var  x = circleLeft.getAbsolutePaddedCoordinates(zoomLevel, pageIndex, renderer).x;
                 x <= circleRight.getAbsolutePaddedCoordinates(zoomLevel, pageIndex, renderer).x; x++){
                 let point1highlightOffset = this.origin.getAbsolutePaddedCoordinates(zoomLevel, pageIndex, renderer);
-
 
                 let shiftedX = x - point1highlightOffset.x;
                 let shiftedY = y - point1highlightOffset.y;
@@ -1529,6 +1491,11 @@ export class Path
     addPointToPath (point)
     {
         this.points.push(point);
+    }
+
+    draw ()
+    {
+
     }
 }
 
