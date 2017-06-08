@@ -23,7 +23,7 @@ export default class PixelPlugin
         this.mousePressed = false;
         this.keyboardPress = false;
         this.lastX, this.lastY;
-        this.selectedLayer = 0;
+        this.selectedLayerIndex = 0;
         this.keyboardChangingLayers = false;
         this.actions = [];
         this.undoneActions = [];
@@ -74,14 +74,16 @@ export default class PixelPlugin
     {
         // this.tutorial();
 
+        console.log("Test");
+
         if (this.layers === null)
         {
             // Start by creating layers
-            let layer1 = new Layer(0, new Colour(51, 102, 255, 0.8)),
-                layer2 = new Layer(1, new Colour(255, 51, 102, 0.8)),
-                layer3 = new Layer(2, new Colour(255, 255, 10, 0.8)),
-                layer4 = new Layer(3, new Colour(10, 180, 50, 0.8)),
-                layer5 = new Layer(4, new Colour(255, 137, 0, 0.8));
+            let layer1 = new Layer(0, new Colour(51, 102, 255, 0.8), "Layer 1"),
+                layer2 = new Layer(1, new Colour(255, 51, 102, 0.8), "Layer 2"),
+                layer3 = new Layer(2, new Colour(255, 255, 10, 0.8), "Layer 3"),
+                layer4 = new Layer(3, new Colour(10, 180, 50, 0.8), "Layer 4"),
+                layer5 = new Layer(4, new Colour(255, 137, 0, 0.8), "Layer 5");
 
             layer1.addShapeToLayer(new Rectangle(new Point(23, 42, 0), 24, 24));
             layer2.addShapeToLayer(new Rectangle(new Point(48, 50, 0), 57, 5));
@@ -183,7 +185,7 @@ export default class PixelPlugin
             const KEY_9 = 56;
             const SHIFT_KEY = 16;
 
-            let lastLayer = this.selectedLayer,
+            let lastLayer = this.selectedLayerIndex,
                 numberOfLayers = this.layers.length,
                 key = e.keyCode ? e.keyCode : e.which;
 
@@ -191,7 +193,7 @@ export default class PixelPlugin
             {
                 this.highlightSelectedLayer(key - KEY_1);
 
-                if (lastLayer !== this.selectedLayer && this.mousePressed)
+                if (lastLayer !== this.selectedLayerIndex && this.mousePressed)
                     this.keyboardChangingLayers = true;
             }
             if (key === SHIFT_KEY)
@@ -439,7 +441,7 @@ export default class PixelPlugin
     {
         var opacitySlider = document.createElement("input");
 
-        opacitySlider.setAttribute("id", "layer" + layer.layerType + "opacity");
+        opacitySlider.setAttribute("id", "layer" + layer.layerId + "opacity");
         opacitySlider.setAttribute("type", "range");
         opacitySlider.setAttribute('max', 100);
         opacitySlider.setAttribute('min', 0);
@@ -456,7 +458,7 @@ export default class PixelPlugin
 
     destroyOpacitySlider (layer)
     {
-        let opacitySlider = document.getElementById("layer" + layer.layerType + "opacity");
+        let opacitySlider = document.getElementById("layer" + layer.layerId + "opacity");
         opacitySlider.parentElement.removeChild(opacitySlider);
     }
 
@@ -480,18 +482,18 @@ export default class PixelPlugin
                 colourDiv = document.createElement("div");
 
             layerDiv.setAttribute("class", "layerDiv");
-            layerDiv.setAttribute("id", "Layer " + layer.layerType + " Selector");
-            layerDiv.setAttribute("value", layer.layerType);
+            layerDiv.setAttribute("id", "Layer " + layer.layerId + " Selector");
+            layerDiv.setAttribute("value", layer.layerId);
             layerDiv.setAttribute("index", index);
             layerDiv.setAttribute("draggable", "true");
             layerName.setAttribute("type", "text");
-            layerName.setAttribute("value", "Layer " + (layer.layerType + 1));
+            layerName.setAttribute("value", layer.layerName);
             colourDiv.setAttribute("class", "color-box");
             colourDiv.setAttribute("style", "background-color: " + layer.colour.toHexString() + ";");
             layerToolsDiv.setAttribute("class", "unchecked-layer-settings");
-            layerToolsDiv.setAttribute("id", "Layer " + layer.layerType + " Tools");
+            layerToolsDiv.setAttribute("id", "Layer " + layer.layerId + " Tools");
 
-            if (layer.layerType === this.selectedLayer)      // Layer at position 0 is checked by default
+            if (layer.layerId === this.selectedLayerIndex)      // Layer at position 0 is checked by default
                 layerDiv.classList.add("selected-layer");
 
             // Change Colour
@@ -499,10 +501,13 @@ export default class PixelPlugin
 
             // Only edit layer name on double click
             layerName.setAttribute("readonly", "true");
-            layerName.addEventListener('keypress', function (e) {
+            layerName.addEventListener('keypress', (e) =>
+            {
+                // TODO: Listen for changes when clicked outside of LayerName
                 var key = e.which || e.keyCode;
-                if (key === RETURN_KEY) {
-                    // Save new layer name
+                if (key === RETURN_KEY)
+                {
+                    this.layers[this.selectedLayerIndex].updateLayerName(layerName.value);
                     layerName.setAttribute("readonly", "true");
                 }
             });
@@ -518,8 +523,8 @@ export default class PixelPlugin
             layerDiv.ondrop = (event) =>
             {
                 this.drop(event, departureIndex, destinationIndex);
-                this.selectedLayer = destinationIndex;
-                this.highlightSelectedLayer(this.layers[this.selectedLayer].layerType); // Layer Type and not index
+                this.selectedLayerIndex = destinationIndex;
+                this.highlightSelectedLayer(this.layers[this.selectedLayerIndex].layerId); // Layer Type and not index
             };
 
             layerDiv.ondragover = (event) =>
@@ -721,17 +726,17 @@ export default class PixelPlugin
         this.layers.forEach ((layer) =>
         {
             // Not triple equality because layer.LayerType and layerDiv value are of different types
-            if (layer.layerType == layerType)
+            if (layer.layerId == layerType)
             {
-                let div = document.getElementById("Layer " + layer.layerType + " Selector");
+                let div = document.getElementById("Layer " + layer.layerId + " Selector");
 
                 if (!div.hasAttribute("selected-layer"))
                     div.classList.add("selected-layer");
-                this.selectedLayer = this.layers.indexOf(layer);
+                this.selectedLayerIndex = this.layers.indexOf(layer);
             }
             else
             {
-                let div = document.getElementById("Layer " + layer.layerType + " Selector");
+                let div = document.getElementById("Layer " + layer.layerId + " Selector");
                 if (div.classList.contains("selected-layer"))
                     div.classList.remove("selected-layer");
             }
@@ -747,7 +752,7 @@ export default class PixelPlugin
 
         if (this.isInPageBounds(relativeCoords.x, relativeCoords.y))
         {
-            let selectedLayer = this.layers[this.selectedLayer],
+            let selectedLayer = this.layers[this.selectedLayerIndex],
                 point = new Point(relativeCoords.x, relativeCoords.y, pageIndex),
                 brushSize = document.getElementById("brush size selector").value/10;
 
@@ -799,9 +804,9 @@ export default class PixelPlugin
             {
                 point = new Point(relativeCoords.x, relativeCoords.y, pageIndex);
             }
-            let brushSize = this.layers[this.selectedLayer].getCurrentPath().brushSize;
-            this.layers[this.selectedLayer].addToCurrentPath(point);
-            this.drawPath(this.layers[this.selectedLayer], point, pageIndex, zoomLevel, brushSize, true);
+            let brushSize = this.layers[this.selectedLayerIndex].getCurrentPath().brushSize;
+            this.layers[this.selectedLayerIndex].addToCurrentPath(point);
+            this.drawPath(this.layers[this.selectedLayerIndex], point, pageIndex, zoomLevel, brushSize, true);
             return;
         }
         this.initializeNewPath(canvas, evt);
@@ -816,7 +821,7 @@ export default class PixelPlugin
 
         if (this.isInPageBounds(relativeCoords.x, relativeCoords.y))
         {
-            let selectedLayer = this.layers[this.selectedLayer];
+            let selectedLayer = this.layers[this.selectedLayerIndex];
             selectedLayer.addShapeToLayer(new Rectangle(new Point(relativeCoords.x,relativeCoords.y,pageIndex), 0, 0));
             this.actions.push(new Action(selectedLayer.getCurrentShape(), selectedLayer));
 
@@ -830,7 +835,7 @@ export default class PixelPlugin
         {
             let mousePos = this.getMousePos(canvas, evt),
                 relativeCoords = this.getRelativeCoordinates(mousePos.x, mousePos.y),
-                lastShape = this.layers[this.selectedLayer].getCurrentShape();
+                lastShape = this.layers[this.selectedLayerIndex].getCurrentShape();
 
             if (this.isInPageBounds(relativeCoords.x, relativeCoords.y))
             {
@@ -1045,7 +1050,7 @@ export default class PixelPlugin
             if (isDown)
             {
                 this._ctx.beginPath();
-                this._ctx.strokeStyle = layer.colour.toString();
+                this._ctx.strokeStyle = layer.colour.toHTMLColour();
                 this._ctx.lineWidth = brushSize * scaleRatio;
                 this._ctx.lineJoin = "round";
                 this._ctx.moveTo(this.lastX, this.lastY);
@@ -1165,9 +1170,9 @@ export default class PixelPlugin
                 {
                     this.layers.forEach((layer) =>
                     {
-                        if (layer.layerType === this.matrix[row][col])
+                        if (layer.layerId === this.matrix[row][col])
                         {
-                            this._ctx.fillStyle = layer.colour.toString();
+                            this._ctx.fillStyle = layer.colour.toHTMLColour();
                             this._ctx.beginPath();
                             this._ctx.arc(col, row, 0.2, 0, 2 * Math.PI);
                             this._ctx.fill();
@@ -1319,7 +1324,7 @@ export class Shape
                             if (absoluteCoords.y >= 0 && absoluteCoords.x >= 0
                                 && absoluteCoords.y <= matrix.length && absoluteCoords.x <= matrix[0].length)
                             {
-                                matrix[absoluteCoords.y][absoluteCoords.x] = layer.layerType;
+                                matrix[absoluteCoords.y][absoluteCoords.x] = layer.layerId;
                             }
                         }
                     }
@@ -1355,7 +1360,7 @@ export class Circle extends Shape
             let absoluteCenterWithPadding = this.origin.getAbsolutePaddedCoordinates(zoomLevel, pageIndex, renderer);
 
             //Draw the circle
-            ctx.fillStyle = layer.colour.toString();
+            ctx.fillStyle = layer.colour.toHTMLColour();
             ctx.beginPath();
             ctx.arc(absoluteCenterWithPadding.x,absoluteCenterWithPadding.y, this.relativeRadius * scaleRatio,0,2*Math.PI);
             ctx.fill();
@@ -1397,7 +1402,7 @@ export class Circle extends Shape
                     if (absoluteCoords.y >= 0 && absoluteCoords.x >= 0
                         && absoluteCoords.y <= matrix.length && absoluteCoords.x <= matrix[0].length)
                     {
-                        matrix[absoluteCoords.y][absoluteCoords.x] = layer.layerType;
+                        matrix[absoluteCoords.y][absoluteCoords.x] = layer.layerId;
                     }
                 }
             }
@@ -1443,7 +1448,7 @@ export class Rectangle extends Shape
                 highlightYOffset = renderer._getImageOffset(pageIndex).top - renderer._viewport.top + viewportPaddingY + absoluteRectOriginY;
 
             //Draw the rectangle
-            ctx.fillStyle = layer.colour.toString();
+            ctx.fillStyle = layer.colour.toHTMLColour();
             ctx.fillRect(highlightXOffset, highlightYOffset,absoluteRectWidth,absoluteRectHeight);
         }
     }
@@ -1475,7 +1480,7 @@ export class Rectangle extends Shape
                 for(var col = Math.round(Math.min(absoluteRectOriginX, absoluteRectOriginX + absoluteRectWidth)); col < Math.max(absoluteRectOriginX, absoluteRectOriginX + absoluteRectWidth); col++)
                 {
                     if (row >= 0 && col >= 0 && row <= matrix.length && col <= matrix[0].length)
-                        matrix[row][col] = layer.layerType;
+                        matrix[row][col] = layer.layerId;
                 }
             }
         }
@@ -1623,7 +1628,7 @@ export class Line extends Shape
         let endPointAbsoluteCoordsWithPadding = this.endPoint.getAbsolutePaddedCoordinates(zoomLevel, pageIndex, renderer);
 
         ctx.beginPath();
-        ctx.strokeStyle = layer.colour.toString();
+        ctx.strokeStyle = layer.colour.toHTMLColour();
         ctx.lineWidth = this.lineWidth * scaleRatio;
         ctx.lineJoin = this.lineJoin;
         ctx.moveTo(startPointAbsoluteCoordsWithPadding.x, startPointAbsoluteCoordsWithPadding.y);
@@ -1653,10 +1658,10 @@ export class Colour
     }
 
     /**
-     * Turns the red, green, blue and opacity values into an HTML color
+     * Turns the red, green, blue and opacity values into an HTML colour
      * @returns {string}
      */
-    toString ()
+    toHTMLColour ()
     {
         return "rgba(" + this.red +  ", " + this.green + ", " + this.blue + ", " + this.opacity + ")";
     }
@@ -1681,19 +1686,24 @@ export class Colour
             hexString = hexString.concat("0");
         hexString = hexString.concat(blue);
 
-
         return hexString;
     }
 }
 
 export class Layer
 {
-    constructor (layerType, colour)
+    constructor (layerId, colour, layerName)
     {
-        this.layerType = layerType;
+        this.layerId = layerId;
         this.shapes = [];
         this.paths = [];
         this.colour = colour;
+        this.layerName = layerName;
+    }
+
+    updateLayerName(newLayerName)
+    {
+        this.layerName = newLayerName;
     }
 
     addShapeToLayer (shape)
