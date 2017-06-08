@@ -84,9 +84,11 @@ export default class PixelPlugin
                 layer4 = new Layer(3, new Colour(10, 180, 50, 0.8), "Layer 4"),
                 layer5 = new Layer(4, new Colour(255, 137, 0, 0.8), "Layer 5");
 
-            layer1.addShapeToLayer(new Rectangle(new Point(23, 42, 0), 24, 24));
-            layer2.addShapeToLayer(new Rectangle(new Point(48, 50, 0), 57, 5));
-            layer3.addShapeToLayer(new Rectangle(new Point(50, 80, 0), 50, 10));
+            layer1.addShapeToLayer(new Rectangle(new Point(23, 42, 0), 24, 24, "add"));
+            layer2.addShapeToLayer(new Rectangle(new Point(48, 50, 0), 57, 5, "add"));
+            layer3.addShapeToLayer(new Rectangle(new Point(50, 80, 0), 50, 10, "add"));
+
+            console.log(layer1);
 
             this.layers = [layer1, layer2, layer3, layer4, layer5];
         }
@@ -224,7 +226,7 @@ export default class PixelPlugin
         this.createRedoButton();
         this.createLayerSelectors(layers);
         this.createBrushSizeSelector();
-        this.createToolsView(["brush", "rectangle", "grab"]);
+        this.createToolsView(["brush", "rectangle", "grab", "erase"]);
         this.createExportButton();
     }
 
@@ -236,7 +238,7 @@ export default class PixelPlugin
         this.destroyRedoButton();
         this.destroyExportButton();
         this.destroyPixelCanvas();
-        this.destroyToolsView(["brush", "rectangle", "grab"]);
+        this.destroyToolsView(["brush", "rectangle", "grab", "erase"]);
     }
 
     // Tools are strings or enums
@@ -682,12 +684,37 @@ export default class PixelPlugin
             case "grab":
                 this.mousePressed = true;
                 break;
+            case "erase":
+                this.mousePressed = true;
+                this.erase(canvas, evt);
+                break;
             default:
                 this.mousePressed = true;
         }
 
         // FIXME: At deactivation mouse is down so it clears the actions to redo
         this.undoneActions = [];
+    }
+
+    erase (canvas, evt)
+    {
+        if (this.mousePressed)
+        {
+            let scaleRatio = Math.pow(2, this.core.getSettings().zoomLevel);
+            let brushSize = document.getElementById("brush-size-selector").value / 10;
+
+            let pageIndex = this.core.getSettings().currentPageIndex,
+                mousePos = this.getMousePos(canvas, evt),
+                relativeCoords = this.getRelativeCoordinatesFromPadded(mousePos.x, mousePos.y);
+
+            if (this.isInPageBounds(relativeCoords.x, relativeCoords.y))
+            {
+                let selectedLayer = this.layers[this.selectedLayerIndex];
+                selectedLayer.addShapeToLayer(new Rectangle(new Point(relativeCoords.x,relativeCoords.y,pageIndex), brushSize, brushSize, "subtract"));
+                this.actions.push(new Action(selectedLayer.getCurrentShape(), selectedLayer));
+                this.repaint();
+            }
+        }
     }
 
     onMouseMove (evt)
@@ -700,6 +727,9 @@ export default class PixelPlugin
                 break;
             case "rectangle":
                 this.rectanglePreview(canvas,evt);
+                break;
+            case "erase":
+                this.erase(canvas, evt);
                 break;
             default:
         }
@@ -923,7 +953,7 @@ export default class PixelPlugin
         if (this.isInPageBounds(relativeCoords.x, relativeCoords.y))
         {
             let selectedLayer = this.layers[this.selectedLayerIndex];
-            selectedLayer.addShapeToLayer(new Rectangle(new Point(relativeCoords.x,relativeCoords.y,pageIndex), 0, 0));
+            selectedLayer.addShapeToLayer(new Rectangle(new Point(relativeCoords.x,relativeCoords.y,pageIndex), 0, 0, "add"));
             this.actions.push(new Action(selectedLayer.getCurrentShape(), selectedLayer));
             this.repaint();
         }
@@ -1405,10 +1435,11 @@ export class Circle extends Shape
 
 export class Rectangle extends Shape
 {
-    constructor (point, relativeRectWidth, relativeRectHeight) {
+    constructor (point, relativeRectWidth, relativeRectHeight, blendMode) {
         super(point);
         this.relativeRectWidth = relativeRectWidth;
         this.relativeRectHeight = relativeRectHeight;
+        this.blendMode = blendMode;
     }
 
     /**
@@ -1432,17 +1463,37 @@ export class Rectangle extends Shape
             absoluteRectWidth = this.relativeRectWidth * scaleRatio,
             absoluteRectHeight = this.relativeRectHeight * scaleRatio;
 
-        if (pageIndex === this.origin.pageIndex)
+        // TODO: Use padded coordinates
+        if (this.blendMode === "add")
         {
-            // Calculates where the highlights should be drawn as a function of the whole webpage coordinates
-            // (to make it look like it is on top of a page in Diva)
-            let highlightXOffset = renderer._getImageOffset(pageIndex).left - renderer._viewport.left + viewportPaddingX + absoluteRectOriginX,
-                highlightYOffset = renderer._getImageOffset(pageIndex).top - renderer._viewport.top + viewportPaddingY + absoluteRectOriginY;
+            if (pageIndex === this.origin.pageIndex)
+            {
+                // Calculates where the highlights should be drawn as a function of the whole webpage coordinates
+                // (to make it look like it is on top of a page in Diva)
+                let highlightXOffset = renderer._getImageOffset(pageIndex).left - renderer._viewport.left + viewportPaddingX + absoluteRectOriginX,
+                    highlightYOffset = renderer._getImageOffset(pageIndex).top - renderer._viewport.top + viewportPaddingY + absoluteRectOriginY;
 
-            //Draw the rectangle
-            ctx.fillStyle = layer.colour.toHTMLColour();
-            ctx.fillRect(highlightXOffset, highlightYOffset,absoluteRectWidth,absoluteRectHeight);
+                //Draw the rectangle
+                ctx.fillStyle = layer.colour.toHTMLColour();
+                ctx.fillRect(highlightXOffset, highlightYOffset,absoluteRectWidth,absoluteRectHeight);
+            }
         }
+
+        else if (this.blendMode === "subtract")
+        {
+            if (pageIndex === this.origin.pageIndex)
+            {
+                // Calculates where the highlights should be drawn as a function of the whole webpage coordinates
+                // (to make it look like it is on top of a page in Diva)
+                let highlightXOffset = renderer._getImageOffset(pageIndex).left - renderer._viewport.left + viewportPaddingX + absoluteRectOriginX,
+                    highlightYOffset = renderer._getImageOffset(pageIndex).top - renderer._viewport.top + viewportPaddingY + absoluteRectOriginY;
+
+                //Draw the rectangle
+                ctx.fillStyle = layer.colour.toHTMLColour();
+                ctx.clearRect(highlightXOffset, highlightYOffset,absoluteRectWidth,absoluteRectHeight);
+            }
+        }
+
     }
 
     /**
