@@ -686,7 +686,7 @@ export default class PixelPlugin
                 break;
             case "erase":
                 this.mousePressed = true;
-                this.erase(canvas, evt);
+                this.initializeNewPath(canvas, evt);
                 break;
             default:
                 this.mousePressed = true;
@@ -729,7 +729,7 @@ export default class PixelPlugin
                 this.rectanglePreview(canvas,evt);
                 break;
             case "erase":
-                this.erase(canvas, evt);
+                this.setupPointPainting(canvas, evt);
                 break;
             default:
         }
@@ -884,12 +884,22 @@ export default class PixelPlugin
             this.lastRelCoordY = relativeCoords.y;
 
             // Create New Path in Layer
-            selectedLayer.createNewPath(brushSize);
-            selectedLayer.addToCurrentPath(point);
+            if (this.currentTool === "brush")
+            {
+                selectedLayer.createNewPath(brushSize, "add");
+                selectedLayer.addToCurrentPath(point, "add");
+            }
+            else if (this.currentTool === "erase")
+            {
+                selectedLayer.createNewPath(brushSize, "subtract");
+                selectedLayer.addToCurrentPath(point, "subtract");
+            }
+
+            console.log(selectedLayer);
 
             // Add path to list of actions (used for undo/redo)
             this.actions.push(new Action(selectedLayer.getCurrentPath(), selectedLayer));
-            this.drawPath(selectedLayer, point, pageIndex, zoomLevel, brushSize, false);
+            this.drawPath(selectedLayer, point, pageIndex, zoomLevel, brushSize, false, selectedLayer.getCurrentPath().blendMode);
         }
         else
         {
@@ -934,8 +944,17 @@ export default class PixelPlugin
 
             // Draw path with new point
             let brushSize = this.layers[this.selectedLayerIndex].getCurrentPath().brushSize;
-            this.layers[this.selectedLayerIndex].addToCurrentPath(point);
-            this.drawPath(this.layers[this.selectedLayerIndex], point, pageIndex, zoomLevel, brushSize, true);
+
+            if (this.currentTool === "brush")
+            {
+                this.layers[this.selectedLayerIndex].addToCurrentPath(point, "add");
+            }
+            else if (this.currentTool === "erase")
+            {
+                this.layers[this.selectedLayerIndex].addToCurrentPath(point, "subtract");
+            }
+
+            this.drawPath(this.layers[this.selectedLayerIndex], point, pageIndex, zoomLevel, brushSize, true, this.layers[this.selectedLayerIndex].getCurrentPath().blendMode);
             return;
         }
 
@@ -1067,7 +1086,7 @@ export default class PixelPlugin
         };
     }
 
-    drawPath (layer, point, pageIndex, zoomLevel, brushSize, isDown)
+    drawPath (layer, point, pageIndex, zoomLevel, brushSize, isDown, blendMode)
     {
         let renderer = this.core.getSettings().renderer,
             scaleRatio = Math.pow(2, zoomLevel);
@@ -1084,16 +1103,34 @@ export default class PixelPlugin
 
         if (isDown)
         {
-            this._ctx.beginPath();
-            this._ctx.strokeStyle = layer.colour.toHTMLColour();
-            this._ctx.lineWidth = brushSize * scaleRatio;
-            this._ctx.lineJoin = "round";
-            this._ctx.moveTo(this.lastAbsX, this.lastAbsY);
-            this._ctx.lineTo(highlightXOffset, highlightYOffset);
-            this._ctx.closePath();
-            this._ctx.stroke();
-        }
+            if (blendMode === "add")
+            {
+                this._ctx.globalCompositeOperation="source-over";
+                this._ctx.beginPath();
+                this._ctx.strokeStyle = layer.colour.toHTMLColour();
+                this._ctx.lineWidth = brushSize * scaleRatio;
+                this._ctx.lineJoin = "round";
+                this._ctx.moveTo(this.lastAbsX, this.lastAbsY);
+                this._ctx.lineTo(highlightXOffset, highlightYOffset);
+                this._ctx.closePath();
+                this._ctx.stroke();
+            }
 
+            else if (blendMode === "subtract")
+            {
+                this._ctx.globalCompositeOperation="destination-out";
+                this._ctx.beginPath();
+                this._ctx.strokeStyle = layer.colour.toHTMLColour();
+                this._ctx.lineWidth = brushSize * scaleRatio;
+                this._ctx.lineJoin = "round";
+                this._ctx.moveTo(this.lastAbsX, this.lastAbsY);
+                this._ctx.lineTo(highlightXOffset, highlightYOffset);
+                this._ctx.closePath();
+                this._ctx.stroke();
+            }
+
+            this._ctx.globalCompositeOperation="source-over";
+        }
         this.lastAbsX = highlightXOffset;
         this.lastAbsY = highlightYOffset;
     }
@@ -1172,7 +1209,7 @@ export default class PixelPlugin
                         let isDown = false;
                         path.points.forEach((point) =>
                         {
-                            this.drawPath(layer, point, pageIndex, zoomLevel, path.brushSize, isDown);
+                            this.drawPath(layer, point, pageIndex, zoomLevel, path.brushSize, isDown, path.blendMode);
                             isDown = true;
                         });
                     }
@@ -1532,11 +1569,12 @@ export class Rectangle extends Shape
 
 export class Path
 {
-    constructor (brushSize)
+    constructor (brushSize, blendMode)
     {
         this.points = [];
         this.brushSize = brushSize;
         this.type = "path";
+        this.blendMode = blendMode
     }
 
     addPointToPath (point)
@@ -1768,12 +1806,12 @@ export class Layer
      * Creates a new path that has the brush size selector width
      * @param point
      */
-    addToCurrentPath (point)
+    addToCurrentPath (point, blendMode)
     {
         if (this.paths.length === 0)
         {
             let brushSizeSelector = document.getElementById("brush-size-selector");
-            this.createNewPath(brushSizeSelector.value / 10);
+            this.createNewPath(brushSizeSelector.value / 10, blendMode);
         }
         this.paths[this.paths.length - 1].addPointToPath(point);
     }
@@ -1786,9 +1824,9 @@ export class Layer
             return null;
     }
 
-    createNewPath (brushSize)
+    createNewPath (brushSize, blendMode)
     {
-        this.paths.push(new Path(brushSize));
+        this.paths.push(new Path(brushSize, blendMode));
     }
 
     removePathFromLayer (path)
