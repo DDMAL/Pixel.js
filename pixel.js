@@ -1182,22 +1182,24 @@ export default class PixelPlugin
         renderer._renderedPages.forEach((pageIndex) =>
         {
             let ctx = layer.getCtx();
-            layer.shapes.forEach((shape) =>
+            layer.actions.forEach((action) =>
+            {
+                switch (action.type)
                 {
-                    shape.draw(layer, pageIndex, zoomLevel, this.core.getSettings().renderer, ctx);
+                    case "shape":
+                        action.draw(layer, pageIndex, zoomLevel, this.core.getSettings().renderer, ctx);
+                        break;
+                    case "path":
+                        let isDown = false;
+                        action.points.forEach((point) => {
+                            this.drawPath(layer, point, pageIndex, zoomLevel, action.brushSize, isDown, action.blendMode);
+                            isDown = true;
+                        });
+                        break;
+                    default:
+                        return;
                 }
-            );
-
-            layer.paths.forEach((path) =>
-                {
-                    let isDown = false;
-                    path.points.forEach((point) =>
-                    {
-                        this.drawPath(layer, point, pageIndex, zoomLevel, path.brushSize, isDown, path.blendMode);
-                        isDown = true;
-                    });
-                }
-            );
+            });
         });
     }
 
@@ -1214,22 +1216,25 @@ export default class PixelPlugin
             this.layers.forEach((layer) =>
             {
                 let ctx = layer.getCtx();
-                layer.shapes.forEach((shape) =>
-                    {
-                        shape.draw(layer, pageIndex, zoomLevel, this.core.getSettings().renderer, ctx);
-                    }
-                );
 
-                layer.paths.forEach((path) =>
+                layer.actions.forEach((action) =>
+                {
+                    switch (action.type)
                     {
-                        let isDown = false;
-                        path.points.forEach((point) =>
-                        {
-                            this.drawPath(layer, point, pageIndex, zoomLevel, path.brushSize, isDown, path.blendMode);
-                            isDown = true;
-                        });
+                        case "shape":
+                            action.draw(layer, pageIndex, zoomLevel, this.core.getSettings().renderer, ctx);
+                            break;
+                        case "path":
+                            let isDown = false;
+                            action.points.forEach((point) => {
+                                this.drawPath(layer, point, pageIndex, zoomLevel, action.brushSize, isDown, action.blendMode);
+                                isDown = true;
+                            });
+                            break;
+                        default:
+                            return;
                     }
-                );
+                });
             });
         });
     }
@@ -1803,6 +1808,7 @@ export class Layer
         this.layerName = layerName;
         this.canvas = null;
         this.ctx = null;
+        this.actions = [];
         this.createCanvas(divaCanvas)
     }
 
@@ -1841,11 +1847,13 @@ export class Layer
     addShapeToLayer (shape)
     {
         this.shapes.push(shape);
+        this.actions.push(shape);
     }
 
     addPathToLayer (path)
     {
         this.paths.push(path);
+        this.actions.push(path);
     }
 
     /**
@@ -1872,19 +1880,27 @@ export class Layer
 
     createNewPath (brushSize, blendMode)
     {
-        this.paths.push(new Path(brushSize, blendMode));
+        let path = new Path(brushSize, blendMode);
+        this.paths.push(path);
+        this.actions.push(path);
     }
 
     removePathFromLayer (path)
     {
         let index = this.paths.indexOf(path);
         this.paths.splice(index, 1);
+
+        let actionIndex = this.actions.indexOf(path);
+        this.actions.splice(actionIndex, 1);
     }
 
     removeShapeFromLayer (shape)
     {
         let index = this.shapes.indexOf(shape);
         this.shapes.splice(index, 1);
+
+        let actionIndex = this.actions.indexOf(shape);
+        this.actions.splice(actionIndex, 1);
     }
 
     setOpacity (opacity)
