@@ -1132,7 +1132,7 @@ export default class PixelPlugin
         this.lastAbsY = highlightYOffset;
     }
 
-    fillPath(layer, point1, point2, zoomLevel, pageIndex, brushSize)
+    fillPath(layer, point1, point2, zoomLevel, pageIndex, brushSize, blendMode)
     {
         let renderer = this.core.getSettings().renderer,
             scaleRatio = Math.pow(2,zoomLevel),
@@ -1148,8 +1148,8 @@ export default class PixelPlugin
         let point1highlightOffset = point1.getAbsolutePaddedCoordinates(zoomLevel, pageIndex, renderer);
         var point2highlightOffset = point2.getAbsolutePaddedCoordinates(zoomLevel,pageIndex,renderer);
 
-        new Circle(point1, lineWidth/2).getPixels(layer, pageIndex, zoomLevel, renderer, this.matrix);
-        new Circle(point2, lineWidth/2).getPixels(layer, pageIndex, zoomLevel, renderer, this.matrix);
+        new Circle(point1, lineWidth/2).getPixels(layer, pageIndex, zoomLevel, renderer, this.matrix, blendMode);
+        new Circle(point2, lineWidth/2).getPixels(layer, pageIndex, zoomLevel, renderer, this.matrix, blendMode);
 
         let ang = new Line(point1, point2).getAngleRad(zoomLevel,pageIndex,renderer);
 
@@ -1183,7 +1183,7 @@ export default class PixelPlugin
         let pairOfEdges = [[start1, end1], [start2, end2], [start1, start2], [end1, end2]];
 
         // Logic for polygon fill using scan lines
-        new Shape().getPixels(layer, pageIndex, zoomLevel, renderer, ymax, ymin, pairOfEdges, this.matrix);
+        new Shape().getPixels(layer, pageIndex, zoomLevel, renderer, ymax, ymin, pairOfEdges, this.matrix, blendMode);
     }
 
     drawLayer (zoomLevel, layer)
@@ -1309,22 +1309,27 @@ export default class PixelPlugin
 
         this.layers.forEach((layer) =>
         {
-            layer.shapes.forEach((shape) =>
-                {
-                    shape.getPixels(layer, pageIndex, maxZoomLevel, this.core.getSettings().renderer, this.matrix);
-                }
-            );
+            let ctx = layer.getCtx();
 
-            layer.paths.forEach((path) =>
+            layer.actions.forEach((action) =>
+            {
+                switch (action.type)
                 {
-                    for (let index = 0; index < path.points.length - 1; index++)
-                    {
-                        let point = path.points[index];
-                        let nextPoint = path.points[index + 1];
-                        this.fillPath(layer, point, nextPoint, maxZoomLevel, pageIndex, path.brushSize);
-                    }
+                    case "shape":
+                        action.getPixels(layer, pageIndex, maxZoomLevel, this.core.getSettings().renderer, this.matrix, action.blendMode);
+                        break;
+                    case "path":
+                        for (let index = 0; index < action.points.length - 1; index++)
+                        {
+                            let point = action.points[index];
+                            let nextPoint = action.points[index + 1];
+                            this.fillPath(layer, point, nextPoint, maxZoomLevel, pageIndex, action.brushSize, action.blendMode);
+                        }
+                        break;
+                    default:
+                        return;
                 }
-            );
+            });
         });
         this.printMatrix();
         console.log("Done");
@@ -1358,7 +1363,7 @@ export class Shape
      * @param pairOfEdges
      * @param matrix
      */
-    getPixels(layer, pageIndex, zoomLevel, renderer, ymax, ymin, pairOfEdges, matrix)
+    getPixels(layer, pageIndex, zoomLevel, renderer, ymax, ymin, pairOfEdges, matrix, blendMode)
     {
         // TODO: Check for horizontal or vertical lines
         // For every scan line
@@ -1417,7 +1422,14 @@ export class Shape
                             if (absoluteCoords.y >= 0 && absoluteCoords.x >= 0
                                 && absoluteCoords.y <= matrix.length && absoluteCoords.x <= matrix[0].length)
                             {
-                                matrix[absoluteCoords.y][absoluteCoords.x] = layer.layerId;
+                                if (blendMode === "add")
+                                {
+                                    matrix[absoluteCoords.y][absoluteCoords.x] = layer.layerId;
+                                }
+                                else if (blendMode === "subtract" && (matrix[absoluteCoords.y][absoluteCoords.x] === layer.layerId))
+                                {
+                                    matrix[absoluteCoords.y][absoluteCoords.x] = -1;
+                                }
                             }
                         }
                     }
@@ -1468,7 +1480,7 @@ export class Circle extends Shape
      * @param renderer
      * @param matrix
      */
-    getPixels (layer, pageIndex, zoomLevel, renderer, matrix)
+    getPixels (layer, pageIndex, zoomLevel, renderer, matrix, blendMode)
     {
         let circleTop = new Point(this.origin.relativeOriginX, this.origin.relativeOriginY - this.relativeRadius, 0);
         let circleBottom = new Point(this.origin.relativeOriginX, this.origin.relativeOriginY + this.relativeRadius, 0);
@@ -1494,7 +1506,14 @@ export class Circle extends Shape
                     if (absoluteCoords.y >= 0 && absoluteCoords.x >= 0
                         && absoluteCoords.y <= matrix.length && absoluteCoords.x <= matrix[0].length)
                     {
-                        matrix[absoluteCoords.y][absoluteCoords.x] = layer.layerId;
+                        if (blendMode === "add")
+                        {
+                            matrix[absoluteCoords.y][absoluteCoords.x] = layer.layerId;
+                        }
+                        else if (blendMode === "subtract" && (matrix[absoluteCoords.y][absoluteCoords.x] === layer.layerId))
+                        {
+                            matrix[absoluteCoords.y][absoluteCoords.x] = -1;
+                        }
                     }
                 }
             }
@@ -1574,7 +1593,7 @@ export class Rectangle extends Shape
      * @param renderer
      * @param matrix
      */
-    getPixels (layer, pageIndex, zoomLevel, renderer, matrix)
+    getPixels (layer, pageIndex, zoomLevel, renderer, matrix, blendMode)
     {
         let scaleRatio = Math.pow(2,zoomLevel);
 
@@ -1593,7 +1612,16 @@ export class Rectangle extends Shape
                 for(var col = Math.round(Math.min(absoluteRectOriginX, absoluteRectOriginX + absoluteRectWidth)); col < Math.max(absoluteRectOriginX, absoluteRectOriginX + absoluteRectWidth); col++)
                 {
                     if (row >= 0 && col >= 0 && row <= matrix.length && col <= matrix[0].length)
-                        matrix[row][col] = layer.layerId;
+                    {
+                        if (blendMode === "add")
+                        {
+                            matrix[row][col] = layer.layerId;
+                        }
+                        else if (blendMode === "subtract" && (matrix[row][col] = layer.layerId))
+                        {
+                            matrix[row][col] = -1;
+                        }
+                    }
                 }
             }
         }
