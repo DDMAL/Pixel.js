@@ -567,9 +567,8 @@ export default class PixelPlugin
         this.createPluginElements(this.layers);
         this.selectedLayerIndex = destinationLayerIndex;
         this.highlightSelectedLayer(this.layers[this.selectedLayerIndex].layerId); // Layer Type and not index
-
-        // FIXME: Destroy layers and recreate them then paint
-        //COME
+        this.destroyPixelCanvases(this.layers);
+        this.createPixelCanvases(this.layers);
         this.repaint();
     }
 
