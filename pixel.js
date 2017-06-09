@@ -567,6 +567,7 @@ export default class PixelPlugin
         this.createPluginElements(this.layers);
         this.selectedLayerIndex = destinationLayerIndex;
         this.highlightSelectedLayer(this.layers[this.selectedLayerIndex].layerId); // Layer Type and not index
+        // TODO: Optimization: Instead of destroying all of the canvases only destroy and reorder the ones of interest
         this.destroyPixelCanvases(this.layers);
         this.createPixelCanvases(this.layers);
         this.repaint();
@@ -1104,7 +1105,7 @@ export default class PixelPlugin
             {
                 ctx.globalCompositeOperation="destination-out";
                 ctx.beginPath();
-                ctx.strokeStyle = layer.colour.toHTMLColour();
+                ctx.strokeStyle = "rgba(250,250,250,1)"; // It is important to have the alpha always equal to 1. RGB are not important when erasing
                 ctx.lineWidth = brushSize * scaleRatio;
                 ctx.lineJoin = "round";
                 ctx.moveTo(this.lastAbsX, this.lastAbsY);
