@@ -77,18 +77,25 @@ export default class PixelPlugin
 
         if (this.layers === null)
         {
+            let divaCanvas = this.core.getSettings().renderer._canvas;
             // Start by creating layers
-            let layer1 = new Layer(0, new Colour(51, 102, 255, 0.8), "Layer 1"),
-                layer2 = new Layer(1, new Colour(255, 51, 102, 0.8), "Layer 2"),
-                layer3 = new Layer(2, new Colour(255, 255, 10, 0.8), "Layer 3"),
-                layer4 = new Layer(3, new Colour(10, 180, 50, 0.8), "Layer 4"),
-                layer5 = new Layer(4, new Colour(255, 137, 0, 0.8), "Layer 5");
+            let layer1 = new Layer(0, new Colour(51, 102, 255, 0.8), "Layer 1", divaCanvas),
+                layer2 = new Layer(1, new Colour(255, 51, 102, 0.8), "Layer 2", divaCanvas),
+                layer3 = new Layer(2, new Colour(255, 255, 10, 0.8), "Layer 3", divaCanvas),
+                layer4 = new Layer(3, new Colour(10, 180, 50, 0.8), "Layer 4", divaCanvas),
+                layer5 = new Layer(4, new Colour(255, 137, 0, 0.8), "Layer 5", divaCanvas);
 
             layer1.addShapeToLayer(new Rectangle(new Point(23, 42, 0), 24, 24, "add"));
             layer2.addShapeToLayer(new Rectangle(new Point(48, 50, 0), 57, 5, "add"));
             layer3.addShapeToLayer(new Rectangle(new Point(50, 80, 0), 50, 10, "add"));
 
             this.layers = [layer1, layer2, layer3, layer4, layer5];
+        }
+
+        for (let index = this.layers.length - 1; index >= 0; index--)
+        {
+            let divaCanvas = this.core.getSettings().renderer._canvas;
+            this.layers[index].placeCanvasAfterElement(divaCanvas);
         }
 
         this.disableDragScrollable();
@@ -111,7 +118,9 @@ export default class PixelPlugin
         this.unsubscribeFromKeyboardPress();
         this.repaint(); // Repaint the tiles to make the highlights disappear off the page
         this.destroyPluginElements(this.layers);
-        this._ctx.clearRect(0,0,this._canvas.width, this._canvas.height);
+
+        // TODO: Remove all layer canvases
+        // this._ctx.clearRect(0,0,this._canvas.width, this._canvas.height);
         this.enableDragScrollable();
         this.activated = false;
     }
@@ -219,7 +228,7 @@ export default class PixelPlugin
 
     createPluginElements (layers)
     {
-        this.createPixelCanvas();
+        // this.createPixelCanvas();
         this.createUndoButton();
         this.createRedoButton();
         this.createLayerSelectors(layers);
@@ -235,7 +244,7 @@ export default class PixelPlugin
         this.destroyUndoButton();
         this.destroyRedoButton();
         this.destroyExportButton();
-        this.destroyPixelCanvas();
+        // this.destroyPixelCanvas();
         this.destroyToolsView(["brush", "rectangle", "grab", "erase"]);
     }
 
@@ -288,6 +297,8 @@ export default class PixelPlugin
 
     createPixelCanvas ()
     {
+        console.log("creating");
+
         this._canvas = document.createElement('canvas');
         this._canvas.setAttribute("id", "pixel-canvas");
         this._canvas.setAttribute("style", "position: absolute; top: 0; left: 0;");
@@ -1072,7 +1083,7 @@ export default class PixelPlugin
         let renderer = this.core.getSettings().renderer,
             scaleRatio = Math.pow(2, zoomLevel);
 
-        if (!pageIndex === point.pageIndex)
+        if (!(pageIndex === point.pageIndex))
             return;
 
         // Calculates where the highlights should be drawn as a function of the whole webpage coordinates
@@ -1084,33 +1095,33 @@ export default class PixelPlugin
 
         if (isDown)
         {
+            let ctx = layer.getCtx();
             if (blendMode === "add")
             {
-                this._ctx.globalCompositeOperation="source-over";
-                this._ctx.beginPath();
-                this._ctx.strokeStyle = layer.colour.toHTMLColour();
-                this._ctx.lineWidth = brushSize * scaleRatio;
-                this._ctx.lineJoin = "round";
-                this._ctx.moveTo(this.lastAbsX, this.lastAbsY);
-                this._ctx.lineTo(highlightXOffset, highlightYOffset);
-                this._ctx.closePath();
-                this._ctx.stroke();
+                ctx.globalCompositeOperation="source-over";
+                ctx.beginPath();
+                ctx.strokeStyle = layer.colour.toHTMLColour();
+                ctx.lineWidth = brushSize * scaleRatio;
+                ctx.lineJoin = "round";
+                ctx.moveTo(this.lastAbsX, this.lastAbsY);
+                ctx.lineTo(highlightXOffset, highlightYOffset);
+                ctx.closePath();
+                ctx.stroke();
             }
 
             else if (blendMode === "subtract")
             {
-                this._ctx.globalCompositeOperation="destination-out";
-                this._ctx.beginPath();
-                this._ctx.strokeStyle = layer.colour.toHTMLColour();
-                this._ctx.lineWidth = brushSize * scaleRatio;
-                this._ctx.lineJoin = "round";
-                this._ctx.moveTo(this.lastAbsX, this.lastAbsY);
-                this._ctx.lineTo(highlightXOffset, highlightYOffset);
-                this._ctx.closePath();
-                this._ctx.stroke();
+                ctx.globalCompositeOperation="destination-out";
+                ctx.beginPath();
+                ctx.strokeStyle = layer.colour.toHTMLColour();
+                ctx.lineWidth = brushSize * scaleRatio;
+                ctx.lineJoin = "round";
+                ctx.moveTo(this.lastAbsX, this.lastAbsY);
+                ctx.lineTo(highlightXOffset, highlightYOffset);
+                ctx.closePath();
+                ctx.stroke();
             }
-
-            this._ctx.globalCompositeOperation="source-over";
+            ctx.globalCompositeOperation="source-over";
         }
         this.lastAbsX = highlightXOffset;
         this.lastAbsY = highlightYOffset;
@@ -1172,16 +1183,22 @@ export default class PixelPlugin
 
     drawHighlights (zoomLevel)
     {
-        this._ctx.clearRect(0,0,this._canvas.width, this._canvas.height);
+        this.layers.forEach((layer) => {
+            layer.getCtx().clearRect(0,0,layer.getCanvas().width, layer.getCanvas().height);
+        });
+
+
+
         let renderer = this.core.getSettings().renderer;
 
         renderer._renderedPages.forEach((pageIndex) =>
         {
             this.layers.forEach((layer) =>
             {
+                let ctx = layer.getCtx();
                 layer.shapes.forEach((shape) =>
                     {
-                        shape.draw(layer, pageIndex, zoomLevel, this.core.getSettings().renderer, this._ctx);
+                        shape.draw(layer, pageIndex, zoomLevel, this.core.getSettings().renderer, ctx);
                     }
                 );
 
@@ -1759,13 +1776,43 @@ export class Colour
 
 export class Layer
 {
-    constructor (layerId, colour, layerName)
+    constructor (layerId, colour, layerName, divaCanvas)
     {
         this.layerId = layerId;
         this.shapes = [];
         this.paths = [];
         this.colour = colour;
         this.layerName = layerName;
+        this.canvas = null;
+        this.ctx = null;
+        this.createCanvas(divaCanvas)
+    }
+
+    createCanvas(divaCanvas)
+    {
+        this.canvas = document.createElement('canvas');
+        this.canvas.setAttribute("class", "pixel-canvas");
+        this.canvas.setAttribute("id", "layer-" + this.layerId + "-canvas");
+        this.canvas.setAttribute("style", "position: absolute; top: 0; left: 0;");
+        this.canvas.width = divaCanvas.width;
+        this.canvas.height = divaCanvas.height;
+
+        this.ctx = this.canvas.getContext('2d');
+    }
+
+    placeCanvasAfterElement(element)
+    {
+        element.parentNode.insertBefore(this.canvas, element.nextSibling);
+    }
+
+    getCanvas()
+    {
+        return this.canvas;
+    }
+
+    getCtx()
+    {
+        return this.ctx;
     }
 
     updateLayerName(newLayerName)
