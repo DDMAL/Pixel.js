@@ -92,12 +92,6 @@ export default class PixelPlugin
             this.layers = [layer1, layer2, layer3, layer4, layer5];
         }
 
-        for (let index = this.layers.length - 1; index >= 0; index--)
-        {
-            let divaCanvas = this.core.getSettings().renderer._canvas;
-            this.layers[index].placeCanvasAfterElement(divaCanvas);
-        }
-
         this.disableDragScrollable();
         this.initializeMatrix();
         this.createPluginElements(this.layers);
@@ -228,7 +222,7 @@ export default class PixelPlugin
 
     createPluginElements (layers)
     {
-        // this.createPixelCanvas();
+        this.createPixelCanvases(layers);
         this.createUndoButton();
         this.createRedoButton();
         this.createLayerSelectors(layers);
@@ -244,7 +238,7 @@ export default class PixelPlugin
         this.destroyUndoButton();
         this.destroyRedoButton();
         this.destroyExportButton();
-        // this.destroyPixelCanvas();
+        this.destroyPixelCanvases(layers);
         this.destroyToolsView(["brush", "rectangle", "grab", "erase"]);
     }
 
@@ -295,27 +289,21 @@ export default class PixelPlugin
         form.parentNode.removeChild(form);
     }
 
-    createPixelCanvas ()
+    createPixelCanvases (layers)
     {
-        console.log("creating");
-
-        this._canvas = document.createElement('canvas');
-        this._canvas.setAttribute("id", "pixel-canvas");
-        this._canvas.setAttribute("style", "position: absolute; top: 0; left: 0;");
-        this._canvas.width = this.core.getSettings().renderer._canvas.width;
-        this._canvas.height = this.core.getSettings().renderer._canvas.height;
-        this._ctx = this._canvas.getContext('2d');
-
-        // pixel canvas has to be placed on top of diva canvas and before the diva-viewport
-        // This means it should be appended as its next sibling
-        // Otherwise it will block diva's scrolling functionality
-        let divaCanvas = this.core.getSettings().renderer._canvas;
-        divaCanvas.parentNode.insertBefore(this._canvas, divaCanvas.nextSibling);
+        for (let index = layers.length - 1; index >= 0; index--)
+        {
+            let divaCanvas = this.core.getSettings().renderer._canvas;
+            layers[index].placeCanvasAfterElement(divaCanvas);
+        }
     }
 
-    destroyPixelCanvas ()
+    destroyPixelCanvases (layers)
     {
-        this._canvas.parentNode.removeChild(this._canvas);
+        layers.forEach((layer) =>
+        {
+            layer.getCanvas().parentNode.removeChild(layer.getCanvas());
+        })
     }
 
     createOpacitySlider (layer, parentElement, referenceNode)
@@ -888,8 +876,6 @@ export default class PixelPlugin
                 selectedLayer.addToCurrentPath(point, "subtract");
             }
 
-            console.log(selectedLayer);
-
             // Add path to list of actions (used for undo/redo)
             this.actions.push(new Action(selectedLayer.getCurrentPath(), selectedLayer));
             this.drawPath(selectedLayer, point, pageIndex, zoomLevel, brushSize, false, selectedLayer.getCurrentPath().blendMode);
@@ -1189,8 +1175,6 @@ export default class PixelPlugin
 
     drawLayer (zoomLevel, layer)
     {
-        console.log("redrawing a single layer");
-
         layer.getCtx().clearRect(0,0,layer.getCanvas().width, layer.getCanvas().height);
 
         let renderer = this.core.getSettings().renderer;
@@ -1219,8 +1203,6 @@ export default class PixelPlugin
 
     drawHighlights (zoomLevel)
     {
-        console.log("redrawing all layers");
-
         this.layers.forEach((layer) => {
             layer.getCtx().clearRect(0,0,layer.getCanvas().width, layer.getCanvas().height);
         });
