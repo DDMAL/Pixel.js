@@ -240,7 +240,7 @@ export default class PixelPlugin
         this.createRedoButton();
         this.createLayerSelectors(layers);
         this.createBrushSizeSelector();
-        this.createToolsView(["brush", "rectangle", "grab", "erase"]);
+        this.createToolsView(["brush", "rectangle", "grab", "eraser"]);
         this.createExportButton();
     }
 
@@ -252,7 +252,7 @@ export default class PixelPlugin
         this.destroyRedoButton();
         this.destroyExportButton();
         this.destroyPixelCanvases(layers);
-        this.destroyToolsView(["brush", "rectangle", "grab", "erase"]);
+        this.destroyToolsView(["brush", "rectangle", "grab", "eraser"]);
     }
 
     // Tools are strings or enums
@@ -647,6 +647,12 @@ export default class PixelPlugin
             this.currentTool = "grab";
             document.getElementById(this.currentTool).checked = true;
         }
+        else if (e.key === "e")
+        {
+            this.disableDragScrollable();
+            this.currentTool = "eraser";
+            document.getElementById(this.currentTool).checked = true;
+        }
     };
 
     editLayerName (e, layerName)
@@ -697,7 +703,7 @@ export default class PixelPlugin
             case "grab":
                 this.mousePressed = true;
                 break;
-            case "erase":
+            case "eraser":
                 this.mousePressed = true;
                 this.initializeNewPath(canvas, evt);
                 break;
@@ -720,7 +726,7 @@ export default class PixelPlugin
             case "rectangle":
                 this.rectanglePreview(canvas,evt);
                 break;
-            case "erase":
+            case "eraser":
                 this.setupPointPainting(canvas, evt);
                 break;
             default:
@@ -738,7 +744,7 @@ export default class PixelPlugin
             case "rectangle":
                 this.mousePressed = false;
                 break;
-            case "erase":
+            case "eraser":
                 this.mousePressed = false;
                 break;
             default:
@@ -883,7 +889,7 @@ export default class PixelPlugin
                 selectedLayer.createNewPath(brushSize, "add");
                 selectedLayer.addToCurrentPath(point, "add");
             }
-            else if (this.currentTool === "erase")
+            else if (this.currentTool === "eraser")
             {
                 selectedLayer.createNewPath(brushSize, "subtract");
                 selectedLayer.addToCurrentPath(point, "subtract");
@@ -941,7 +947,7 @@ export default class PixelPlugin
             {
                 this.layers[this.selectedLayerIndex].addToCurrentPath(point, "add");
             }
-            else if (this.currentTool === "erase")
+            else if (this.currentTool === "eraser")
             {
                 this.layers[this.selectedLayerIndex].addToCurrentPath(point, "subtract");
             }
@@ -1305,12 +1311,10 @@ export default class PixelPlugin
         this.initializeMatrix();
 
         let pageIndex = this.core.getSettings().currentPageIndex,
-            maxZoomLevel = this.core.getSettings().zoomLevel;
+            maxZoomLevel = this.core.getSettings().maxZoomLevel;
 
         this.layers.forEach((layer) =>
         {
-            let ctx = layer.getCtx();
-
             layer.actions.forEach((action) =>
             {
                 switch (action.type)
