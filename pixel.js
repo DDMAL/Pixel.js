@@ -75,6 +75,19 @@ export default class PixelPlugin
     {
         // this.tutorial();
 
+        this._canvas = document.createElement('canvas');
+        this._canvas.setAttribute("id", "pixel-canvas");
+        this._canvas.setAttribute("style", "position: absolute; top: 0; left: 0;");
+        this._canvas.width = this.core.getSettings().renderer._canvas.width;
+        this._canvas.height = this.core.getSettings().renderer._canvas.height;
+        this._ctx = this._canvas.getContext('2d');
+
+        // pixel canvas has to be placed on top of diva canvas and before the diva-viewport
+        // This means it should be appended as its next sibling
+        // Otherwise it will block diva's scrolling functionality
+        let divaCanvas = this.core.getSettings().renderer._canvas;
+        divaCanvas.parentNode.insertBefore(this._canvas, divaCanvas.nextSibling);
+
         if (this.layers === null)
         {
             let divaCanvas = this.core.getSettings().renderer._canvas;
@@ -303,7 +316,7 @@ export default class PixelPlugin
         layers.forEach((layer) =>
         {
             layer.getCanvas().parentNode.removeChild(layer.getCanvas());
-        })
+        });
     }
 
     createOpacitySlider (layer, parentElement, referenceNode)
@@ -1292,7 +1305,7 @@ export default class PixelPlugin
         this.initializeMatrix();
 
         let pageIndex = this.core.getSettings().currentPageIndex,
-            maxZoomLevel = this.core.getSettings().maxZoomLevel;
+            maxZoomLevel = this.core.getSettings().zoomLevel;
 
         this.layers.forEach((layer) =>
         {
@@ -1385,28 +1398,27 @@ export class Shape
             });
 
             // Start filling
-            if (!intersectionPoints.length > 0)
-                return;
-
-            for (var index = 0; index < intersectionPoints.length - 1; index++)
+            if (intersectionPoints.length > 0)
             {
-                // Draw from the first intersection to the next, stop drawing until you see a new intersection line
-                if (index % 2 === 0)
+                for (var index = 0; index < intersectionPoints.length - 1; index++)
                 {
-                    let start = intersectionPoints[index].absolutePaddedX; // This will contain the start of the x coords to fill
-                    let end = intersectionPoints[index + 1].absolutePaddedX;    // This will contain the end of the x coords to fill
-                    let y = intersectionPoints[index].absolutePaddedY;
-
-                    for (var fill = start; fill < end; fill++)
+                    if (index%2 === 0)
                     {
-                        // Remove padding to get absolute coordinates
-                        let absoluteCoords = new Point().getAbsoluteCoordinatesFromPadded(pageIndex,renderer,fill,y);
+                        let start = intersectionPoints[index].absolutePaddedX; // This will contain the start of the x coords to fill
+                        let end = intersectionPoints[index + 1].absolutePaddedX;    // This will contain the end of the x coords to fill
 
-                        // Necessary check because sometimes the brush draws outside of a page because of brush width
-                        if (absoluteCoords.y >= 0 && absoluteCoords.x >= 0
-                            && absoluteCoords.y <= matrix.length && absoluteCoords.x <= matrix[0].length)
+                        let y = intersectionPoints[index].absolutePaddedY;
+
+                        for (var fill = start; fill < end; fill++)
                         {
-                            matrix[absoluteCoords.y][absoluteCoords.x] = layer.layerId;
+                            // Remove padding to get absolute coordinates
+                            let absoluteCoords = new Point().getAbsoluteCoordinatesFromPadded(pageIndex,renderer,fill,y);
+
+                            if (absoluteCoords.y >= 0 && absoluteCoords.x >= 0
+                                && absoluteCoords.y <= matrix.length && absoluteCoords.x <= matrix[0].length)
+                            {
+                                matrix[absoluteCoords.y][absoluteCoords.x] = layer.layerId;
+                            }
                         }
                     }
                 }
