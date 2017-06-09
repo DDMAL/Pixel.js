@@ -324,13 +324,13 @@ export default class PixelPlugin
 
         opacitySlider.setAttribute("id", "layer-" + layer.layerId + "-opacity-slider");
         opacitySlider.setAttribute("type", "range");
-        opacitySlider.setAttribute('max', 100);
+        opacitySlider.setAttribute('max', 20);
         opacitySlider.setAttribute('min', 0);
-        opacitySlider.setAttribute('value', layer.getOpacity() * 100);
+        opacitySlider.setAttribute('value', layer.getOpacity() * 20);
         opacitySlider.setAttribute("draggable", "false");
         opacitySlider.addEventListener("input", () =>
         {
-            layer.setOpacity(opacitySlider.value / 100);
+            layer.setOpacity(opacitySlider.value / 20);
             this.repaint();
         });
 
@@ -1187,8 +1187,6 @@ export default class PixelPlugin
             layer.getCtx().clearRect(0,0,layer.getCanvas().width, layer.getCanvas().height);
         });
 
-
-
         let renderer = this.core.getSettings().renderer;
 
         renderer._renderedPages.forEach((pageIndex) =>
@@ -1733,12 +1731,12 @@ export class Action
 
 export class Colour
 {
-    constructor (red, green, blue, opacity)
+    constructor (red, green, blue, alpha)
     {
         this.red = red;
         this.green = green;
         this.blue = blue;
-        this.opacity = opacity;
+        this.alpha = alpha;
     }
 
     /**
@@ -1747,7 +1745,7 @@ export class Colour
      */
     toHTMLColour ()
     {
-        return "rgba(" + this.red +  ", " + this.green + ", " + this.blue + ", " + this.opacity + ")";
+        return "rgba(" + this.red +  ", " + this.green + ", " + this.blue + ", " + this.alpha + ")";
     }
 
     toHexString ()
@@ -1871,12 +1869,12 @@ export class Layer
 
     setOpacity (opacity)
     {
-        this.colour.opacity = opacity;
+        this.colour.alpha = opacity;
     }
 
     getOpacity ()
     {
-        return this.colour.opacity;
+        return this.colour.alpha;
     }
 
     getCurrentShape ()
