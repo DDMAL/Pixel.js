@@ -331,7 +331,7 @@ export default class PixelPlugin
         opacitySlider.addEventListener("input", () =>
         {
             layer.setOpacity(opacitySlider.value / 20);
-            this.repaint();
+            this.repaintLayer(layer);
         });
 
         parentElement.insertBefore(opacitySlider, referenceNode.nextSibling);
@@ -579,6 +579,9 @@ export default class PixelPlugin
         this.createPluginElements(this.layers);
         this.selectedLayerIndex = destinationLayerIndex;
         this.highlightSelectedLayer(this.layers[this.selectedLayerIndex].layerId); // Layer Type and not index
+
+        // FIXME: Destroy layers and recreate them then paint
+        //COME
         this.repaint();
     }
 
@@ -730,14 +733,12 @@ export default class PixelPlugin
         {
             case "brush":
                 this.mousePressed = false;
-                this.repaint();
                 break;
             case "rectangle":
                 this.mousePressed = false;
                 break;
             case "erase":
                 this.mousePressed = false;
-                this.repaint();
                 break;
             default:
                 this.mousePressed = false;
@@ -796,7 +797,7 @@ export default class PixelPlugin
                 this.actions.push(actionToRedo);
                 this.undoneActions.splice(this.undoneActions.length - 1,1);
             }
-            this.repaint();
+            this.repaintLayer(actionToRedo.layer);
         }
     }
 
@@ -825,7 +826,7 @@ export default class PixelPlugin
                 actionToRemove.layer.removeShapeFromLayer(actionToRemove.action);
                 this.actions.splice(index, 1);
             }
-            this.repaint();
+            this.repaintLayer(actionToRemove.layer);
         }
     }
 
@@ -966,7 +967,7 @@ export default class PixelPlugin
             let selectedLayer = this.layers[this.selectedLayerIndex];
             selectedLayer.addShapeToLayer(new Rectangle(new Point(relativeCoords.x,relativeCoords.y,pageIndex), 0, 0, "add"));
             this.actions.push(new Action(selectedLayer.getCurrentShape(), selectedLayer));
-            this.repaint();
+            this.repaintLayer(selectedLayer);
         }
     }
 
@@ -1019,7 +1020,7 @@ export default class PixelPlugin
                 else
                     lastShape.relativeRectHeight = relativeCoords.y - lastShape.origin.relativeOriginY;
             }
-            this.repaint();
+            this.repaintLayer(this.layers[this.selectedLayerIndex]);
         }
     }
 
@@ -1032,6 +1033,11 @@ export default class PixelPlugin
             return true;
 
         return false;
+    }
+
+    repaintLayer (layer)
+    {
+        this.drawLayer(this.core.getSettings().zoomLevel, layer);
     }
 
     repaint ()
@@ -1181,8 +1187,40 @@ export default class PixelPlugin
         new Shape().getPixels(layer, pageIndex, zoomLevel, renderer, ymax, ymin, pairOfEdges, this.matrix);
     }
 
+    drawLayer (zoomLevel, layer)
+    {
+        console.log("redrawing a single layer");
+
+        layer.getCtx().clearRect(0,0,layer.getCanvas().width, layer.getCanvas().height);
+
+        let renderer = this.core.getSettings().renderer;
+
+        renderer._renderedPages.forEach((pageIndex) =>
+        {
+            let ctx = layer.getCtx();
+            layer.shapes.forEach((shape) =>
+                {
+                    shape.draw(layer, pageIndex, zoomLevel, this.core.getSettings().renderer, ctx);
+                }
+            );
+
+            layer.paths.forEach((path) =>
+                {
+                    let isDown = false;
+                    path.points.forEach((point) =>
+                    {
+                        this.drawPath(layer, point, pageIndex, zoomLevel, path.brushSize, isDown, path.blendMode);
+                        isDown = true;
+                    });
+                }
+            );
+        });
+    }
+
     drawHighlights (zoomLevel)
     {
+        console.log("redrawing all layers");
+
         this.layers.forEach((layer) => {
             layer.getCtx().clearRect(0,0,layer.getCanvas().width, layer.getCanvas().height);
         });
