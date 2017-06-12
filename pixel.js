@@ -1303,10 +1303,7 @@ export default class PixelPlugin
         let height = this.core.publicInstance.getPageDimensionsAtZoomLevel(pageIndex, maxZoomLevel).height,
             width = this.core.publicInstance.getPageDimensionsAtZoomLevel(pageIndex, maxZoomLevel).width;
 
-        console.log("Initializing");
-
         // Decalaration of a 3D array
-
         if (this.matrix === null)
         {
             this.matrix = new Array(height).fill(null).map(() => new Array(width).fill(null).map(() => new Array(1).fill(-1)));
@@ -1321,10 +1318,6 @@ export default class PixelPlugin
                 });
             });
         }
-
-
-        
-        console.log("Done");
     }
 
     populateMatrix ()
@@ -1333,8 +1326,17 @@ export default class PixelPlugin
 
         this.initializeMatrix();
 
+        let elements = 0;
+
+        this.layers.forEach((layer) =>
+        {
+            elements += layer.actions.length
+        });
+
+        let remaining = elements;
+
         let pageIndex = this.core.getSettings().currentPageIndex,
-            maxZoomLevel = this.core.getSettings().zoomLevel;
+            maxZoomLevel = this.core.getSettings().maxZoomLevel;
 
         this.layers.forEach((layer) =>
         {
@@ -1356,6 +1358,7 @@ export default class PixelPlugin
                     default:
                         return;
                 }
+                remaining -= 1;
             });
         });
         this.printMatrix();
