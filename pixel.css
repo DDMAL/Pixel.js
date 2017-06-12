@@ -2,24 +2,48 @@
 .layer-div {
   position: relative;
 }
+
 .layer-div input {
-  padding-left: 35px;
+  padding-left: 50px;
 }
-.layer-div .color-box {
+
+.color-box {
   width: 10px;
   height: 10px;
   display: inline-block;
   background-color: #ccc;
   position: absolute;
-  left: 5px;
+  left: 20px;
   top: 5px;
+}
+
+.unchecked-layer-settings {
+  width: 0;
+  height: 0;
+  display: inline-block;
+  position: absolute;
+  left: 35px;
+  top: 5px;
+  border-style: solid;
+  border-width: 5px 0 5px 10px;
+}
+
+.checked-layer-settings {
+  width: 0;
+  height: 0;
+  display: inline-block;
+  position: absolute;
+  left: 35px;
+  top: 5px;
+  border-left: 5px solid transparent;
+  border-right: 5px solid transparent;
 }
 
 .selected-layer {
   position: relative;
 }
 .selected-layer input {
-  padding-left: 35px;
+  padding-left: 50px;
   color: white;
   background: rgb(181,189,200); /* Old browsers */
   background: -moz-linear-gradient(top, rgba(181,189,200,1) 0%, rgba(130,140,149,1) 36%, rgba(40,52,59,1) 100%); /* FF3.6-15 */
@@ -27,59 +51,61 @@
   background: linear-gradient(to bottom, rgba(181,189,200,1) 0%,rgba(130,140,149,1) 36%,rgba(40,52,59,1) 100%); /* W3C, IE10+, FF16+, Chrome26+, Opera12+, Safari7+ */
   filter: progid:DXImageTransform.Microsoft.gradient( startColorstr='#b5bdc8', endColorstr='#28343b',GradientType=0 ); /* IE6-9 */
 }
-.selected-layer .color-box {
-  width: 10px;
-  height: 10px;
+
+.layer-div .unchecked-layer-settings {
+  border-color: transparent transparent transparent #000000;
+}
+
+.layer-div .layer-activated {
   display: inline-block;
   position: absolute;
   left: 5px;
   top: 5px;
+
+  color: #14396A !important;
+  box-shadow: 1px 1px 1px #C3E7FF;
+  padding: 4px 4px;
+  -moz-border-radius: 5px;
+  -webkit-border-radius: 5px;
+  border-radius: 5px;
+  border: 1px solid #09001C;
+  background: #090A1C;
+  background: linear-gradient(top,  #757575,  #000000);
+  background: -ms-linear-gradient(top,  #757575,  #000000);
+  background: -webkit-gradient(linear, left top, left bottom, from(#757575), to(#000000));
+  background: -moz-linear-gradient(top,  #757575,  #000000);
+
 }
 
-.layer-div .unchecked-layer-settings {
-  width: 0;
-  height: 0;
+.layer-div .layer-deactivated {
   display: inline-block;
   position: absolute;
-  left: 20px;
+  left: 5px;
   top: 5px;
-  border-style: solid;
-  border-width: 5px 0 5px 10px;
-  border-color: transparent transparent transparent #000000;
+
+  color: #14396A !important;
+  box-shadow: 1px 1px 1px #C3E7FF;
+  padding: 4px 4px;
+  -moz-border-radius: 5px;
+  -webkit-border-radius: 5px;
+  border-radius: 5px;
+  border: 1px solid #09001C;
+
+  background: rgb(246,249,250); /* Old browsers */
+  background: -moz-linear-gradient(top, rgba(246,249,250,1) 0%, rgba(229,235,239,1) 50%, rgba(205,216,223,1) 51%, rgba(235,245,251,1) 100%); /* FF3.6-15 */
+  background: -webkit-linear-gradient(top, rgba(246,249,250,1) 0%,rgba(229,235,239,1) 50%,rgba(205,216,223,1) 51%,rgba(235,245,251,1) 100%); /* Chrome10-25,Safari5.1-6 */
+  background: linear-gradient(to bottom, rgba(246,249,250,1) 0%,rgba(229,235,239,1) 50%,rgba(205,216,223,1) 51%,rgba(235,245,251,1) 100%); /* W3C, IE10+, FF16+, Chrome26+, Opera12+, Safari7+ */
+  filter: progid:DXImageTransform.Microsoft.gradient( startColorstr='#f6f9fa', endColorstr='#ebf5fb',GradientType=0 ); /* IE6-9 */
 }
 
 .layer-div .checked-layer-settings {
-  width: 0;
-  height: 0;
-  display: inline-block;
-  position: absolute;
-  left: 20px;
-  top: 5px;
-  border-left: 5px solid transparent;
-  border-right: 5px solid transparent;
   border-top: 10px solid #000000;
 }
 
 .selected-layer .unchecked-layer-settings {
-  width: 0;
-  height: 0;
-  display: inline-block;
-  position: absolute;
-  left: 20px;
-  top: 5px;
-  border-style: solid;
-  border-width: 5px 0 5px 10px;
   border-color: transparent transparent transparent #ffffff;
 }
 
 .selected-layer .checked-layer-settings {
-  width: 0;
-  height: 0;
-  display: inline-block;
-  position: absolute;
-  left: 20px;
-  top: 5px;
-  border-left: 5px solid transparent;
-  border-right: 5px solid transparent;
   border-top: 10px solid #ffffff;
 }
