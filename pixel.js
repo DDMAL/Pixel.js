@@ -792,6 +792,7 @@ export default class PixelPlugin
             layerActivationDiv.classList.remove("layer-deactivated");
             layerActivationDiv.classList.add("layer-activated");
             layer.activateLayer();
+            this.repaintLayer(layer);
         }
         else
         {
@@ -890,6 +891,9 @@ export default class PixelPlugin
 
     initializeNewPath (canvas, evt)
     {
+        if (!this.layers[this.selectedLayerIndex].isActivated())
+            return;
+
         let pageIndex = this.core.getSettings().currentPageIndex,
             zoomLevel = this.core.getSettings().zoomLevel,
             mousePos = this.getMousePos(canvas, evt),
@@ -929,6 +933,9 @@ export default class PixelPlugin
 
     setupPointPainting (canvas, evt)
     {
+        if (!this.layers[this.selectedLayerIndex].isActivated())
+            return;
+
         let point,
             horizontalMove = false,
             mousePos = this.getMousePos(canvas, evt),
@@ -985,6 +992,9 @@ export default class PixelPlugin
 
     initializeRectanglePreview (canvas, evt)
     {
+        if (!this.layers[this.selectedLayerIndex].isActivated())
+            return;
+
         let pageIndex = this.core.getSettings().currentPageIndex,
             mousePos = this.getMousePos(canvas, evt),
             relativeCoords = this.getRelativeCoordinatesFromPadded(mousePos.x, mousePos.y);
@@ -1000,6 +1010,9 @@ export default class PixelPlugin
 
     rectanglePreview (canvas, evt)
     {
+        if (!this.layers[this.selectedLayerIndex].isActivated())
+            return;
+
         if (this.mousePressed)
         {
             let mousePos = this.getMousePos(canvas, evt),
@@ -1216,48 +1229,15 @@ export default class PixelPlugin
 
     drawLayer (zoomLevel, layer)
     {
-        layer.getCtx().clearRect(0,0,layer.getCanvas().width, layer.getCanvas().height);
-
-        let renderer = this.core.getSettings().renderer;
-
-        renderer._renderedPages.forEach((pageIndex) =>
+        if (layer.isActivated() === true)
         {
-            let ctx = layer.getCtx();
-            layer.actions.forEach((action) =>
-            {
-                switch (action.type)
-                {
-                    case "shape":
-                        action.draw(layer, pageIndex, zoomLevel, this.core.getSettings().renderer, ctx);
-                        break;
-                    case "path":
-                        let isDown = false;
-                        action.points.forEach((point) => {
-                            this.drawPath(layer, point, pageIndex, zoomLevel, action.brushSize, isDown, action.blendMode);
-                            isDown = true;
-                        });
-                        break;
-                    default:
-                        return;
-                }
-            });
-        });
-    }
+            layer.clearCtx();
 
-    drawHighlights (zoomLevel)
-    {
-        this.layers.forEach((layer) => {
-            layer.getCtx().clearRect(0,0,layer.getCanvas().width, layer.getCanvas().height);
-        });
+            let renderer = this.core.getSettings().renderer;
 
-        let renderer = this.core.getSettings().renderer;
-
-        renderer._renderedPages.forEach((pageIndex) =>
-        {
-            this.layers.forEach((layer) =>
+            renderer._renderedPages.forEach((pageIndex) =>
             {
                 let ctx = layer.getCtx();
-
                 layer.actions.forEach((action) =>
                 {
                     switch (action.type)
@@ -1276,6 +1256,23 @@ export default class PixelPlugin
                             return;
                     }
                 });
+            });
+        }
+    }
+
+    drawHighlights (zoomLevel)
+    {
+        this.layers.forEach((layer) => {
+            layer.clearCtx();
+        });
+
+        let renderer = this.core.getSettings().renderer;
+
+        renderer._renderedPages.forEach((pageIndex) =>
+        {
+            this.layers.forEach((layer) =>
+            {
+                this.drawLayer(zoomLevel, layer);
             });
         });
     }
@@ -1912,7 +1909,7 @@ export class Layer
         this.createCanvas(divaCanvas)
     }
 
-    createCanvas(divaCanvas)
+    createCanvas (divaCanvas)
     {
         this.canvas = document.createElement('canvas');
         this.canvas.setAttribute("class", "pixel-canvas");
@@ -1924,22 +1921,27 @@ export class Layer
         this.ctx = this.canvas.getContext('2d');
     }
 
-    placeCanvasAfterElement(element)
+    placeCanvasAfterElement (element)
     {
         element.parentNode.insertBefore(this.canvas, element.nextSibling);
     }
 
-    getCanvas()
+    getCanvas ()
     {
         return this.canvas;
     }
 
-    getCtx()
+    getCtx ()
     {
         return this.ctx;
     }
 
-    updateLayerName(newLayerName)
+    clearCtx ()
+    {
+        this.ctx.clearRect(0, 0, this.canvas.width, this.canvas.height);
+    }
+
+    updateLayerName (newLayerName)
     {
         this.layerName = newLayerName;
     }
@@ -2028,6 +2030,7 @@ export class Layer
     deactivateLayer ()
     {
         this.activated = false;
+        this.clearCtx();
     }
 
     activateLayer ()
@@ -2038,6 +2041,11 @@ export class Layer
     toggleLayerActivation ()
     {
         this.activated = !this.activated;
+    }
+
+    isActivated ()
+    {
+        return this.activated;
     }
 }
 
