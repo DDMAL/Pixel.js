@@ -320,8 +320,18 @@ export default class PixelPlugin
 
     createOpacitySlider (layer, parentElement, referenceNode)
     {
-        var opacitySlider = document.createElement("input");
+        let opacityDiv = document.createElement("div"),
+            opacityText = document.createElement("p"),
+            opacitySlider = document.createElement("input"),
+            text = document.createTextNode("Opacity");
 
+        opacityDiv.setAttribute("class", "layer-tool");
+        opacityDiv.setAttribute("id", "layer-" + layer.layerId + "-opacity-tool");
+
+        opacityText.setAttribute("class", "layer-tool-text");
+        opacityText.setAttribute("id", "layer-" + layer.layerId + "-opacity-text");
+
+        opacitySlider.setAttribute("class", "layer-tool-slider");
         opacitySlider.setAttribute("id", "layer-" + layer.layerId + "-opacity-slider");
         opacitySlider.setAttribute("type", "range");
         opacitySlider.setAttribute('max', 20);
@@ -334,14 +344,36 @@ export default class PixelPlugin
             this.repaintLayer(layer);
         });
 
-        parentElement.insertBefore(opacitySlider, referenceNode.nextSibling);
+        opacityText.appendChild(text);
+        opacityDiv.appendChild(opacityText);
+        opacityDiv.appendChild(opacitySlider);
+        parentElement.insertBefore(opacityDiv, referenceNode.nextSibling);
     }
 
     destroyOpacitySlider (layer)
     {
-        let opacitySlider = document.getElementById("layer-" + layer.layerId + "-opacity-slider");
+        let opacitySlider = document.getElementById("layer-" + layer.layerId + "-opacity-tool");
         opacitySlider.parentElement.removeChild(opacitySlider);
     }
+
+    // createLayerOptions (layer, parentElement, referenceNode)
+    // {
+    //     var layerOptions = document.createElement("input");
+    //
+    //     layerOptions.setAttribute("id", "layer-" + layer.layerId + "-opacity-slider");
+    //     layerOptions.setAttribute("type", "range");
+    //     layerOptions.setAttribute('max', 20);
+    //     layerOptions.setAttribute('min', 0);
+    //     layerOptions.setAttribute('value', layer.getOpacity() * 20);
+    //     layerOptions.setAttribute("draggable", "false");
+    //     layerOptions.addEventListener("input", () =>
+    //     {
+    //         layer.setOpacity(layerOptions.value / 20);
+    //         this.repaintLayer(layer);
+    //     });
+    //
+    //     parentElement.insertBefore(layerOptions, referenceNode.nextSibling);
+    // }
 
     createLayerSelectors (layers)
     {
@@ -775,6 +807,9 @@ export default class PixelPlugin
         {
             layerOptionsDiv.classList.remove("unchecked-layer-settings");
             layerOptionsDiv.classList.add("checked-layer-settings");
+
+
+
             this.createOpacitySlider(layer, layerOptionsDiv.parentElement.parentElement, layerOptionsDiv.parentElement);
         }
         else
