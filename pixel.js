@@ -349,6 +349,7 @@ export default class PixelPlugin
 
         let layersViewDiv = document.createElement("div");
         layersViewDiv.setAttribute("id", "layers-view");
+        layersViewDiv.setAttribute("class", "layers-view");
 
         // Backwards because layers' display should be the same as visual "z-index" priority (depth)
         for (var index = layers.length - 1; index >= 0; index--)
@@ -357,7 +358,8 @@ export default class PixelPlugin
                 layerDiv = document.createElement("div"),
                 colourDiv = document.createElement("div"),
                 layerName = document.createElement("input"),
-                layerOptionsDiv = document.createElement("div");
+                layerOptionsDiv = document.createElement("div"),
+                layerActivationDiv = document.createElement("div");
 
             layerDiv.setAttribute("index", index);
             layerDiv.setAttribute("draggable", "true");
@@ -376,12 +378,16 @@ export default class PixelPlugin
             layerOptionsDiv.setAttribute("class", "unchecked-layer-settings");
             layerOptionsDiv.setAttribute("id", "layer-" + layer.layerId + "-options");
 
+            layerActivationDiv.setAttribute("class", "layer-activated");
+            layerActivationDiv.setAttribute("id", "layer-" + layer.layerId + "-activation");
+
             if (layer.layerId === this.selectedLayerIndex)
             {
                 layerDiv.classList.add("selected-layer");
             }
 
             colourDiv.addEventListener("click", () => { this.displayColourOptions(); });
+            layerActivationDiv.addEventListener("click", () => { this.toggleLayerActivation(layer, layerActivationDiv); });
             layerName.addEventListener('keypress', (e) => { this.editLayerName(e, layerName); });
             layerOptionsDiv.onclick = () => { this.displayLayerOptions(layer, layerOptionsDiv); };
 
@@ -403,6 +409,7 @@ export default class PixelPlugin
             layerDiv.appendChild(layerName);
             layerDiv.appendChild(layerOptionsDiv);
             layerDiv.appendChild(colourDiv);
+            layerDiv.appendChild(layerActivationDiv);
             layersViewDiv.appendChild(layerDiv);
         }
         document.body.appendChild(layersViewDiv);
@@ -775,6 +782,22 @@ export default class PixelPlugin
             layerOptionsDiv.classList.remove("checked-layer-settings");
             layerOptionsDiv.classList.add("unchecked-layer-settings");
             this.destroyOpacitySlider(layer);
+        }
+    }
+
+    toggleLayerActivation (layer, layerActivationDiv)
+    {
+        if (layerActivationDiv.classList.contains("layer-deactivated")) //It is unchecked, check it
+        {
+            layerActivationDiv.classList.remove("layer-deactivated");
+            layerActivationDiv.classList.add("layer-activated");
+            layer.activateLayer();
+        }
+        else
+        {
+            layerActivationDiv.classList.remove("layer-activated");
+            layerActivationDiv.classList.add("layer-deactivated");
+            layer.deactivateLayer();
         }
     }
 
@@ -1885,6 +1908,7 @@ export class Layer
         this.canvas = null;
         this.ctx = null;
         this.actions = [];
+        this.activated = true;
         this.createCanvas(divaCanvas)
     }
 
@@ -1999,6 +2023,21 @@ export class Layer
         {
             return null;
         }
+    }
+
+    deactivateLayer ()
+    {
+        this.activated = false;
+    }
+
+    activateLayer ()
+    {
+        this.activated = true;
+    }
+
+    toggleLayerActivation ()
+    {
+        this.activated = !this.activated;
     }
 }
 
