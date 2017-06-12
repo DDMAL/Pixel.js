@@ -106,7 +106,6 @@ export default class PixelPlugin
         }
 
         this.disableDragScrollable();
-        this.initializeMatrix();
         this.createPluginElements(this.layers);
         this.scrollEventHandle = this.subscribeToScrollEvent();
         this.zoomEventHandle = this.subscribeToZoomLevelWillChangeEvent();
@@ -1268,11 +1267,13 @@ export default class PixelPlugin
         {
             for (var col = 0; col < rowlen; col++)
             {
-                if (this.matrix[row][col] !== -1)
+                let matrixEntryLen = this.matrix[row][col].length;
+
+                if (this.matrix[row][col][matrixEntryLen - 1] !== -1)
                 {
                     this.layers.forEach((layer) =>
                     {
-                        if (layer.layerId === this.matrix[row][col])
+                        if (layer.layerId === this.matrix[row][col][matrixEntryLen - 1])
                         {
                             this._ctx.fillStyle = layer.colour.toHTMLColour();
                             this._ctx.beginPath();
@@ -1293,7 +1294,7 @@ export default class PixelPlugin
 
     /**
      * Initializes the base matrix that maps the real-size picture.
-     * It wil
+     * The matrix will be a 3D matrix that stores the information for all layers
      **/
     initializeMatrix ()
     {
@@ -1301,7 +1302,29 @@ export default class PixelPlugin
             maxZoomLevel = this.core.getSettings().maxZoomLevel;
         let height = this.core.publicInstance.getPageDimensionsAtZoomLevel(pageIndex, maxZoomLevel).height,
             width = this.core.publicInstance.getPageDimensionsAtZoomLevel(pageIndex, maxZoomLevel).width;
-        this.matrix = new Array(height).fill(null).map(() => new Array(width).fill(-1));
+
+        console.log("Initializing");
+
+        // Decalaration of a 3D array
+
+        if (this.matrix === null)
+        {
+            this.matrix = new Array(height).fill(null).map(() => new Array(width).fill(null).map(() => new Array(1).fill(-1)));
+        }
+        else
+        {
+            this.matrix.forEach((row) =>
+            {
+                row.forEach((col) =>
+                {
+                    col.map(() => new Array(1).fill(-1));
+                });
+            });
+        }
+
+
+        
+        console.log("Done");
     }
 
     populateMatrix ()
@@ -1311,7 +1334,7 @@ export default class PixelPlugin
         this.initializeMatrix();
 
         let pageIndex = this.core.getSettings().currentPageIndex,
-            maxZoomLevel = this.core.getSettings().maxZoomLevel;
+            maxZoomLevel = this.core.getSettings().zoomLevel;
 
         this.layers.forEach((layer) =>
         {
@@ -1426,13 +1449,15 @@ export class Shape
                             if (absoluteCoords.y >= 0 && absoluteCoords.x >= 0
                                 && absoluteCoords.y <= matrix.length && absoluteCoords.x <= matrix[0].length)
                             {
-                                if (blendMode === "add")
+                                let matrixEntryLen = matrix[absoluteCoords.y][absoluteCoords.x].length;
+
+                                if (blendMode === "add" && (matrix[absoluteCoords.y][absoluteCoords.x][matrixEntryLen - 1] !== layer.layerId))
                                 {
-                                    matrix[absoluteCoords.y][absoluteCoords.x] = layer.layerId;
+                                    matrix[absoluteCoords.y][absoluteCoords.x].push(layer.layerId);
                                 }
-                                else if (blendMode === "subtract" && (matrix[absoluteCoords.y][absoluteCoords.x] === layer.layerId))
+                                else if (blendMode === "subtract" && (matrix[absoluteCoords.y][absoluteCoords.x][matrixEntryLen - 1] === layer.layerId))
                                 {
-                                    matrix[absoluteCoords.y][absoluteCoords.x] = -1;
+                                    matrix[absoluteCoords.y][absoluteCoords.x].pop();
                                 }
                             }
                         }
@@ -1510,13 +1535,15 @@ export class Circle extends Shape
                     if (absoluteCoords.y >= 0 && absoluteCoords.x >= 0
                         && absoluteCoords.y <= matrix.length && absoluteCoords.x <= matrix[0].length)
                     {
-                        if (blendMode === "add")
+                        let matrixEntryLen = matrix[absoluteCoords.y][absoluteCoords.x].length;
+
+                        if (blendMode === "add" && (matrix[absoluteCoords.y][absoluteCoords.x][matrixEntryLen - 1] !== layer.layerId))
                         {
-                            matrix[absoluteCoords.y][absoluteCoords.x] = layer.layerId;
+                            matrix[absoluteCoords.y][absoluteCoords.x].push(layer.layerId);
                         }
-                        else if (blendMode === "subtract" && (matrix[absoluteCoords.y][absoluteCoords.x] === layer.layerId))
+                        else if (blendMode === "subtract" && (matrix[absoluteCoords.y][absoluteCoords.x][matrixEntryLen - 1] === layer.layerId))
                         {
-                            matrix[absoluteCoords.y][absoluteCoords.x] = -1;
+                            matrix[absoluteCoords.y][absoluteCoords.x].pop();
                         }
                     }
                 }
@@ -1617,13 +1644,15 @@ export class Rectangle extends Shape
                 {
                     if (row >= 0 && col >= 0 && row <= matrix.length && col <= matrix[0].length)
                     {
-                        if (blendMode === "add")
+                        let matrixEntryLen = matrix[row][col].length;
+
+                        if (blendMode === "add" && (matrix[row][col][matrixEntryLen - 1] !== layer.layerId))
                         {
-                            matrix[row][col] = layer.layerId;
+                            matrix[row][col].push(layer.layerId);
                         }
-                        else if (blendMode === "subtract" && (matrix[row][col] = layer.layerId))
+                        else if (blendMode === "subtract" && (matrix[row][col][matrixEntryLen - 1] === layer.layerId))
                         {
-                            matrix[row][col] = -1;
+                            matrix[row][col].pop();
                         }
                     }
                 }
