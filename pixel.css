@@ -13,7 +13,7 @@
   display: inline-block;
   background-color: #ccc;
   position: absolute;
-  left: 20px;
+  left: 35px;
   top: 5px;
 }
 
@@ -21,6 +21,7 @@
   display: inline-block;
   background-color: #e5dee1;
   -webkit-margin-start: 30px;
+  position: relative;
 }
 
 .layer-tool p {
@@ -43,7 +44,7 @@
   height: 0;
   display: inline-block;
   position: absolute;
-  left: 35px;
+  left: 20px;
   top: 5px;
   border-style: solid;
   border-width: 5px 0 5px 10px;
@@ -54,7 +55,7 @@
   height: 0;
   display: inline-block;
   position: absolute;
-  left: 35px;
+  left: 20px;
   top: 5px;
   border-left: 5px solid transparent;
   border-right: 5px solid transparent;
