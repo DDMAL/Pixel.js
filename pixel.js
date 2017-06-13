@@ -356,25 +356,6 @@ export default class PixelPlugin
         opacitySlider.parentElement.removeChild(opacitySlider);
     }
 
-    // createLayerOptions (layer, parentElement, referenceNode)
-    // {
-    //     var layerOptions = document.createElement("input");
-    //
-    //     layerOptions.setAttribute("id", "layer-" + layer.layerId + "-opacity-slider");
-    //     layerOptions.setAttribute("type", "range");
-    //     layerOptions.setAttribute('max', 20);
-    //     layerOptions.setAttribute('min', 0);
-    //     layerOptions.setAttribute('value', layer.getOpacity() * 20);
-    //     layerOptions.setAttribute("draggable", "false");
-    //     layerOptions.addEventListener("input", () =>
-    //     {
-    //         layer.setOpacity(layerOptions.value / 20);
-    //         this.repaintLayer(layer);
-    //     });
-    //
-    //     parentElement.insertBefore(layerOptions, referenceNode.nextSibling);
-    // }
-
     createLayerSelectors (layers)
     {
         let departureIndex, destinationIndex;
@@ -807,9 +788,6 @@ export default class PixelPlugin
         {
             layerOptionsDiv.classList.remove("unchecked-layer-settings");
             layerOptionsDiv.classList.add("checked-layer-settings");
-
-
-
             this.createOpacitySlider(layer, layerOptionsDiv.parentElement.parentElement, layerOptionsDiv.parentElement);
         }
         else
