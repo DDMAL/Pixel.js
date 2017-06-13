@@ -827,6 +827,9 @@ export default class PixelPlugin
         {
             let actionToRedo = this.undoneActions[this.undoneActions.length - 1];
 
+            if (!actionToRedo.layer.isActivated())
+                return;
+
             if (actionToRedo.action.type === "path")
             {
                 actionToRedo.layer.addPathToLayer(actionToRedo.action);
@@ -849,6 +852,10 @@ export default class PixelPlugin
         if (this.actions.length > 0)
         {
             let actionToRemove = this.actions[this.actions.length - 1];
+
+            if (!actionToRemove.layer.isActivated())
+                return;
+
             this.undoneActions.push(actionToRemove);
             this.removeAction(this.actions.length - 1);
         }
@@ -1350,48 +1357,59 @@ export default class PixelPlugin
 
     populateMatrix ()
     {
-        console.log("populating");
+        console.log("Populating");
 
         this.initializeMatrix();
+        let canvas = this.createPageCanvas();
+        let ctx = canvas.getContext('2d');
 
-        let elements = 0;
-
-        this.layers.forEach((layer) =>
-        {
-            elements += layer.actions.length
-        });
-
-        let remaining = elements;
-
-        let pageIndex = this.core.getSettings().currentPageIndex,
-            maxZoomLevel = this.core.getSettings().maxZoomLevel;
-
-        this.layers.forEach((layer) =>
-        {
-            layer.actions.forEach((action) =>
-            {
-                switch (action.type)
-                {
-                    case "shape":
-                        action.getPixels(layer, pageIndex, maxZoomLevel, this.core.getSettings().renderer, this.matrix, action.blendMode);
-                        break;
-                    case "path":
-                        for (let index = 0; index < action.points.length - 1; index++)
-                        {
-                            let point = action.points[index];
-                            let nextPoint = action.points[index + 1];
-                            this.fillPath(layer, point, nextPoint, maxZoomLevel, pageIndex, action.brushSize, action.blendMode);
-                        }
-                        break;
-                    default:
-                        return;
-                }
-                remaining -= 1;
-            });
-        });
-        this.printMatrix();
-        console.log("Done");
+        // TODO: The idea here is to draw on 5 different canvases (on top of each other) then fill the matrix from there layer by layer
     }
+
+    // populateMatrix ()
+    // {
+    //     console.log("populating");
+    //
+    //     this.initializeMatrix();
+    //
+    //     let elements = 0;
+    //
+    //     this.layers.forEach((layer) =>
+    //     {
+    //         elements += layer.actions.length
+    //     });
+    //
+    //     let remaining = elements;
+    //
+    //     let pageIndex = this.core.getSettings().currentPageIndex,
+    //         maxZoomLevel = this.core.getSettings().maxZoomLevel;
+    //
+    //     this.layers.forEach((layer) =>
+    //     {
+    //         layer.actions.forEach((action) =>
+    //         {
+    //             switch (action.type)
+    //             {
+    //                 case "shape":
+    //                     action.getPixels(layer, pageIndex, maxZoomLevel, this.core.getSettings().renderer, this.matrix, action.blendMode);
+    //                     break;
+    //                 case "path":
+    //                     for (let index = 0; index < action.points.length - 1; index++)
+    //                     {
+    //                         let point = action.points[index];
+    //                         let nextPoint = action.points[index + 1];
+    //                         this.fillPath(layer, point, nextPoint, maxZoomLevel, pageIndex, action.brushSize, action.blendMode);
+    //                     }
+    //                     break;
+    //                 default:
+    //                     return;
+    //             }
+    //             remaining -= 1;
+    //         });
+    //     });
+    //     this.printMatrix();
+    //     console.log("Done");
+    // }
 }
 
 export class Shape
