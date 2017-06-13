@@ -3,8 +3,22 @@
   position: relative;
 }
 
+.selected-layer {
+  position: relative;
+}
+
 .layer-div input {
-  padding-left: 50px;
+  padding-left: 95px;
+}
+
+.selected-layer input {
+  padding-left: 95px;
+  color: white;
+  background: rgb(181,189,200); /* Old browsers */
+  background: -moz-linear-gradient(top, rgba(181,189,200,1) 0%, rgb(93, 99, 143) 36%, rgb(5, 5, 5) 100%); /* FF3.6-15 */
+  background: -webkit-linear-gradient(top, rgba(181,189,200,1) 0%, rgb(96, 99, 146) 36%, rgb(2, 3, 4) 100%); /* Chrome10-25,Safari5.1-6 */
+  background: linear-gradient(to bottom, rgba(181,189,200,1) 0%, rgb(88, 90, 122) 36%, rgb(18, 18, 18) 100%); /* W3C, IE10+, FF16+, Chrome26+, Opera12+, Safari7+ */
+  filter: progid:DXImageTransform.Microsoft.gradient( startColorstr='#b5bdc8', endColorstr='#28343b',GradientType=0 ); /* IE6-9 */
 }
 
 .color-box {
@@ -13,7 +27,7 @@
   display: inline-block;
   background-color: #ccc;
   position: absolute;
-  left: 20px;
+  left: 35px;
   top: 5px;
 }
 
@@ -22,7 +36,7 @@
   height: 0;
   display: inline-block;
   position: absolute;
-  left: 35px;
+  left: 20px;
   top: 5px;
   border-style: solid;
   border-width: 5px 0 5px 10px;
@@ -33,23 +47,10 @@
   height: 0;
   display: inline-block;
   position: absolute;
-  left: 35px;
+  left: 20px;
   top: 5px;
   border-left: 5px solid transparent;
   border-right: 5px solid transparent;
-}
-
-.selected-layer {
-  position: relative;
-}
-.selected-layer input {
-  padding-left: 50px;
-  color: white;
-  background: rgb(181,189,200); /* Old browsers */
-  background: -moz-linear-gradient(top, rgba(181,189,200,1) 0%, rgba(130,140,149,1) 36%, rgba(40,52,59,1) 100%); /* FF3.6-15 */
-  background: -webkit-linear-gradient(top, rgba(181,189,200,1) 0%,rgba(130,140,149,1) 36%,rgba(40,52,59,1) 100%); /* Chrome10-25,Safari5.1-6 */
-  background: linear-gradient(to bottom, rgba(181,189,200,1) 0%,rgba(130,140,149,1) 36%,rgba(40,52,59,1) 100%); /* W3C, IE10+, FF16+, Chrome26+, Opera12+, Safari7+ */
-  filter: progid:DXImageTransform.Microsoft.gradient( startColorstr='#b5bdc8', endColorstr='#28343b',GradientType=0 ); /* IE6-9 */
 }
 
 .layer-div .unchecked-layer-settings {
@@ -108,4 +109,34 @@
 
 .selected-layer .checked-layer-settings {
   border-top: 10px solid #ffffff;
+}
+
+.layer-tool {
+  display: inline-block;
+  background-color: #363c53;
+  -webkit-margin-start: 30px;
+  position: relative;
+  padding-left: 60px;
+}
+
+.layer-tool p {
+  display: inline-block;
+  font-family: sans-serif;
+  font: icon;
+  background-color: #2a293c;
+  -webkit-margin-before: 0em;
+  -webkit-margin-after: 0em;
+  color: white;
+  text-align: center;
+  height: 100%;
+  position: absolute;
+  left: 0px;
+  width: 60px;
+  font-size: x-small;
+  line-height: 20px;
+}
+
+.layer-tool .layer-tool-slider {
+  display: inline-block;
+  position: inherit;
 }

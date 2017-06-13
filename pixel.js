@@ -320,8 +320,18 @@ export default class PixelPlugin
 
     createOpacitySlider (layer, parentElement, referenceNode)
     {
-        var opacitySlider = document.createElement("input");
+        let opacityDiv = document.createElement("div"),
+            opacityText = document.createElement("p"),
+            opacitySlider = document.createElement("input"),
+            text = document.createTextNode("Opacity");
 
+        opacityDiv.setAttribute("class", "layer-tool");
+        opacityDiv.setAttribute("id", "layer-" + layer.layerId + "-opacity-tool");
+
+        opacityText.setAttribute("class", "layer-tool-text");
+        opacityText.setAttribute("id", "layer-" + layer.layerId + "-opacity-text");
+
+        opacitySlider.setAttribute("class", "layer-tool-slider");
         opacitySlider.setAttribute("id", "layer-" + layer.layerId + "-opacity-slider");
         opacitySlider.setAttribute("type", "range");
         opacitySlider.setAttribute('max', 20);
@@ -334,12 +344,15 @@ export default class PixelPlugin
             this.repaintLayer(layer);
         });
 
-        parentElement.insertBefore(opacitySlider, referenceNode.nextSibling);
+        opacityText.appendChild(text);
+        opacityDiv.appendChild(opacityText);
+        opacityDiv.appendChild(opacitySlider);
+        parentElement.insertBefore(opacityDiv, referenceNode.nextSibling);
     }
 
     destroyOpacitySlider (layer)
     {
-        let opacitySlider = document.getElementById("layer-" + layer.layerId + "-opacity-slider");
+        let opacitySlider = document.getElementById("layer-" + layer.layerId + "-opacity-tool");
         opacitySlider.parentElement.removeChild(opacitySlider);
     }
 
