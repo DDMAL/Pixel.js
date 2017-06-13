@@ -943,7 +943,7 @@ export default class PixelPlugin
 
             // Add path to list of actions (used for undo/redo)
             this.actions.push(new Action(selectedLayer.getCurrentPath(), selectedLayer));
-            this.drawPath(selectedLayer, point, pageIndex, zoomLevel, brushSize, false, selectedLayer.getCurrentPath().blendMode);
+            this.drawPath(selectedLayer, point, pageIndex, zoomLevel, brushSize, false, selectedLayer.getCurrentPath().blendMode, selectedLayer.getCanvas());
         }
         else
         {
@@ -1001,7 +1001,7 @@ export default class PixelPlugin
                 this.layers[this.selectedLayerIndex].addToCurrentPath(point, "subtract");
             }
 
-            this.drawPath(this.layers[this.selectedLayerIndex], point, pageIndex, zoomLevel, brushSize, true, this.layers[this.selectedLayerIndex].getCurrentPath().blendMode);
+            this.drawPath(this.layers[this.selectedLayerIndex], point, pageIndex, zoomLevel, brushSize, true, this.layers[this.selectedLayerIndex].getCurrentPath().blendMode, this.layers[this.selectedLayerIndex].getCanvas());
             return;
         }
 
@@ -1097,7 +1097,7 @@ export default class PixelPlugin
 
     repaintLayer (layer)
     {
-        this.drawLayer(this.core.getSettings().zoomLevel, layer);
+        this.drawLayer(this.core.getSettings().zoomLevel, layer, layer.getCanvas());
     }
 
     repaint ()
@@ -1144,10 +1144,11 @@ export default class PixelPlugin
         };
     }
 
-    drawPath (layer, point, pageIndex, zoomLevel, brushSize, isDown, blendMode)
+    drawPath (layer, point, pageIndex, zoomLevel, brushSize, isDown, blendMode, canvas)
     {
         let renderer = this.core.getSettings().renderer,
-            scaleRatio = Math.pow(2, zoomLevel);
+            scaleRatio = Math.pow(2, zoomLevel),
+            ctx = canvas.getContext('2d');
 
         if (!(pageIndex === point.pageIndex))
             return;
@@ -1161,7 +1162,6 @@ export default class PixelPlugin
 
         if (isDown)
         {
-            let ctx = layer.getCtx();
             if (blendMode === "add")
             {
                 ctx.globalCompositeOperation="source-over";
@@ -1192,6 +1192,52 @@ export default class PixelPlugin
         this.lastAbsX = highlightXOffset;
         this.lastAbsY = highlightYOffset;
     }
+
+    drawAbsolutePath (layer, point, pageIndex, zoomLevel, brushSize, isDown, blendMode, canvas)
+    {
+        let scaleRatio = Math.pow(2, zoomLevel),
+            ctx = canvas.getContext('2d');
+
+        if (!(pageIndex === point.pageIndex))
+            return;
+
+        // Calculates where the highlights should be drawn as a function of the whole webpage coordinates
+        // (to make it look like it is on top of a page in Diva)
+        let absoluteCoords = point.getAbsoluteCoordinates(zoomLevel);
+
+        if (isDown)
+        {
+            if (blendMode === "add")
+            {
+                ctx.globalCompositeOperation="source-over";
+                ctx.beginPath();
+                ctx.strokeStyle = layer.colour.toHTMLColour();
+                ctx.lineWidth = brushSize * scaleRatio;
+                ctx.lineJoin = "round";
+                ctx.moveTo(this.lastAbsX, this.lastAbsY);
+                ctx.lineTo(absoluteCoords.x, absoluteCoords.y);
+                ctx.closePath();
+                ctx.stroke();
+            }
+
+            else if (blendMode === "subtract")
+            {
+                ctx.globalCompositeOperation="destination-out";
+                ctx.beginPath();
+                ctx.strokeStyle = "rgba(250,250,250,1)"; // It is important to have the alpha always equal to 1. RGB are not important when erasing
+                ctx.lineWidth = brushSize * scaleRatio;
+                ctx.lineJoin = "round";
+                ctx.moveTo(this.lastAbsX, this.lastAbsY);
+                ctx.lineTo(absoluteCoords.x, absoluteCoords.y);
+                ctx.closePath();
+                ctx.stroke();
+            }
+            ctx.globalCompositeOperation="source-over";
+        }
+        this.lastAbsX = absoluteCoords.x;
+        this.lastAbsY = absoluteCoords.y;
+    }
+
 
     fillPath(layer, point1, point2, zoomLevel, pageIndex, brushSize, blendMode)
     {
@@ -1247,29 +1293,60 @@ export default class PixelPlugin
         new Shape().getPixels(layer, pageIndex, zoomLevel, renderer, ymax, ymin, pairOfEdges, this.matrix, blendMode);
     }
 
-    drawLayer (zoomLevel, layer)
+    drawLayer (zoomLevel, layer, canvas)
     {
         if (!layer.isActivated())
             return;
 
-        layer.clearCtx();
+        let ctx = canvas.getContext('2d');
+        ctx.clearRect(0, 0, canvas.width, canvas.height);
 
         let renderer = this.core.getSettings().renderer;
 
         renderer._renderedPages.forEach((pageIndex) =>
         {
-            let ctx = layer.getCtx();
             layer.actions.forEach((action) =>
             {
                 switch (action.type)
                 {
                     case "shape":
-                        action.draw(layer, pageIndex, zoomLevel, this.core.getSettings().renderer, ctx);
+                        action.draw(layer, pageIndex, zoomLevel, this.core.getSettings().renderer, canvas);
                         break;
                     case "path":
                         let isDown = false;
                         action.points.forEach((point) => {
-                            this.drawPath(layer, point, pageIndex, zoomLevel, action.brushSize, isDown, action.blendMode);
+                            this.drawPath(layer, point, pageIndex, zoomLevel, action.brushSize, isDown, action.blendMode, canvas);
+                            isDown = true;
+                        });
+                        break;
+                    default:
+                        return;
+                }
+            });
+        });
+    }
+
+    drawLayerOnPageCanvas (zoomLevel, layer, canvas)
+    {
+        console.log(canvas);
+
+        let renderer = this.core.getSettings().renderer;
+
+        renderer._renderedPages.forEach((pageIndex) =>
+        {
+            layer.actions.forEach((action) =>
+            {
+                console.log(action);
+
+                switch (action.type)
+                {
+                    case "shape":
+                        action.drawAbsolute(layer, pageIndex, zoomLevel, this.core.getSettings().renderer, canvas);
+                        break;
+                    case "path":
+                        let isDown = false;
+                        action.points.forEach((point) => {
+                            this.drawAbsolutePath(layer, point, pageIndex, zoomLevel, action.brushSize, isDown, action.blendMode, canvas);
                             isDown = true;
                         });
                         break;
@@ -1284,7 +1361,7 @@ export default class PixelPlugin
     {
         this.layers.forEach((layer) =>
         {
-            this.drawLayer(zoomLevel, layer);
+            this.drawLayer(zoomLevel, layer, layer.getCanvas());
         });
     }
 
@@ -1327,89 +1404,92 @@ export default class PixelPlugin
      * Initializes the base matrix that maps the real-size picture.
      * The matrix will be a 3D matrix that stores the information for all layers
      **/
-    initializeMatrix ()
+    initializeMatrix (zoomLevel)
     {
-        let pageIndex = this.core.getSettings().currentPageIndex,
-            maxZoomLevel = this.core.getSettings().maxZoomLevel;
-        let height = this.core.publicInstance.getPageDimensionsAtZoomLevel(pageIndex, maxZoomLevel).height,
-            width = this.core.publicInstance.getPageDimensionsAtZoomLevel(pageIndex, maxZoomLevel).width;
+        let pageIndex = this.core.getSettings().currentPageIndex;
+        let height = this.core.publicInstance.getPageDimensionsAtZoomLevel(pageIndex, zoomLevel).height,
+            width = this.core.publicInstance.getPageDimensionsAtZoomLevel(pageIndex, zoomLevel).width;
 
         // Decalaration of a 2D array
         this.matrix = new Array(height).fill(null).map(() => new Array(width).fill(-1));
     }
 
-    createPageCanvas ()
-    {
-        let pageIndex = this.core.getSettings().currentPageIndex,
-            maxZoomLevel = this.core.getSettings().maxZoomLevel;
-        let height = this.core.publicInstance.getPageDimensionsAtZoomLevel(pageIndex, maxZoomLevel).height,
-            width = this.core.publicInstance.getPageDimensionsAtZoomLevel(pageIndex, maxZoomLevel).width;
-
-        let canvas = document.createElement('canvas');
-        canvas.setAttribute("class", "page-canvas");
-        canvas.setAttribute("id", "export-canvas");
-        canvas.setAttribute("style", "position: absolute; top: 0; left: 0;");
-        canvas.width = width;
-        canvas.height = height;
-
-        return canvas;
-    }
-
+    // Creating a canvas with the size of the
     populateMatrix ()
     {
         console.log("Populating");
 
-        this.initializeMatrix();
-        let canvas = this.createPageCanvas();
-        let ctx = canvas.getContext('2d');
+        let pageIndex = this.core.getSettings().currentPageIndex,
+            maxZoomLevel = this.core.getSettings().zoomLevel;
+        let height = this.core.publicInstance.getPageDimensionsAtZoomLevel(pageIndex, maxZoomLevel).height,
+            width = this.core.publicInstance.getPageDimensionsAtZoomLevel(pageIndex, maxZoomLevel).width;
+
+        this.initializeMatrix(maxZoomLevel);
+
+        let baseCanvas = document.createElement('canvas');
+        baseCanvas.setAttribute("class", "export-page-canvas");
+        baseCanvas.setAttribute("style", "position: absolute; top: 0; left: 0;");
+        baseCanvas.width = width;
+        baseCanvas.height = height;
 
         // TODO: The idea here is to draw on 5 different canvases (on top of each other) then fill the matrix from there layer by layer
-    }
+        this.layers.forEach((layer) =>
+        {
+            let opacity = layer.getOpacity();
+            layer.setOpacity(1);
 
-    // populateMatrix ()
-    // {
-    //     console.log("populating");
-    //
-    //     this.initializeMatrix();
-    //
-    //     let elements = 0;
-    //
-    //     this.layers.forEach((layer) =>
-    //     {
-    //         elements += layer.actions.length
-    //     });
-    //
-    //     let remaining = elements;
-    //
-    //     let pageIndex = this.core.getSettings().currentPageIndex,
-    //         maxZoomLevel = this.core.getSettings().maxZoomLevel;
-    //
-    //     this.layers.forEach((layer) =>
-    //     {
-    //         layer.actions.forEach((action) =>
-    //         {
-    //             switch (action.type)
-    //             {
-    //                 case "shape":
-    //                     action.getPixels(layer, pageIndex, maxZoomLevel, this.core.getSettings().renderer, this.matrix, action.blendMode);
-    //                     break;
-    //                 case "path":
-    //                     for (let index = 0; index < action.points.length - 1; index++)
-    //                     {
-    //                         let point = action.points[index];
-    //                         let nextPoint = action.points[index + 1];
-    //                         this.fillPath(layer, point, nextPoint, maxZoomLevel, pageIndex, action.brushSize, action.blendMode);
-    //                     }
-    //                     break;
-    //                 default:
-    //                     return;
-    //             }
-    //             remaining -= 1;
-    //         });
-    //     });
-    //     this.printMatrix();
-    //     console.log("Done");
-    // }
+            // This will be used for drawing absolute stuff
+            let newCanvas = document.createElement('canvas');
+            newCanvas.setAttribute("class", "export-page-canvas");
+            newCanvas.setAttribute("id", "layer-" + layer.layerId + "-export-canvas");
+            newCanvas.setAttribute("style", "position: absolute; top: 0; left: 0;");
+            newCanvas.width = width;
+            newCanvas.height = height;
+
+            this.drawLayerOnPageCanvas(maxZoomLevel, layer, newCanvas);
+            baseCanvas.getContext('2d').drawImage(newCanvas, 0, 0);
+            layer.setOpacity(opacity);
+        });
+
+        let viewerCanvas = document.createElement('canvas');
+        viewerCanvas.setAttribute("class", "export-page-canvas-viewer");
+        viewerCanvas.width = width;
+        viewerCanvas.height = height;
+
+        viewerCanvas.getContext('2d').clearRect(0, 0, viewerCanvas.width, viewerCanvas.height);
+
+        let num = 0;
+
+        for (let row = 0; row < height; row++)
+        {
+            for (let col = 0; col < width; col++)
+            {
+                let data = baseCanvas.getContext('2d').getImageData(col,row,1,1).data;
+                let colour = new Colour(data[0], data[1], data[2], data[3]);
+
+                viewerCanvas.getContext('2d').fillStyle = colour.toHTMLColour();
+                viewerCanvas.getContext('2d').fillRect(col, row, 1, 1);
+
+                // this.layers.forEach((layer) =>
+                // {
+                //     if ((layer.colour.red === colour.red) && (layer.colour.blue === colour.blue) && (layer.colour.green === colour.green))
+                //     {
+                //         layer.setOpacity(1);
+                //         viewerCanvas.getContext('2d').fillStyle = layer.colour.toHTMLColour();
+                //         viewerCanvas.getContext('2d').fillRect(col, row, 1, 1);
+                //         this.matrix[row][col] = layer.layerId;
+                //     }
+                //     else if (data[3] !== 0)
+                //     {
+                //         // console.log(layer, colour);
+                //     }
+                // });
+            }
+            console.log(row * 100 / height)
+        }
+        document.body.appendChild(viewerCanvas);
+        console.log(num);
+    }
 }
 
 export class Shape
@@ -1424,6 +1504,11 @@ export class Shape
      * Abstract method, to be implemented by extending function
      */
     draw ()
+    {
+
+    }
+
+    drawAbsolute ()
     {
 
     }
@@ -1532,9 +1617,10 @@ export class Circle extends Shape
      * @param zoomLevel
      * @param renderer
      */
-    draw (layer, pageIndex, zoomLevel, renderer, ctx)
+    draw (layer, pageIndex, zoomLevel, renderer, canvas)
     {
         let scaleRatio = Math.pow(2,zoomLevel);
+        let ctx = canvas.getContext('2d');
 
         if (pageIndex === this.origin.pageIndex)
         {
@@ -1546,6 +1632,25 @@ export class Circle extends Shape
             ctx.fillStyle = layer.colour.toHTMLColour();
             ctx.beginPath();
             ctx.arc(absoluteCenterWithPadding.x,absoluteCenterWithPadding.y, this.relativeRadius * scaleRatio,0,2*Math.PI);
+            ctx.fill();
+        }
+    }
+
+    drawAbsolute (layer, pageIndex, zoomLevel, renderer, canvas)
+    {
+        let scaleRatio = Math.pow(2,zoomLevel);
+        let ctx = canvas.getContext('2d');
+
+        if (pageIndex === this.origin.pageIndex)
+        {
+            // Calculates where the highlights should be drawn as a function of the whole webpage coordinates
+            // (to make it look like it is on top of a page in Diva)
+            let absoluteCenter = this.origin.getAbsoluteCoordinates(zoomLevel);
+
+            //Draw the circle
+            ctx.fillStyle = layer.colour.toHTMLColour();
+            ctx.beginPath();
+            ctx.arc(absoluteCenter.x,absoluteCenter.y, this.relativeRadius * scaleRatio,0,2*Math.PI);
             ctx.fill();
         }
     }
@@ -1618,9 +1723,10 @@ export class Rectangle extends Shape
      * @param zoomLevel
      * @param renderer
      */
-    draw (layer, pageIndex, zoomLevel, renderer, ctx)
+    draw (layer, pageIndex, zoomLevel, renderer, canvas)
     {
         let scaleRatio = Math.pow(2,zoomLevel);
+        let ctx = canvas.getContext('2d');
 
         const viewportPaddingX = Math.max(0, (renderer._viewport.width - renderer.layout.dimensions.width) / 2);
         const viewportPaddingY = Math.max(0, (renderer._viewport.height - renderer.layout.dimensions.height) / 2);
@@ -1662,7 +1768,40 @@ export class Rectangle extends Shape
                 ctx.clearRect(highlightXOffset, highlightYOffset,absoluteRectWidth,absoluteRectHeight);
             }
         }
+    }
 
+    drawAbsolute (layer, pageIndex, zoomLevel, renderer, canvas)
+    {
+        let scaleRatio = Math.pow(2,zoomLevel);
+        let ctx = canvas.getContext('2d');
+
+        // The following absolute values are experimental values to highlight the square on the first page of Salzinnes, CDN-Hsmu M2149.L4
+        // The relative values are used to scale the highlights according to the zoom level on the page itself
+        let absoluteRectOriginX = this.origin.relativeOriginX * scaleRatio,
+            absoluteRectOriginY = this.origin.relativeOriginY * scaleRatio,
+            absoluteRectWidth = this.relativeRectWidth * scaleRatio,
+            absoluteRectHeight = this.relativeRectHeight * scaleRatio;
+
+        // TODO: Use padded coordinates
+        if (this.blendMode === "add")
+        {
+            if (pageIndex === this.origin.pageIndex)
+            {
+                //Draw the rectangle
+                ctx.fillStyle = layer.colour.toHTMLColour();
+                ctx.fillRect(absoluteRectOriginX, absoluteRectOriginY,absoluteRectWidth,absoluteRectHeight);
+            }
+        }
+
+        else if (this.blendMode === "subtract")
+        {
+            if (pageIndex === this.origin.pageIndex)
+            {
+                //Draw the rectangle
+                ctx.fillStyle = layer.colour.toHTMLColour();
+                ctx.clearRect(absoluteRectOriginX, absoluteRectOriginY,absoluteRectWidth,absoluteRectHeight);
+            }
+        }
     }
 
     /**
@@ -1849,9 +1988,10 @@ export class Line extends Shape
      * @param zoomLevel
      * @param renderer
      */
-    draw (layer, pageIndex, zoomLevel, renderer, ctx)
+    draw (layer, pageIndex, zoomLevel, renderer, canvas)
     {
         let scaleRatio = Math.pow(2,zoomLevel);
+        let ctx = canvas.getContext('2d');
 
         let startPointAbsoluteCoordsWithPadding = this.origin.getAbsolutePaddedCoordinates(zoomLevel, pageIndex, renderer);
         let endPointAbsoluteCoordsWithPadding = this.endPoint.getAbsolutePaddedCoordinates(zoomLevel, pageIndex, renderer);
@@ -1862,6 +2002,24 @@ export class Line extends Shape
         ctx.lineJoin = this.lineJoin;
         ctx.moveTo(startPointAbsoluteCoordsWithPadding.x, startPointAbsoluteCoordsWithPadding.y);
         ctx.lineTo(endPointAbsoluteCoordsWithPadding.x, endPointAbsoluteCoordsWithPadding.y);
+        ctx.closePath();
+        ctx.stroke();
+    }
+
+    drawAbsolute (layer, pageIndex, zoomLevel, renderer, canvas)
+    {
+        let scaleRatio = Math.pow(2,zoomLevel);
+        let ctx = canvas.getContext('2d');
+
+        let startPointAbsoluteCoords = this.origin.getAbsoluteCoordinates(zoomLevel);
+        let endPointAbsoluteCoords = this.endPoint.getAbsoluteCoordinates(zoomLevel);
+
+        ctx.beginPath();
+        ctx.strokeStyle = layer.colour.toHTMLColour();
+        ctx.lineWidth = this.lineWidth * scaleRatio;
+        ctx.lineJoin = this.lineJoin;
+        ctx.moveTo(startPointAbsoluteCoords.x, startPointAbsoluteCoords.y);
+        ctx.lineTo(endPointAbsoluteCoords.x, endPointAbsoluteCoords.y);
         ctx.closePath();
         ctx.stroke();
     }
