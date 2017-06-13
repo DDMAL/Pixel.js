@@ -50,7 +50,7 @@ export default class PixelPlugin
             this.deactivatePlugin();
     }
 
-    tutorial()
+    tutorial ()
     {
         let overlay = document.createElement('canvas');
         overlay.setAttribute("id", "tutorial canvas");
@@ -207,7 +207,7 @@ export default class PixelPlugin
 
     unsubscribeFromMouseEvents ()
     {
-        var canvas = document.getElementById("diva-1-outer");
+        let canvas = document.getElementById("diva-1-outer");
 
         canvas.removeEventListener('mousedown', this.mouseHandles.mouseDownHandle);
         canvas.removeEventListener('mouseup', this.mouseHandles.mouseUpHandle);
@@ -261,7 +261,7 @@ export default class PixelPlugin
         form.setAttribute("id", "tool-selector");
 
         // Create an element for each tool and
-        for (var index = 0; index < tools.length; index++)
+        for (let index = 0; index < tools.length; index++)
         {
             let tool = tools[index],
                 radio = document.createElement("input"),
@@ -634,12 +634,12 @@ export default class PixelPlugin
 
     onKeyDown (e)
     {
-        // Cmd + Shift + Z
+        // Cmd + Z
         if (e.code === "KeyZ" && e.shiftKey === false)
         {
             this.undoAction();
         }
-        // Cmd + Z
+        // Cmd + Shift + Z
         else if (e.code === "KeyZ" && e.shiftKey === true)
         {
             this.redoAction();
@@ -1371,9 +1371,9 @@ export default class PixelPlugin
         // let renderer = this.core.getSettings().renderer;
         let rowlen = this.matrix[0].length;
 
-        for (var row = 0; row < this.matrix.length; row++)
+        for (let row = 0; row < this.matrix.length; row++)
         {
-            for (var col = 0; col < rowlen; col++)
+            for (let col = 0; col < rowlen; col++)
             {
                 let matrixEntryLen = this.matrix[row][col].length;
 
@@ -1528,15 +1528,15 @@ export class Shape
     {
         // TODO: Check for horizontal or vertical lines
         // For every scan line
-        for(var y = ymin; y < ymax; y++)
+        for (let y = ymin; y < ymax; y++)
         {
             let intersectionPoints = [];
 
             // For every line calculate the intersection edges
-            for (var e = 0; e < pairOfEdges.length; e++)
+            for (let e = 0; e < pairOfEdges.length; e++)
             {
                 // Calculate intersection with line
-                for(var p = 0; p < pairOfEdges[e].length - 1; p++)
+                for (let p = 0; p < pairOfEdges[e].length - 1; p++)
                 {
                     let x1 = pairOfEdges[e][p].absolutePaddedX;
                     let y1 = pairOfEdges[e][p].absolutePaddedY;
@@ -1575,7 +1575,7 @@ export class Shape
 
                         let y = intersectionPoints[index].absolutePaddedY;
 
-                        for (var fill = start; fill < end; fill++)
+                        for (let fill = start; fill < end; fill++)
                         {
                             // Remove padding to get absolute coordinates
                             let absoluteCoords = new Point().getAbsoluteCoordinatesFromPadded(pageIndex,renderer,fill,y);
