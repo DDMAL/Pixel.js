@@ -1242,51 +1242,42 @@ export default class PixelPlugin
 
     drawLayer (zoomLevel, layer)
     {
-        if (layer.isActivated() === true)
-        {
-            layer.clearCtx();
+        if (!layer.isActivated())
+            return;
 
-            let renderer = this.core.getSettings().renderer;
-
-            renderer._renderedPages.forEach((pageIndex) =>
-            {
-                let ctx = layer.getCtx();
-                layer.actions.forEach((action) =>
-                {
-                    switch (action.type)
-                    {
-                        case "shape":
-                            action.draw(layer, pageIndex, zoomLevel, this.core.getSettings().renderer, ctx);
-                            break;
-                        case "path":
-                            let isDown = false;
-                            action.points.forEach((point) => {
-                                this.drawPath(layer, point, pageIndex, zoomLevel, action.brushSize, isDown, action.blendMode);
-                                isDown = true;
-                            });
-                            break;
-                        default:
-                            return;
-                    }
-                });
-            });
-        }
-    }
-
-    drawHighlights (zoomLevel)
-    {
-        this.layers.forEach((layer) => {
-            layer.clearCtx();
-        });
+        layer.clearCtx();
 
         let renderer = this.core.getSettings().renderer;
 
         renderer._renderedPages.forEach((pageIndex) =>
         {
-            this.layers.forEach((layer) =>
+            let ctx = layer.getCtx();
+            layer.actions.forEach((action) =>
             {
-                this.drawLayer(zoomLevel, layer);
+                switch (action.type)
+                {
+                    case "shape":
+                        action.draw(layer, pageIndex, zoomLevel, this.core.getSettings().renderer, ctx);
+                        break;
+                    case "path":
+                        let isDown = false;
+                        action.points.forEach((point) => {
+                            this.drawPath(layer, point, pageIndex, zoomLevel, action.brushSize, isDown, action.blendMode);
+                            isDown = true;
+                        });
+                        break;
+                    default:
+                        return;
+                }
             });
+        });
+    }
+
+    drawHighlights (zoomLevel)
+    {
+        this.layers.forEach((layer) =>
+        {
+            this.drawLayer(zoomLevel, layer);
         });
     }
 
@@ -1336,21 +1327,25 @@ export default class PixelPlugin
         let height = this.core.publicInstance.getPageDimensionsAtZoomLevel(pageIndex, maxZoomLevel).height,
             width = this.core.publicInstance.getPageDimensionsAtZoomLevel(pageIndex, maxZoomLevel).width;
 
-        // Decalaration of a 3D array
-        if (this.matrix === null)
-        {
-            this.matrix = new Array(height).fill(null).map(() => new Array(width).fill(null).map(() => new Array(1).fill(-1)));
-        }
-        else
-        {
-            this.matrix.forEach((row) =>
-            {
-                row.forEach((col) =>
-                {
-                    col.map(() => new Array(1).fill(-1));
-                });
-            });
-        }
+        // Decalaration of a 2D array
+        this.matrix = new Array(height).fill(null).map(() => new Array(width).fill(-1));
+    }
+
+    createPageCanvas ()
+    {
+        let pageIndex = this.core.getSettings().currentPageIndex,
+            maxZoomLevel = this.core.getSettings().maxZoomLevel;
+        let height = this.core.publicInstance.getPageDimensionsAtZoomLevel(pageIndex, maxZoomLevel).height,
+            width = this.core.publicInstance.getPageDimensionsAtZoomLevel(pageIndex, maxZoomLevel).width;
+
+        let canvas = document.createElement('canvas');
+        canvas.setAttribute("class", "page-canvas");
+        canvas.setAttribute("id", "export-canvas");
+        canvas.setAttribute("style", "position: absolute; top: 0; left: 0;");
+        canvas.width = width;
+        canvas.height = height;
+
+        return canvas;
     }
 
     populateMatrix ()
