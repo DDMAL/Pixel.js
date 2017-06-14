@@ -94,7 +94,7 @@ export default class PixelPlugin
             let divaCanvas = this.core.getSettings().renderer._canvas,
                 pageIndex = this.core.getSettings().currentPageIndex;
             // Start by creating layers
-            let background = new Layer(-2, new Colour(242, 242, 242, 1), "Background", divaCanvas),
+            let background = new Layer(-1, new Colour(242, 242, 242, 1), "Background", divaCanvas),
                 layer1 = new Layer(0, new Colour(51, 102, 255, 0.8), "Layer 1", divaCanvas),
                 layer2 = new Layer(1, new Colour(255, 51, 102, 0.8), "Layer 2", divaCanvas),
                 layer3 = new Layer(2, new Colour(255, 255, 10, 0.8), "Layer 3", divaCanvas),
@@ -324,9 +324,9 @@ export default class PixelPlugin
 
     createPixelCanvases (layers)
     {
+        let divaCanvas = this.core.getSettings().renderer._canvas;
         for (let index = layers.length - 1; index >= 0; index--)
         {
-            let divaCanvas = this.core.getSettings().renderer._canvas;
             layers[index].placeCanvasAfterElement(divaCanvas);
         }
     }
@@ -1047,7 +1047,7 @@ export default class PixelPlugin
             relativeCoords = this.getRelativeCoordinatesFromPadded(mousePos.x, mousePos.y);
 
         // FIXME: direction of line drawing should be calculated only after the first shift button press
-        // Right now it is being caluclated at every point
+        // Right now it is being calculated at every point
         if (Math.abs(relativeCoords.x - this.lastRelCoordX) >= Math.abs(relativeCoords.y - this.lastRelCoordY))
             horizontalMove = true;
 
@@ -1448,6 +1448,8 @@ export default class PixelPlugin
         {
             this.drawLayer(zoomLevel, layer, layer.getCanvas());
         });
+
+        this.drawLayer(zoomLevel, this.background[0], this.background[0].getCanvas());
     }
 
     printMatrix ()
