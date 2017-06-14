@@ -18,6 +18,7 @@ export default class PixelPlugin
         this.zoomEventHandle = null;
         this.mouseHandles = null;
         this.keyboardHandles = null;
+        this.background = null;
         this.layers = null;
         this.matrix = null;
         this.mousePressed = false;
@@ -90,23 +91,28 @@ export default class PixelPlugin
 
         if (this.layers === null)
         {
-            let divaCanvas = this.core.getSettings().renderer._canvas;
+            let divaCanvas = this.core.getSettings().renderer._canvas,
+                pageIndex = this.core.getSettings().currentPageIndex;
             // Start by creating layers
-            let layer1 = new Layer(0, new Colour(51, 102, 255, 0.8), "Layer 1", divaCanvas),
+            let background = new Layer(-2, new Colour(242, 242, 242, 1), "Background", divaCanvas),
+                layer1 = new Layer(0, new Colour(51, 102, 255, 0.8), "Layer 1", divaCanvas),
                 layer2 = new Layer(1, new Colour(255, 51, 102, 0.8), "Layer 2", divaCanvas),
                 layer3 = new Layer(2, new Colour(255, 255, 10, 0.8), "Layer 3", divaCanvas),
                 layer4 = new Layer(3, new Colour(10, 180, 50, 0.8), "Layer 4", divaCanvas),
                 layer5 = new Layer(4, new Colour(255, 137, 0, 0.8), "Layer 5", divaCanvas);
 
+            background.addShapeToLayer(new Rectangle(new Point(0, 0, pageIndex), 350, 225, "add"));
             layer1.addShapeToLayer(new Rectangle(new Point(23, 42, 0), 24, 24, "add"));
             layer2.addShapeToLayer(new Rectangle(new Point(48, 50, 0), 57, 5, "add"));
             layer3.addShapeToLayer(new Rectangle(new Point(50, 80, 0), 50, 10, "add"));
 
             this.layers = [layer1, layer2, layer3, layer4, layer5];
+            this.background = [background];
         }
 
         this.disableDragScrollable();
         this.createPluginElements(this.layers);
+        this.createBackground(this.background);
         this.scrollEventHandle = this.subscribeToScrollEvent();
         this.zoomEventHandle = this.subscribeToZoomLevelWillChangeEvent();
         this.subscribeToMouseEvents();
@@ -123,7 +129,8 @@ export default class PixelPlugin
         this.unsubscribeFromKeyboardEvents();
         this.unsubscribeFromKeyboardPress();
         this.repaint(); // Repaint the tiles to make the highlights disappear off the page
-        this.destroyPluginElements(this.layers);
+        this.destroyPluginElements(this.layers, this.background);
+        //this.destroyBackground(this.background);
 
         // TODO: Remove all layer canvases
         // this._ctx.clearRect(0,0,this._canvas.width, this._canvas.height);
@@ -232,18 +239,34 @@ export default class PixelPlugin
      * ===============================================
      **/
 
+    createBackground (layers)
+    {
+        this.createPixelCanvases(layers);
+        this.createLockedLayerSelectors(layers);
+        //Next three create calls are here for UI placement. Truly belong in createPluginElements.
+        this.createBrushSizeSelector();
+        this.createToolsView(["brush", "rectangle", "grab", "eraser"]);
+        this.createExportButton();
+    }
+
+    destroyBackground (layers)
+    {
+        this.destroyPixelCanvases(layers);
+        this.destroyLockedLayerSelectors(layers);
+    }
+
     createPluginElements (layers)
     {
         this.createPixelCanvases(layers);
         this.createUndoButton();
         this.createRedoButton();
         this.createLayerSelectors(layers);
-        this.createBrushSizeSelector();
-        this.createToolsView(["brush", "rectangle", "grab", "eraser"]);
-        this.createExportButton();
+        // this.createBrushSizeSelector();
+        // this.createToolsView(["brush", "rectangle", "grab", "eraser"]);
+        // this.createExportButton();
     }
 
-    destroyPluginElements (layers)
+    destroyPluginElements (layers, background)
     {
         this.destroyLayerSelectors(layers);
         this.destroyBrushSizeSelector();
@@ -252,6 +275,8 @@ export default class PixelPlugin
         this.destroyExportButton();
         this.destroyPixelCanvases(layers);
         this.destroyToolsView(["brush", "rectangle", "grab", "eraser"]);
+        this.destroyPixelCanvases(background);
+        this.destroyLockedLayerSelectors(background);
     }
 
     // Tools are strings or enums
@@ -354,6 +379,69 @@ export default class PixelPlugin
     {
         let opacitySlider = document.getElementById("layer-" + layer.layerId + "-opacity-tool");
         opacitySlider.parentElement.removeChild(opacitySlider);
+    }
+
+    //////////////////
+    createLockedLayerSelectors (layers)
+    {
+        let backgroundViewDiv = document.createElement("div");
+        backgroundViewDiv.setAttribute("id", "background-view");
+        backgroundViewDiv.setAttribute("class", "background-view");
+
+        // Backwards because layers' display should be the same as visual "z-index" priority (depth)
+        for (var index = layers.length - 1; index >= 0; index--)
+        {
+            let layer = layers[index],
+                layerDiv = document.createElement("div"),
+                colourDiv = document.createElement("div"),
+                layerName = document.createElement("input"),
+                layerOptionsDiv = document.createElement("div"),
+                layerActivationDiv = document.createElement("div");
+
+            layerDiv.setAttribute("index", index);
+            layerDiv.setAttribute("draggable", "false");
+            layerDiv.setAttribute("class", "layer-div");
+            layerDiv.setAttribute("value", layer.layerId);
+            layerDiv.setAttribute("id", "layer-" + layer.layerId + "-selector");
+
+            layerName.setAttribute("type", "text");
+            layerName.setAttribute("readonly", "true");
+            layerName.setAttribute("value", layer.layerName);
+            layerName.setAttribute("ondblclick", "this.readOnly='';");
+
+            colourDiv.setAttribute("class", "color-box");
+            colourDiv.setAttribute("style", "background-color: " + layer.colour.toHexString() + ";");
+
+            layerOptionsDiv.setAttribute("class", "unchecked-layer-settings");
+            layerOptionsDiv.setAttribute("id", "layer-" + layer.layerId + "-options");
+
+            layerActivationDiv.setAttribute("class", "layer-activated");
+            layerActivationDiv.setAttribute("id", "layer-" + layer.layerId + "-activation");
+
+            if (layer.layerId === this.selectedLayerIndex)
+            {
+                layerDiv.classList.add("selected-layer");
+            }
+
+            colourDiv.addEventListener("click", () => { this.displayColourOptions(); });
+            layerActivationDiv.addEventListener("click", () => { this.toggleLayerActivation(layer, layerActivationDiv); });
+            layerName.addEventListener('keypress', (e) => { this.editLayerName(e, layerName); });
+            layerOptionsDiv.onclick = () => { this.displayLayerOptions(layer, layerOptionsDiv); };
+
+            layerDiv.appendChild(layerName);
+            layerDiv.appendChild(layerOptionsDiv);
+            layerDiv.appendChild(colourDiv);
+            layerDiv.appendChild(layerActivationDiv);
+            backgroundViewDiv.appendChild(layerDiv);
+        }
+        document.body.appendChild(backgroundViewDiv);
+    }
+    //////////////
+
+    destroyLockedLayerSelectors ()
+    {
+        let backgroundViewDiv = document.getElementById("background-view");
+        backgroundViewDiv.parentNode.removeChild(backgroundViewDiv);
     }
 
     createLayerSelectors (layers)
@@ -595,8 +683,10 @@ export default class PixelPlugin
             }
             this.layers[destinationLayerIndex] = tempLayerStorage;
         }
-        this.destroyPluginElements(this.layers);
+        this.destroyPluginElements(this.layers, this.background);
+        //this.destroyPixelCanvases(this.background);
         this.createPluginElements(this.layers);
+        this.createBackground(this.background); //newly added
         this.selectedLayerIndex = destinationLayerIndex;
         this.highlightSelectedLayer(this.layers[this.selectedLayerIndex].layerId); // Layer Type and not index
         // TODO: Optimization: Instead of destroying all of the canvases only destroy and reorder the ones of interest
