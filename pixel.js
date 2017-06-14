@@ -130,7 +130,6 @@ export default class PixelPlugin
         this.unsubscribeFromKeyboardPress();
         this.repaint(); // Repaint the tiles to make the highlights disappear off the page
         this.destroyPluginElements(this.layers, this.background);
-        //this.destroyBackground(this.background);
 
         // TODO: Remove all layer canvases
         // this._ctx.clearRect(0,0,this._canvas.width, this._canvas.height);
@@ -261,9 +260,6 @@ export default class PixelPlugin
         this.createUndoButton();
         this.createRedoButton();
         this.createLayerSelectors(layers);
-        // this.createBrushSizeSelector();
-        // this.createToolsView(["brush", "rectangle", "grab", "eraser"]);
-        // this.createExportButton();
     }
 
     destroyPluginElements (layers, background)
@@ -684,9 +680,8 @@ export default class PixelPlugin
             this.layers[destinationLayerIndex] = tempLayerStorage;
         }
         this.destroyPluginElements(this.layers, this.background);
-        //this.destroyPixelCanvases(this.background);
         this.createPluginElements(this.layers);
-        this.createBackground(this.background); //newly added
+        this.createBackground(this.background);
         this.selectedLayerIndex = destinationLayerIndex;
         this.highlightSelectedLayer(this.layers[this.selectedLayerIndex].layerId); // Layer Type and not index
         // TODO: Optimization: Instead of destroying all of the canvases only destroy and reorder the ones of interest
