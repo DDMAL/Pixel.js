@@ -35,6 +35,7 @@ export default class PixelPlugin
         this.lastRelCoordY = null;
         this._canvas = null;
         this._ctx = null;
+        this.lastBackgroundOpacity = 0;
     }
 
     /**
@@ -94,7 +95,7 @@ export default class PixelPlugin
             let divaCanvas = this.core.getSettings().renderer._canvas,
                 pageIndex = this.core.getSettings().currentPageIndex;
             // Start by creating layers
-            let background = new Layer(-1, new Colour(242, 242, 242, 1), "Background", divaCanvas),
+            let background = new Layer(-1, new Colour(242, 242, 242, 0), "Background", divaCanvas),
                 layer1 = new Layer(0, new Colour(51, 102, 255, 0.8), "Layer 1", divaCanvas),
                 layer2 = new Layer(1, new Colour(255, 51, 102, 0.8), "Layer 2", divaCanvas),
                 layer3 = new Layer(2, new Colour(255, 255, 10, 0.8), "Layer 3", divaCanvas),
@@ -357,18 +358,20 @@ export default class PixelPlugin
         opacitySlider.setAttribute("type", "range");
         opacitySlider.setAttribute('max', 20);
         opacitySlider.setAttribute('min', 0);
-        opacitySlider.setAttribute('value', layer.getOpacity() * 20);
         opacitySlider.setAttribute("draggable", "false");
         if (parentElement.id === "background-view")
         {
+            opacitySlider.setAttribute('value', (20 - layer.getOpacity()) * 20);
             opacitySlider.addEventListener("input", () =>
             {
                 layer.setOpacity((20 - opacitySlider.value) / 20);
+                this.lastBackgroundOpacity = (20 - opacitySlider.value) / 20;
                 this.repaintLayer(layer);
             });
         }
         else
         {
+            opacitySlider.setAttribute('value', layer.getOpacity() * 20);
             opacitySlider.addEventListener("input", () =>
             {
                 layer.setOpacity((opacitySlider.value) / 20);
@@ -388,14 +391,13 @@ export default class PixelPlugin
         opacitySlider.parentElement.removeChild(opacitySlider);
     }
 
-    //////////////////
     createLockedLayerSelectors (layers)
     {
         let backgroundViewDiv = document.createElement("div");
         backgroundViewDiv.setAttribute("id", "background-view");
         backgroundViewDiv.setAttribute("class", "background-view");
 
-        // Backwards because layers' display should be the same as visual "z-index" priority (depth)
+        // Should only have 1 element, but perhaps there will one day be more than 1 background
         for (var index = layers.length - 1; index >= 0; index--)
         {
             let layer = layers[index],
@@ -431,7 +433,7 @@ export default class PixelPlugin
             }
 
             colourDiv.addEventListener("click", () => { this.displayColourOptions(); });
-            layerActivationDiv.addEventListener("click", () => { this.toggleLayerActivation(layer, layerActivationDiv); });
+            layerActivationDiv.addEventListener("click", () => { this.toggleLockedLayerActivation(layer, layerActivationDiv); });
             layerName.addEventListener('keypress', (e) => { this.editLayerName(e, layerName); });
             layerOptionsDiv.onclick = () => { this.displayLayerOptions(layer, layerOptionsDiv); };
 
@@ -443,7 +445,6 @@ export default class PixelPlugin
         }
         document.body.appendChild(backgroundViewDiv);
     }
-    //////////////
 
     destroyLockedLayerSelectors ()
     {
@@ -891,6 +892,26 @@ export default class PixelPlugin
             layerOptionsDiv.classList.remove("checked-layer-settings");
             layerOptionsDiv.classList.add("unchecked-layer-settings");
             this.destroyOpacitySlider(layer);
+        }
+    }
+
+    toggleLockedLayerActivation (layer, layerActivationDiv)
+    {
+        if (layerActivationDiv.classList.contains("layer-deactivated"))
+        {
+            layer.setOpacity(this.lastBackgroundOpacity);
+            layerActivationDiv.classList.remove("layer-deactivated");
+            layerActivationDiv.classList.add("layer-activated");
+            layer.activateLayer();
+            this.repaintLayer(layer);
+        }
+        else
+        {
+            layerActivationDiv.classList.remove("layer-activated");
+            layerActivationDiv.classList.add("layer-deactivated");
+            layer.setOpacity(1);
+            this.repaintLayer(layer);
+
         }
     }
 
