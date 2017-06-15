@@ -698,7 +698,9 @@ export default class PixelPlugin
         this.highlightSelectedLayer(this.layers[this.selectedLayerIndex].layerId); // Layer Type and not index
         // TODO: Optimization: Instead of destroying all of the canvases only destroy and reorder the ones of interest
         this.destroyPixelCanvases(this.layers);
+        this.destroyPixelCanvases(this.background);
         this.createPixelCanvases(this.layers);
+        this.createPixelCanvases(this.background);
         this.repaint();
     }
 
