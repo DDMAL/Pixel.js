@@ -359,11 +359,22 @@ export default class PixelPlugin
         opacitySlider.setAttribute('min', 0);
         opacitySlider.setAttribute('value', layer.getOpacity() * 20);
         opacitySlider.setAttribute("draggable", "false");
-        opacitySlider.addEventListener("input", () =>
+        if (parentElement.id === "background-view")
         {
-            layer.setOpacity(opacitySlider.value / 20);
-            this.repaintLayer(layer);
-        });
+            opacitySlider.addEventListener("input", () =>
+            {
+                layer.setOpacity((20 - opacitySlider.value) / 20);
+                this.repaintLayer(layer);
+            });
+        }
+        else
+        {
+            opacitySlider.addEventListener("input", () =>
+            {
+                layer.setOpacity((opacitySlider.value) / 20);
+                this.repaintLayer(layer);
+            });
+        }
 
         opacityText.appendChild(text);
         opacityDiv.appendChild(opacityText);
