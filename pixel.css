@@ -148,3 +148,94 @@
   display: inline-block;
   position: inherit;
 }
+
+.export-div {
+  height: 100%;
+  width: 100%;
+  position: fixed;
+  z-index: 10;
+  top: 0;
+  left: 0;
+  background-color: #333333;
+  opacity: 0.9;
+  overflow-y: hidden;
+  transition: 1s;
+}
+
+.pbar-outer-div {
+  width: 20%;
+  height: 10px;
+  border: 1px solid grey;
+  position: relative;
+  border-radius: 5px;
+  -moz-border-radius: 5px;
+  top: 28%;
+  left: 40%;
+}
+
+.pbar-inner-div {
+  background-color: white;
+  z-index: 2;
+  height: 100%;
+  width: 0%;
+}
+
+.pbar-inner-text {
+  z-index: 3;
+  position: absolute;
+  top: 30px;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  color: white;
+  font-weight: bold;
+  text-align: center;
+  font-family: sans-serif;
+  font: icon;
+  color: white;
+  font-size: xx-large;
+}
+
+.pbar-export-text {
+  z-index: 3;
+  position: absolute;
+  bottom: 60px;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  color: white;
+  font-weight: bold;
+  text-align: center;
+  font-family: sans-serif;
+  font: icon;
+  color: white;
+  font-size: xx-large;
+}
+
+.cancel-export-div {
+  position: absolute;
+  top: 100px;
+  left: 0;
+  width: 100%;
+  color: white;
+  font-weight: bold;
+  text-align: center;
+  font-family: sans-serif;
+  font: icon;
+  color: white;
+  font-size: large;
+  border: 2px solid white;
+  height: initial;
+  cursor: default;
+}
+
+.cancel-export-div:hover {
+  background-color: white;
+  color: #333333;
+}
+
+.pixel-canvas {
+  position: absolute;
+  top: 0;
+  left: 0;
+}
