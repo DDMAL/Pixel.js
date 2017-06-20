@@ -865,6 +865,10 @@ export default class PixelPlugin
                 this.mousePressed = true;
                 this.initializeNewPath(canvas, evt);
                 break;
+            case "select":
+                this.mousePressed = true;
+                this.initializeRectanglePreview(canvas, evt);
+                break;
             default:
                 this.mousePressed = true;
         }
@@ -882,10 +886,13 @@ export default class PixelPlugin
                 this.setupPointPainting(canvas, evt);
                 break;
             case "rectangle":
-                this.rectanglePreview(canvas,evt);
+                this.rectanglePreview(canvas, evt);
                 break;
             case "eraser":
                 this.setupPointPainting(canvas, evt);
+                break;
+            case "select":
+                this.rectanglePreview(canvas, evt);
                 break;
             default:
         }
@@ -903,6 +910,9 @@ export default class PixelPlugin
                 this.mousePressed = false;
                 break;
             case "eraser":
+                this.mousePressed = false;
+                break;
+            case "select":
                 this.mousePressed = false;
                 break;
             default:
@@ -1084,7 +1094,7 @@ export default class PixelPlugin
 
             // Add path to list of actions (used for undo/redo)
             this.actions.push(new Action(selectedLayer.getCurrentPath(), selectedLayer));
-            this.drawPath(selectedLayer, point, pageIndex, zoomLevel, brushSize, false, selectedLayer.getCurrentPath().blendMode, selectedLayer.getCanvas());
+            this.drawPath(selectedLayer, point, pageIndex, zoomLevel, brushSize, false, selectedLayer.getCurrentPath().mode, selectedLayer.getCanvas());
         }
         else
         {
@@ -1142,7 +1152,7 @@ export default class PixelPlugin
                 this.layers[this.selectedLayerIndex].addToCurrentPath(point, "subtract");
             }
 
-            this.drawPath(this.layers[this.selectedLayerIndex], point, pageIndex, zoomLevel, brushSize, true, this.layers[this.selectedLayerIndex].getCurrentPath().blendMode, this.layers[this.selectedLayerIndex].getCanvas());
+            this.drawPath(this.layers[this.selectedLayerIndex], point, pageIndex, zoomLevel, brushSize, true, this.layers[this.selectedLayerIndex].getCurrentPath().mode, this.layers[this.selectedLayerIndex].getCanvas());
             return;
         }
 
@@ -1160,10 +1170,16 @@ export default class PixelPlugin
             mousePos = this.getMousePos(canvas, evt),
             relativeCoords = this.getRelativeCoordinatesFromPadded(mousePos.x, mousePos.y);
 
-        if (this.isInPageBounds(relativeCoords.x, relativeCoords.y))
-        {
+        if (this.isInPageBounds(relativeCoords.x, relativeCoords.y)) {
             let selectedLayer = this.layers[this.selectedLayerIndex];
-            selectedLayer.addShapeToLayer(new Rectangle(new Point(relativeCoords.x,relativeCoords.y,pageIndex), 0, 0, "add", this.currentTool));
+
+
+            if (this.currentTool === "select")
+                selectedLayer.addShapeToLayer(new Rectangle(new Point(relativeCoords.x,relativeCoords.y,pageIndex), 0, 0, "select", this.currentTool));
+            else
+                selectedLayer.addShapeToLayer(new Rectangle(new Point(relativeCoords.x,relativeCoords.y,pageIndex), 0, 0, "add", this.currentTool));
+
+
             this.actions.push(new Action(selectedLayer.getCurrentShape(), selectedLayer));
             this.repaintLayer(selectedLayer);
         }
@@ -1434,6 +1450,7 @@ export default class PixelPlugin
         new Shape().getPixels(layer, pageIndex, zoomLevel, renderer, ymax, ymin, pairOfEdges, this.matrix, blendMode);
     }
 
+    //used on initial draw, scroll, zoom
     drawLayer (zoomLevel, layer, canvas)
     {
         if (!layer.isActivated())
@@ -1456,7 +1473,7 @@ export default class PixelPlugin
                     case "path":
                         let isDown = false;
                         action.points.forEach((point) => {
-                            this.drawPath(layer, point, pageIndex, zoomLevel, action.brushSize, isDown, action.blendMode, canvas);
+                            this.drawPath(layer, point, pageIndex, zoomLevel, action.brushSize, isDown, action.mode, canvas);
                             isDown = true;
                         });
                         break;
@@ -1467,6 +1484,7 @@ export default class PixelPlugin
         });
     }
 
+    //used on export
     drawLayerOnPageCanvas (layer, zoomLevel, canvas, pageIndex)
     {
         layer.actions.forEach((action) =>
@@ -1479,7 +1497,7 @@ export default class PixelPlugin
                 case "path":
                     let isDown = false;
                     action.points.forEach((point) => {
-                        this.drawAbsolutePath(layer, point, pageIndex, zoomLevel, action.brushSize, isDown, action.blendMode, canvas);
+                        this.drawAbsolutePath(layer, point, pageIndex, zoomLevel, action.brushSize, isDown, action.mode, canvas);
                         isDown = true;
                     });
                     break;

@@ -5,7 +5,7 @@ export class Path
         this.points = [];
         this.brushSize = brushSize;
         this.type = "path";
-        this.blendMode = blendMode;
+        this.mode = blendMode;
     }
 
     addPointToPath (point)

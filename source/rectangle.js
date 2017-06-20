@@ -4,11 +4,11 @@ import {Point} from './point';
 
 export class Rectangle extends Shape
 {
-    constructor (point, relativeRectWidth, relativeRectHeight, blendMode) {
+    constructor (point, relativeRectWidth, relativeRectHeight, mode) {
         super(point);
         this.relativeRectWidth = relativeRectWidth;
         this.relativeRectHeight = relativeRectHeight;
-        this.blendMode = blendMode;
+        this.mode = mode;
     }
 
     /**
@@ -18,7 +18,7 @@ export class Rectangle extends Shape
      * @param zoomLevel
      * @param renderer
      */
-    draw (layer, pageIndex, zoomLevel, renderer, canvas, tool)
+    draw (layer, pageIndex, zoomLevel, renderer, canvas)
     {
         let scaleRatio = Math.pow(2,zoomLevel);
         let ctx = canvas.getContext('2d');
@@ -33,8 +33,16 @@ export class Rectangle extends Shape
             absoluteRectWidth = this.relativeRectWidth * scaleRatio,
             absoluteRectHeight = this.relativeRectHeight * scaleRatio;
 
+        //Selection tool
+        if (this.mode === "select")
+        {
+            
+            return;
+        }
+
+        //Rectangle tool
         // TODO: Use padded coordinates
-        if (this.blendMode === "add")
+        if (this.mode === "add")
         {
             if (pageIndex === this.origin.pageIndex)
             {
@@ -45,11 +53,11 @@ export class Rectangle extends Shape
 
                 //Draw the rectangle
                 ctx.fillStyle = layer.colour.toHTMLColour();
-                ctx.fillRect(highlightXOffset, highlightYOffset,absoluteRectWidth,absoluteRectHeight);
+                ctx.fillRect(highlightXOffset, highlightYOffset, absoluteRectWidth, absoluteRectHeight);
             }
         }
 
-        else if (this.blendMode === "subtract")
+        else if (this.mode === "subtract")
         {
             if (pageIndex === this.origin.pageIndex)
             {
@@ -60,7 +68,7 @@ export class Rectangle extends Shape
 
                 //Draw the rectangle
                 ctx.fillStyle = layer.colour.toHTMLColour();
-                ctx.clearRect(highlightXOffset, highlightYOffset,absoluteRectWidth,absoluteRectHeight);
+                ctx.clearRect(highlightXOffset, highlightYOffset, absoluteRectWidth, absoluteRectHeight);
             }
         }
     }
@@ -78,7 +86,7 @@ export class Rectangle extends Shape
             absoluteRectHeight = this.relativeRectHeight * scaleRatio;
 
         // TODO: Use padded coordinates
-        if (this.blendMode === "add")
+        if (this.mode === "add")
         {
             if (pageIndex === this.origin.pageIndex)
             {
@@ -88,7 +96,7 @@ export class Rectangle extends Shape
             }
         }
 
-        else if (this.blendMode === "subtract")
+        else if (this.mode === "subtract")
         {
             if (pageIndex === this.origin.pageIndex)
             {
@@ -109,7 +117,7 @@ export class Rectangle extends Shape
      */
     getPixels (layer, pageIndex, zoomLevel, renderer, canvas, blendMode, divaCanvas)
     {
-        let scaleRatio = Math.pow(2,zoomLevel);
+        let scaleRatio = Math.pow(2, zoomLevel);
         let pixelCtx = canvas.getContext('2d');
         let divaCtx = divaCanvas.getContext('2d');
 
