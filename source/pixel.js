@@ -806,6 +806,12 @@ export default class PixelPlugin
             this.currentTool = "eraser";
             document.getElementById(this.currentTool).checked = true;
         }
+        else if (e.key === "s")
+        {
+            this.disableDragScrollable();
+            this.currentTool =  "select";
+            document.getElementById(this.currentTool).checked = true;
+        }
     }
 
     editLayerName (e, layerName)
