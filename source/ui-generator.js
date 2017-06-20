@@ -424,7 +424,6 @@ export class UIGenerator
 
     markToolSelected (tool)
     {
-        console.log("Marking");
         document.getElementById(tool).checked = true;
     }
 }

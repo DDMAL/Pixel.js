@@ -34,7 +34,6 @@ export default class PixelPlugin
         this.background = null;
         this.layers = null;
         this.mousePressed = false;
-        this.keyboardPress = false;
         this.lastAbsX = null;
         this.lastAbsY = null;
         this.selectedLayerIndex = 0;

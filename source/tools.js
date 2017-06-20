@@ -27,8 +27,6 @@ export class Tools
 
     setCurrentTool (tool)
     {
-        console.log("setting", tool);
-
         this.currentTool = tool;
         this.pixelInstance.uiGenerator.markToolSelected(tool);
 
