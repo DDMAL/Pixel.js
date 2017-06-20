@@ -447,13 +447,13 @@ export default class PixelPlugin
         switch (this.tools.getCurrentTool())
         {
             case this.tools.type.brush:
-                this.setupPointPainting(canvas, evt);
+                this.addPointToCurrentPath(canvas, evt);
                 break;
             case this.tools.type.rectangle:
                 this.rectanglePreview(canvas,evt);
                 break;
             case this.tools.type.eraser:
-                this.setupPointPainting(canvas, evt);
+                this.addPointToCurrentPath(canvas, evt);
                 break;
             default:
         }
@@ -679,7 +679,7 @@ export default class PixelPlugin
         }
     }
 
-    setupPointPainting (canvas, evt)
+    addPointToCurrentPath (canvas, evt)
     {
         if (!this.layers[this.selectedLayerIndex].isActivated())
             return;
@@ -872,52 +872,6 @@ export default class PixelPlugin
         };
     }
 
-    drawAbsolutePath (layer, point, pageIndex, zoomLevel, brushSize, isDown, blendMode, canvas)
-    {
-        let scaleRatio = Math.pow(2, zoomLevel),
-            ctx = canvas.getContext('2d');
-
-        if (pageIndex !== point.pageIndex)
-            return;
-
-        // Calculates where the highlights should be drawn as a function of the whole webpage coordinates
-        // (to make it look like it is on top of a page in Diva)
-        let absoluteCoords = point.getAbsoluteCoordinates(zoomLevel);
-
-        if (isDown)
-        {
-            if (blendMode === "add")
-            {
-                ctx.globalCompositeOperation="source-over";
-                ctx.beginPath();
-                ctx.strokeStyle = layer.colour.toHTMLColour();
-                ctx.lineWidth = brushSize * scaleRatio;
-                ctx.lineJoin = "round";
-                ctx.moveTo(this.lastAbsX, this.lastAbsY);
-                ctx.lineTo(absoluteCoords.x, absoluteCoords.y);
-                ctx.closePath();
-                ctx.stroke();
-            }
-
-            else if (blendMode === "subtract")
-            {
-                ctx.globalCompositeOperation="destination-out";
-                ctx.beginPath();
-                ctx.strokeStyle = "rgba(250,250,250,1)"; // It is important to have the alpha always equal to 1. RGB are not important when erasing
-                ctx.lineWidth = brushSize * scaleRatio;
-                ctx.lineJoin = "round";
-                ctx.moveTo(this.lastAbsX, this.lastAbsY);
-                ctx.lineTo(absoluteCoords.x, absoluteCoords.y);
-                ctx.closePath();
-                ctx.stroke();
-            }
-            ctx.globalCompositeOperation="source-over";
-        }
-        this.lastAbsX = absoluteCoords.x;
-        this.lastAbsY = absoluteCoords.y;
-    }
-
-
     fillPath(layer, point1, point2, zoomLevel, pageIndex, brushSize, blendMode)
     {
         let renderer = this.core.getSettings().renderer,
@@ -1005,6 +959,7 @@ export default class PixelPlugin
         });
     }
 
+    // Called on export
     drawLayerOnPageCanvas (layer, zoomLevel, canvas, pageIndex)
     {
         layer.actions.forEach((action) =>
@@ -1017,7 +972,7 @@ export default class PixelPlugin
                 case "path":
                     let isDown = false;
                     action.points.forEach((point) => {
-                        this.drawAbsolutePath(layer, point, pageIndex, zoomLevel, action.brushSize, isDown, action.blendMode, canvas);
+                        action.drawAbsolute(layer, point, pageIndex, zoomLevel, isDown, canvas);
                         isDown = true;
                     });
                     break;
