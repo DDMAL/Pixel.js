@@ -68,9 +68,7 @@ export class UIGenerator
             radio.setAttribute("name", "tool-selector");
             handleClick(radio);
 
-            // TODO: this.selectedTool (fixes tool selection after deactivating and activating plugin)
-            // Currently on reactivation, selected radio button does not correspond to tool
-            if (tool === "brush")      // Layer at position 0 is checked by default
+            if (tool === this.pixelInstance.tools.getCurrentTool())
                 radio.checked = true;
 
             form.appendChild(radio);
@@ -240,7 +238,7 @@ export class UIGenerator
             layerDiv.onmousedown = () =>
             {
                 departureIndex = layerDiv.getAttribute("index");
-                this.pixelInstance.highlightSelectedLayer(layerDiv.getAttribute("value"));
+                this.pixelInstance.highlightLayerSelector(layerDiv.getAttribute("value"));
             };
 
             layerDiv.ondragover = (evt) =>

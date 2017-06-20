@@ -125,9 +125,7 @@ export default class PixelPlugin
         this.repaint(); // Repaint the tiles to make the highlights disappear off the page
 
         this.uiGenerator.destroyPluginElements(this.layers, this.background);
-
-        // TODO: Remove all layer canvases
-        // this._ctx.clearRect(0,0,this._canvas.width, this._canvas.height);
+        
         this.enableDragScrollable();
         this.activated = false;
     }
@@ -308,7 +306,7 @@ export default class PixelPlugin
         this.uiGenerator.destroyPluginElements(this.layers, this.background);
         this.uiGenerator.createPluginElements(this.layers);
         this.selectedLayerIndex = destinationLayerIndex;
-        this.highlightSelectedLayer(this.layers[this.selectedLayerIndex].layerId); // Layer Type and not index
+        this.highlightLayerSelector(this.layers[this.selectedLayerIndex].layerId); // Layer Type and not index
         // TODO: Optimization: Instead of destroying all of the canvases only destroy and reorder the ones of interest
         this.uiGenerator.destroyPixelCanvases(this.layers);
         this.uiGenerator.placeLayerCanvasesInDiva(this.layers);
@@ -334,7 +332,7 @@ export default class PixelPlugin
 
         if (key >= KEY_1 && key < KEY_1 + numberOfLayers && key <= KEY_9)
         {
-            this.highlightSelectedLayer(key - KEY_1);
+            this.highlightLayerSelector(key - KEY_1);
 
             if (lastLayer !== this.selectedLayerIndex && this.mousePressed)
                 this.layerChangedMidDraw = true;
@@ -415,7 +413,7 @@ export default class PixelPlugin
         {
             case this.tools.type.brush:
                 this.mousePressed = true;
-                this.initializeNewPath(canvas, evt);
+                this.initializeNewPathInCurrentLayer(canvas, evt);
                 break;
             case this.tools.type.rectangle:
                 this.mousePressed = true;
@@ -426,7 +424,7 @@ export default class PixelPlugin
                 break;
             case this.tools.type.eraser:
                 this.mousePressed = true;
-                this.initializeNewPath(canvas, evt);
+                this.initializeNewPathInCurrentLayer(canvas, evt);
                 break;
             default:
                 this.mousePressed = true;
@@ -608,7 +606,7 @@ export default class PixelPlugin
      **/
 
     // Specify the class of the selected div. CSS takes care of the rest
-    highlightSelectedLayer (layerType)
+    highlightLayerSelector (layerType)
     {
         layerType = parseInt(layerType);
 
@@ -632,7 +630,7 @@ export default class PixelPlugin
         });
     }
 
-    initializeNewPath (canvas, evt)
+    initializeNewPathInCurrentLayer (canvas, evt)
     {
         if (!this.layers[this.selectedLayerIndex].isActivated())
             return;
@@ -729,7 +727,7 @@ export default class PixelPlugin
         }
 
         // If layer changed mid drawing then create a new path on selected layer
-        this.initializeNewPath(canvas, evt);
+        this.initializeNewPathInCurrentLayer(canvas, evt);
         this.layerChangedMidDraw = false;
     }
 
@@ -869,8 +867,6 @@ export default class PixelPlugin
 
     drawLayer (zoomLevel, layer, canvas)
     {
-        console.log("Drawing Layer");
-
         if (!layer.isActivated())
             return;
 
