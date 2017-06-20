@@ -107,13 +107,13 @@ export default class PixelPlugin
                 layer2 = new Layer(1, new Colour(255, 51, 102, 1), "Layer 2", divaCanvas),
                 layer3 = new Layer(2, new Colour(255, 255, 10, 1), "Layer 3", divaCanvas);
 
-            background.addShapeToLayer(new Rectangle(new Point(0, 0, pageIndex), 350, 225, "add"));
             layer1.addShapeToLayer(new Rectangle(new Point(23, 42, 0), 24, 24, "add"));
             layer2.addShapeToLayer(new Rectangle(new Point(48, 50, 0), 57, 5, "add"));
             layer3.addShapeToLayer(new Rectangle(new Point(50, 80, 0), 50, 10, "add"));
 
             this.layers = [layer1, layer2, layer3];
             this.background = background;
+            this.background.canvas = this.core.getSettings().renderer._canvas;  // Link background canvas to the actual diva canvas
         }
 
         this.disableDragScrollable();
@@ -323,9 +323,19 @@ export default class PixelPlugin
         let divaCanvas = this.core.getSettings().renderer._canvas;
         for (let index = layers.length - 1; index >= 0; index--)
         {
-            layers[index].placeCanvasAfterElement(divaCanvas);
+            let layer = layers[index];
+            layer.placeCanvasAfterElement(divaCanvas);
+
+            if (layer.isActivated())
+                layer.getCanvas().setAttribute("style", layer.getLayerOpacityCSSString());
+            else
+                layer.getCanvas().setAttribute("style", "opacity: 0;");
         }
-        this.background.placeCanvasAfterElement(divaCanvas);
+
+        if (this.background.isActivated())
+            this.background.getCanvas().setAttribute("style", this.background.getLayerOpacityCSSString());
+        else
+            this.background.getCanvas().setAttribute("style", "opacity: 0;");
     }
 
     destroyPixelCanvases (layers)
@@ -334,8 +344,6 @@ export default class PixelPlugin
         {
             layer.getCanvas().parentNode.removeChild(layer.getCanvas());
         });
-
-        this.background.getCanvas().parentNode.removeChild(this.background.getCanvas());
     }
 
     createOpacitySlider (layer, parentElement, referenceNode)
@@ -360,24 +368,12 @@ export default class PixelPlugin
         opacitySlider.setAttribute('value', layer.getOpacity() * 50);
         opacitySlider.setAttribute("draggable", "false");
 
-        if (layer.layerId === -1)   // background
+        opacitySlider.addEventListener("input", () =>
         {
-            console.log(referenceNode);
-
-            opacitySlider.addEventListener("input", () =>
-            {
-                let opacityStr = "opacity : " + (1 - opacitySlider.value / 50);
-                layer.getCanvas().setAttribute("style", opacityStr);
-            });
-        }
-        else
-        {
-            opacitySlider.addEventListener("input", () =>
-            {
-                let opacityStr = "opacity : " + opacitySlider.value / 50;
-                layer.getCanvas().setAttribute("style", opacityStr);
-            });
-        }
+            layer.setLayerOpacity(opacitySlider.value / 50);
+            if (layer.isActivated())    // Respecify opacity only when the layer is activated
+                layer.getCanvas().setAttribute("style", layer.getLayerOpacityCSSString());
+        });
 
         opacityText.appendChild(text);
         opacityDiv.appendChild(opacityText);
@@ -440,7 +436,7 @@ export default class PixelPlugin
         layerDiv.appendChild(layerActivationDiv);
         backgroundViewDiv.appendChild(layerDiv);
 
-        this.background.getCanvas().setAttribute("style", "opacity: 0;");
+        this.background.getCanvas().setAttribute("style", "opacity: 1;");
 
         document.body.appendChild(backgroundViewDiv);
     }
@@ -933,18 +929,37 @@ export default class PixelPlugin
 
     toggleLayerActivation (layer, layerActivationDiv)
     {
-        if (layerActivationDiv.classList.contains("layer-deactivated")) //It is unchecked, check it
+        if (layerActivationDiv.classList.contains("layer-deactivated")) // Activating
         {
             layerActivationDiv.classList.remove("layer-deactivated");
             layerActivationDiv.classList.add("layer-activated");
-            layer.activateLayer();
-            this.repaintLayer(layer);
+            layer.getCanvas().setAttribute("style", layer.getLayerOpacityCSSString());
+
+            if (layer.layerId === -1)      // Background
+            {
+                layer.activated = true;
+            }
+            else
+            {
+                layer.activateLayer();
+                this.repaintLayer(layer);
+            }
         }
-        else
+        else    // Deactivating
         {
             layerActivationDiv.classList.remove("layer-activated");
             layerActivationDiv.classList.add("layer-deactivated");
-            layer.deactivateLayer();
+
+            if (layer.layerId === -1)      // Background
+            {
+                let opacityStr = "opacity : 0;";
+                layer.getCanvas().setAttribute("style", opacityStr);
+                layer.activated = false;
+            }
+            else
+            {
+                layer.deactivateLayer();
+            }
         }
     }
 
@@ -1490,8 +1505,6 @@ export default class PixelPlugin
         {
             this.drawLayer(zoomLevel, layer, layer.getCanvas());
         });
-
-        this.drawLayer(zoomLevel, this.background, this.background.getCanvas());
     }
     /**
      * ===============================================
@@ -1505,8 +1518,6 @@ export default class PixelPlugin
     {
         let pageIndex = this.core.getSettings().currentPageIndex,
             zoomLevel = this.core.getSettings().zoomLevel;
-
-        console.log(pageIndex);
 
         new Export(this, this.layers, pageIndex, zoomLevel).exportLayersAsImageData();
     }

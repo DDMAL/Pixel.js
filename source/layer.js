@@ -13,6 +13,7 @@ export class Layer
         this.ctx = null;
         this.actions = [];
         this.activated = true;
+        this.layerOpacity = 1;
         this.cloneCanvas(divaCanvas);
     }
 
@@ -152,5 +153,20 @@ export class Layer
     isActivated ()
     {
         return this.activated;
+    }
+
+    setLayerOpacity (layerOpacity)
+    {
+        this.layerOpacity = layerOpacity;
+    }
+
+    getLayerOpacity ()
+    {
+        return this.layerOpacity;
+    }
+
+    getLayerOpacityCSSString ()
+    {
+        return "opacity : " + this.layerOpacity;
     }
 }
