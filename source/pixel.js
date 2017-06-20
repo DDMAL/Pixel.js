@@ -250,7 +250,7 @@ export default class PixelPlugin
         this.createRedoButton();
         this.createLayersView(layers);
         this.createBrushSizeSelector();
-        this.createToolsView(["brush", "rectangle", "grab", "eraser"]);
+        this.createToolsView(["brush", "rectangle", "grab", "eraser", "select"]);
         this.createExportButtons();
     }
 
@@ -262,7 +262,7 @@ export default class PixelPlugin
         this.destroyRedoButton();
         this.destroyExportButtons();
         this.destroyPixelCanvases(layers);
-        this.destroyToolsView(["brush", "rectangle", "grab", "eraser"]);
+        this.destroyToolsView(["brush", "rectangle", "grab", "eraser", "select"]);
         this.destroyLockedLayerSelectors(background);
     }
 
@@ -1157,7 +1157,7 @@ export default class PixelPlugin
         if (this.isInPageBounds(relativeCoords.x, relativeCoords.y))
         {
             let selectedLayer = this.layers[this.selectedLayerIndex];
-            selectedLayer.addShapeToLayer(new Rectangle(new Point(relativeCoords.x,relativeCoords.y,pageIndex), 0, 0, "add"));
+            selectedLayer.addShapeToLayer(new Rectangle(new Point(relativeCoords.x,relativeCoords.y,pageIndex), 0, 0, "add", this.currentTool));
             this.actions.push(new Action(selectedLayer.getCurrentShape(), selectedLayer));
             this.repaintLayer(selectedLayer);
         }
@@ -1445,7 +1445,7 @@ export default class PixelPlugin
                 switch (action.type)
                 {
                     case "shape":
-                        action.draw(layer, pageIndex, zoomLevel, this.core.getSettings().renderer, canvas);
+                        action.draw(layer, pageIndex, zoomLevel, this.core.getSettings().renderer, canvas, this.currentTool);
                         break;
                     case "path":
                         let isDown = false;

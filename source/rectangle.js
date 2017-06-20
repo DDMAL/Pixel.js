@@ -18,7 +18,7 @@ export class Rectangle extends Shape
      * @param zoomLevel
      * @param renderer
      */
-    draw (layer, pageIndex, zoomLevel, renderer, canvas)
+    draw (layer, pageIndex, zoomLevel, renderer, canvas, tool)
     {
         let scaleRatio = Math.pow(2,zoomLevel);
         let ctx = canvas.getContext('2d');
