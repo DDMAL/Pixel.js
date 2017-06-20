@@ -18,6 +18,7 @@ import {Colour} from './colour';
 import {Line} from './line';
 import {Export} from './export';
 import {UIGenerator} from './ui-generator';
+import {Tools} from './tools';
 
 export default class PixelPlugin
 {
@@ -41,10 +42,10 @@ export default class PixelPlugin
         this.actions = [];
         this.undoneActions = [];
         this.shiftDown = false;
-        this.currentTool = "brush";
         this.lastRelCoordX = null;
         this.lastRelCoordY = null;
         this.uiGenerator = null;
+        this.tools = null;
     }
 
     /**
@@ -106,13 +107,16 @@ export default class PixelPlugin
         }
 
         this.uiGenerator = new UIGenerator(this);
-        this.disableDragScrollable();
+        this.tools = new Tools(this);
         this.uiGenerator.createPluginElements(this.layers);
         this.scrollEventHandle = this.subscribeToScrollEvent();
         this.zoomEventHandle = this.subscribeToZoomLevelWillChangeEvent();
+
+        this.disableDragScrollable();
         this.subscribeToMouseEvents();
         this.subscribeToKeyboardEvents();
         this.repaint();  // Repaint the tiles to retrigger VisibleTilesDidLoad
+
         this.activated = true;
     }
 
@@ -120,10 +124,12 @@ export default class PixelPlugin
     {
         global.Diva.Events.unsubscribe(this.scrollEventHandle);
         global.Diva.Events.unsubscribe(this.zoomEventHandle);
+
         this.unsubscribeFromMouseEvents();
         this.unsubscribeFromKeyboardEvents();
         this.unsubscribeFromKeyboardPress();
         this.repaint(); // Repaint the tiles to make the highlights disappear off the page
+
         this.uiGenerator.destroyPluginElements(this.layers, this.background);
 
         // TODO: Remove all layer canvases
@@ -361,27 +367,19 @@ export default class PixelPlugin
         }
         else if (e.key === "b")
         {
-            this.disableDragScrollable();
-            this.currentTool = "brush";
-            document.getElementById(this.currentTool).checked = true;
+            this.tools.setCurrentTool(this.tools.type.brush);
         }
         else if (e.key === "r")
         {
-            this.disableDragScrollable();
-            this.currentTool = "rectangle";
-            document.getElementById(this.currentTool).checked = true;
+            this.tools.setCurrentTool(this.tools.type.rectangle);
         }
         else if (e.key === "g")
         {
-            this.enableDragScrollable();
-            this.currentTool = "grab";
-            document.getElementById(this.currentTool).checked = true;
+            this.tools.setCurrentTool(this.tools.type.grab);
         }
         else if (e.key === "e")
         {
-            this.disableDragScrollable();
-            this.currentTool = "eraser";
-            document.getElementById(this.currentTool).checked = true;
+            this.tools.setCurrentTool(this.tools.type.eraser);
         }
     }
 
@@ -419,20 +417,20 @@ export default class PixelPlugin
     onMouseDown (evt)
     {
         let canvas = document.getElementById("diva-1-outer");
-        switch (this.currentTool)
+        switch (this.tools.getCurrentTool())
         {
-            case "brush":
+            case this.tools.type.brush:
                 this.mousePressed = true;
                 this.initializeNewPath(canvas, evt);
                 break;
-            case "rectangle":
+            case this.tools.type.rectangle:
                 this.mousePressed = true;
                 this.initializeRectanglePreview(canvas, evt);
                 break;
-            case "grab":
+            case this.tools.type.grab:
                 this.mousePressed = true;
                 break;
-            case "eraser":
+            case this.tools.type.eraser:
                 this.mousePressed = true;
                 this.initializeNewPath(canvas, evt);
                 break;
@@ -447,15 +445,15 @@ export default class PixelPlugin
     onMouseMove (evt)
     {
         let canvas = document.getElementById("diva-1-outer");
-        switch (this.currentTool)
+        switch (this.tools.getCurrentTool())
         {
-            case "brush":
+            case this.tools.type.brush:
                 this.setupPointPainting(canvas, evt);
                 break;
-            case "rectangle":
+            case this.tools.type.rectangle:
                 this.rectanglePreview(canvas,evt);
                 break;
-            case "eraser":
+            case this.tools.type.eraser:
                 this.setupPointPainting(canvas, evt);
                 break;
             default:
@@ -465,15 +463,15 @@ export default class PixelPlugin
     onMouseUp ()    // can take an event as an argument
     {
         // let canvas = document.getElementById("diva-1-outer");
-        switch (this.currentTool)
+        switch (this.tools.getCurrentTool())
         {
-            case "brush":
+            case this.tools.type.brush:
                 this.mousePressed = false;
                 break;
-            case "rectangle":
+            case this.tools.type.rectangle:
                 this.mousePressed = false;
                 break;
-            case "eraser":
+            case this.tools.type.eraser:
                 this.mousePressed = false;
                 break;
             default:
@@ -661,12 +659,12 @@ export default class PixelPlugin
             this.lastRelCoordY = relativeCoords.y;
 
             // Create New Path in Layer
-            if (this.currentTool === "brush")
+            if (this.tools.getCurrentTool() === this.tools.type.brush)
             {
                 selectedLayer.createNewPath(brushSize, "add");
                 selectedLayer.addToCurrentPath(point, "add");
             }
-            else if (this.currentTool === "eraser")
+            else if (this.tools.getCurrentTool() === this.tools.type.eraser)
             {
                 selectedLayer.createNewPath(brushSize, "subtract");
                 selectedLayer.addToCurrentPath(point, "subtract");
@@ -723,11 +721,11 @@ export default class PixelPlugin
             // Draw path with new point
             let brushSize = this.layers[this.selectedLayerIndex].getCurrentPath().brushSize;
 
-            if (this.currentTool === "brush")
+            if (this.tools.getCurrentTool() === this.tools.type.brush)
             {
                 this.layers[this.selectedLayerIndex].addToCurrentPath(point, "add");
             }
-            else if (this.currentTool === "eraser")
+            else if (this.tools.getCurrentTool() === this.tools.type.eraser)
             {
                 this.layers[this.selectedLayerIndex].addToCurrentPath(point, "subtract");
             }

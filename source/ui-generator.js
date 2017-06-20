@@ -18,7 +18,7 @@ export class UIGenerator
         this.createRedoButton();
         this.createLayersView(layers);
         this.createBrushSizeSelector();
-        this.createToolsView(["brush", "rectangle", "grab", "eraser"]);
+        this.createToolsView(this.pixelInstance.tools.getAllTools());
         this.createExportButtons();
     }
 
@@ -44,7 +44,7 @@ export class UIGenerator
         {
             radio.addEventListener("click", () =>
             {
-                this.pixelInstance.currentTool = radio.value;
+                this.pixelInstance.tools.setCurrentTool(radio.value);
 
                 if (radio.value === "grab")
                     this.pixelInstance.enableDragScrollable();
@@ -420,5 +420,11 @@ export class UIGenerator
     destroyBackground (layers)
     {
         this.pixelInstance.destroyLockedLayerSelectors(layers);
+    }
+
+    markToolSelected (tool)
+    {
+        console.log("Marking");
+        document.getElementById(tool).checked = true;
     }
 }
