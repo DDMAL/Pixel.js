@@ -5,7 +5,6 @@
  *
  * {string} pluginName - Added to the class prototype. Defines the name for the plugin.
  *
- *
  **/
 
 import {Point} from './point';
@@ -125,7 +124,7 @@ export default class PixelPlugin
         this.repaint(); // Repaint the tiles to make the highlights disappear off the page
 
         this.uiGenerator.destroyPluginElements(this.layers, this.background);
-        
+
         this.enableDragScrollable();
         this.activated = false;
     }
@@ -754,54 +753,63 @@ export default class PixelPlugin
         if (!this.layers[this.selectedLayerIndex].isActivated())
             return;
 
-        if (this.mousePressed)
+        if (!this.layerChangedMidDraw)
         {
-            let mousePos = this.getMousePos(canvas, evt),
-                relativeCoords = this.getRelativeCoordinatesFromPadded(mousePos.x, mousePos.y),
-                lastShape = this.layers[this.selectedLayerIndex].getCurrentShape();
-
-            if (!this.isInPageBounds(relativeCoords.x, relativeCoords.y))
-                return;
-
-            // If cursor is to the main diagonal (south east or north west of the point of origin)
-            if (this.isInMainDiagonal(relativeCoords, lastShape))
+            if (this.mousePressed)
             {
-                let lastWidth = lastShape.relativeRectWidth;
-                lastShape.relativeRectWidth = relativeCoords.x - lastShape.origin.relativeOriginX;
+                let mousePos = this.getMousePos(canvas, evt),
+                    relativeCoords = this.getRelativeCoordinatesFromPadded(mousePos.x, mousePos.y),
+                    lastShape = this.layers[this.selectedLayerIndex].getCurrentShape();
 
-                // Draw a square on shift down
-                if (this.shiftDown)
+                if (!this.isInPageBounds(relativeCoords.x, relativeCoords.y))
+                    return;
+
+                // If cursor is to the main diagonal (south east or north west of the point of origin)
+                if (this.isInMainDiagonal(relativeCoords, lastShape))
                 {
-                    let squareInBounds = this.isInPageBounds(lastShape.origin.relativeOriginX + lastShape.relativeRectWidth,
-                        lastShape.origin.relativeOriginY + lastShape.relativeRectWidth);
+                    let lastWidth = lastShape.relativeRectWidth;
+                    lastShape.relativeRectWidth = relativeCoords.x - lastShape.origin.relativeOriginX;
 
-                    if (squareInBounds)
-                        lastShape.relativeRectHeight = lastShape.relativeRectWidth;
+                    // Draw a square on shift down
+                    if (this.shiftDown)
+                    {
+                        let squareInBounds = this.isInPageBounds(lastShape.origin.relativeOriginX + lastShape.relativeRectWidth,
+                            lastShape.origin.relativeOriginY + lastShape.relativeRectWidth);
+
+                        if (squareInBounds)
+                            lastShape.relativeRectHeight = lastShape.relativeRectWidth;
+                        else
+                            lastShape.relativeRectWidth = lastWidth;
+                    }
                     else
-                        lastShape.relativeRectWidth = lastWidth;
+                        lastShape.relativeRectHeight = relativeCoords.y - lastShape.origin.relativeOriginY;
                 }
-                else
-                    lastShape.relativeRectHeight = relativeCoords.y - lastShape.origin.relativeOriginY;
-            }
-            else        // If cursor is to the antidiagonal (north east or south west of the point of origin)
-            {
-                let lastWidth = lastShape.relativeRectWidth;
-                lastShape.relativeRectWidth = relativeCoords.x - lastShape.origin.relativeOriginX;
-
-                if (this.shiftDown)
+                else        // If cursor is to the antidiagonal (north east or south west of the point of origin)
                 {
-                    let squareInBounds = this.isInPageBounds(lastShape.origin.relativeOriginX + lastShape.relativeRectWidth,
-                        lastShape.origin.relativeOriginY - lastShape.relativeRectWidth);
+                    let lastWidth = lastShape.relativeRectWidth;
+                    lastShape.relativeRectWidth = relativeCoords.x - lastShape.origin.relativeOriginX;
 
-                    if (squareInBounds)
-                        lastShape.relativeRectHeight = - lastShape.relativeRectWidth;
+                    if (this.shiftDown)
+                    {
+                        let squareInBounds = this.isInPageBounds(lastShape.origin.relativeOriginX + lastShape.relativeRectWidth,
+                            lastShape.origin.relativeOriginY - lastShape.relativeRectWidth);
+
+                        if (squareInBounds)
+                            lastShape.relativeRectHeight = - lastShape.relativeRectWidth;
+                        else
+                            lastShape.relativeRectWidth = lastWidth;
+                    }
                     else
-                        lastShape.relativeRectWidth = lastWidth;
+                        lastShape.relativeRectHeight = relativeCoords.y - lastShape.origin.relativeOriginY;
                 }
-                else
-                    lastShape.relativeRectHeight = relativeCoords.y - lastShape.origin.relativeOriginY;
+                this.repaintLayer(this.layers[this.selectedLayerIndex]);
             }
-            this.repaintLayer(this.layers[this.selectedLayerIndex]);
+        }
+        else
+        {
+            // Create a new rectangle to which the change will be
+            this.layerChangedMidDraw = false;
+            this.initializeRectanglePreview(canvas, evt);
         }
     }
 
