@@ -671,7 +671,7 @@ export default class PixelPlugin
 
             // Add path to list of actions (used for undo/redo)
             this.actions.push(new Action(selectedLayer.getCurrentPath(), selectedLayer));
-            this.drawPath(selectedLayer, point, pageIndex, zoomLevel, brushSize, false, selectedLayer.getCurrentPath().blendMode, selectedLayer.getCanvas());
+            selectedLayer.getCurrentPath().draw(selectedLayer, point, pageIndex, zoomLevel, false, this.core.getSettings().renderer);
         }
         else
         {
@@ -718,8 +718,6 @@ export default class PixelPlugin
             }
 
             // Draw path with new point
-            let brushSize = this.layers[this.selectedLayerIndex].getCurrentPath().brushSize;
-
             if (this.tools.getCurrentTool() === this.tools.type.brush)
             {
                 this.layers[this.selectedLayerIndex].addToCurrentPath(point, "add");
@@ -729,7 +727,9 @@ export default class PixelPlugin
                 this.layers[this.selectedLayerIndex].addToCurrentPath(point, "subtract");
             }
 
-            this.drawPath(this.layers[this.selectedLayerIndex], point, pageIndex, zoomLevel, brushSize, true, this.layers[this.selectedLayerIndex].getCurrentPath().blendMode, this.layers[this.selectedLayerIndex].getCanvas());
+            let layer = this.layers[this.selectedLayerIndex];
+            layer.getCurrentPath().draw(layer, point, pageIndex, zoomLevel, true, this.core.getSettings().renderer, canvas);
+
             return;
         }
 
@@ -872,55 +872,6 @@ export default class PixelPlugin
         };
     }
 
-    drawPath (layer, point, pageIndex, zoomLevel, brushSize, isDown, blendMode, canvas)
-    {
-        let renderer = this.core.getSettings().renderer,
-            scaleRatio = Math.pow(2, zoomLevel),
-            ctx = canvas.getContext('2d');
-
-        if (pageIndex !== point.pageIndex)
-            return;
-
-        // Calculates where the highlights should be drawn as a function of the whole webpage coordinates
-        // (to make it look like it is on top of a page in Diva)
-        let absolutePaddedCoords = point.getAbsolutePaddedCoordinates(zoomLevel, pageIndex, renderer);
-
-        let highlightXOffset = absolutePaddedCoords.x,
-            highlightYOffset = absolutePaddedCoords.y;
-
-        if (isDown)
-        {
-            if (blendMode === "add")
-            {
-                ctx.globalCompositeOperation="source-over";
-                ctx.beginPath();
-                ctx.strokeStyle = layer.colour.toHTMLColour();
-                ctx.lineWidth = brushSize * scaleRatio;
-                ctx.lineJoin = "round";
-                ctx.moveTo(this.lastAbsX, this.lastAbsY);
-                ctx.lineTo(highlightXOffset, highlightYOffset);
-                ctx.closePath();
-                ctx.stroke();
-            }
-
-            else if (blendMode === "subtract")
-            {
-                ctx.globalCompositeOperation="destination-out";
-                ctx.beginPath();
-                ctx.strokeStyle = "rgba(250,250,250,1)"; // It is important to have the alpha always equal to 1. RGB are not important when erasing
-                ctx.lineWidth = brushSize * scaleRatio;
-                ctx.lineJoin = "round";
-                ctx.moveTo(this.lastAbsX, this.lastAbsY);
-                ctx.lineTo(highlightXOffset, highlightYOffset);
-                ctx.closePath();
-                ctx.stroke();
-            }
-            ctx.globalCompositeOperation="source-over";
-        }
-        this.lastAbsX = highlightXOffset;
-        this.lastAbsY = highlightYOffset;
-    }
-
     drawAbsolutePath (layer, point, pageIndex, zoomLevel, brushSize, isDown, blendMode, canvas)
     {
         let scaleRatio = Math.pow(2, zoomLevel),
@@ -1038,12 +989,12 @@ export default class PixelPlugin
                 switch (action.type)
                 {
                     case "shape":
-                        action.draw(layer, pageIndex, zoomLevel, this.core.getSettings().renderer, canvas);
+                        action.draw(layer, pageIndex, zoomLevel, renderer, canvas);
                         break;
                     case "path":
                         let isDown = false;
                         action.points.forEach((point) => {
-                            this.drawPath(layer, point, pageIndex, zoomLevel, action.brushSize, isDown, action.blendMode, canvas);
+                            action.draw(layer, point, pageIndex, zoomLevel, isDown, renderer, canvas);
                             isDown = true;
                         });
                         break;
