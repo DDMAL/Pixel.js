@@ -214,7 +214,7 @@ export class Export
         {
             let percentage = (chunkNum * chunkSize) * 100 / (canvasToScan.height * canvasToScan.width),
                 roundedPercentage = (percentage>100) ? 100 : Math.round(percentage * 10) / 10;
-            this.pixelInstance.updateProgress(roundedPercentage);
+            this.pixelInstance.uiGenerator.updateProgress(roundedPercentage);
 
             // Recall doChunk function
             return {
@@ -318,7 +318,7 @@ export class Export
             {
                 let percentage = (chunkNum * chunkSize) * 100 / (canvasToScan.height * canvasToScan.width),
                     roundedPercentage = (percentage>100) ? 100 : Math.round(percentage * 10) / 10;
-                this.pixelInstance.updateProgress(roundedPercentage);
+                this.pixelInstance.uiGenerator.updateProgress(roundedPercentage);
 
                 // Recall doChunk function
                 setTimeout(doChunk, 1);
