@@ -198,9 +198,7 @@ export class Export
 
         // Export animation
         progressCtx.fillStyle = colour.toHTMLColour();
-        progressCtx.beginPath();
-        progressCtx.arc(col, row, 0.2, 0, 2 * Math.PI);
-        progressCtx.fill();
+        progressCtx.fillRect(col, row, 1, 1);
     }
 
     postProcessImageDataIteration (row, drawingCanvas, chunkNum, chunkSize, canvasToScan)
@@ -214,7 +212,7 @@ export class Export
         {
             let percentage = (chunkNum * chunkSize) * 100 / (canvasToScan.height * canvasToScan.width),
                 roundedPercentage = (percentage>100) ? 100 : Math.round(percentage * 10) / 10;
-            this.pixelInstance.updateProgress(roundedPercentage);
+            this.pixelInstance.uiGenerator.updateProgress(roundedPercentage);
 
             // Recall doChunk function
             return {
@@ -296,9 +294,7 @@ export class Export
                         matrix[row][col] = layer.layerId;
 
                         progressCtx.fillStyle = layer.colour.toHTMLColour();
-                        progressCtx.beginPath();
-                        progressCtx.arc(col, row, 0.2, 0, 2 * Math.PI);
-                        progressCtx.fill();
+                        progressCtx.fillRect(col, row, 1, 1);
                     }
                     col++;
                 }
@@ -318,7 +314,7 @@ export class Export
             {
                 let percentage = (chunkNum * chunkSize) * 100 / (canvasToScan.height * canvasToScan.width),
                     roundedPercentage = (percentage>100) ? 100 : Math.round(percentage * 10) / 10;
-                this.pixelInstance.updateProgress(roundedPercentage);
+                this.pixelInstance.uiGenerator.updateProgress(roundedPercentage);
 
                 // Recall doChunk function
                 setTimeout(doChunk, 1);
@@ -399,9 +395,7 @@ export class Export
                 if (layer.layerId === this.matrix[row][col])
                 {
                     ctx.fillStyle = layer.colour.toHTMLColour();
-                    ctx.beginPath();
-                    ctx.arc(col, row, 0.2, 0, 2 * Math.PI);
-                    ctx.fill();
+                    ctx.fillRect(col, row, 1, 1);
                 }
             });
         };
@@ -488,6 +482,7 @@ export class Export
 
         let progressCanvas = document.createElement('canvas');
         progressCanvas.setAttribute("id", "progress-canvas");
+        progressCanvas.setAttribute("style", "opacity: 0.3;");
         progressCanvas.width = width;
         progressCanvas.height = height;
         progressCanvas.globalAlpha = 1;
