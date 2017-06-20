@@ -22,7 +22,7 @@ export class Shape
     }
 
     /**
-     * General path drawing on canvas
+     * * Copies the pixels spanned by the circle from the diva canvas to the canvas passed to it
      * @param layer
      * @param pageIndex
      * @param zoomLevel
@@ -33,6 +33,7 @@ export class Shape
      * @param canvas
      * @param blendMode
      * @param divaCanvas
+     * @param matrix
      */
     getPixels(layer, pageIndex, zoomLevel, renderer, ymax, ymin, pairOfEdges, canvas, blendMode, divaCanvas, matrix)
     {
@@ -94,6 +95,7 @@ export class Shape
                         // Necessary check because sometimes the brush draws outside of a page because of brush width
                         if (absoluteCoords.y >= 0 && absoluteCoords.x >= 0 && absoluteCoords.y <= matrix.length && absoluteCoords.x <= matrix[0].length)
                         {
+                            // TODO: Draw on canvas. Right now only adding to the matrix
                             matrix[absoluteCoords.y][absoluteCoords.x] = layer.layerId;
                         }
                     }

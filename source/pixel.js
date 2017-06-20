@@ -10,12 +10,9 @@
 
 import {Point} from './point';
 import {Rectangle} from './rectangle';
-import {Shape} from './shape';
-import {Circle} from './circle';
 import {Layer} from './layer';
 import {Action} from './action';
 import {Colour} from './colour';
-import {Line} from './line';
 import {Export} from './export';
 import {UIGenerator} from './ui-generator';
 import {Tools} from './tools';
@@ -34,8 +31,6 @@ export default class PixelPlugin
         this.background = null;
         this.layers = null;
         this.mousePressed = false;
-        this.lastAbsX = null;
-        this.lastAbsY = null;
         this.selectedLayerIndex = 0;
         this.layerChangedMidDraw = false;
         this.actions = [];
@@ -671,7 +666,7 @@ export default class PixelPlugin
 
             // Add path to list of actions (used for undo/redo)
             this.actions.push(new Action(selectedLayer.getCurrentPath(), selectedLayer));
-            selectedLayer.getCurrentPath().draw(selectedLayer, point, pageIndex, zoomLevel, false, this.core.getSettings().renderer);
+            selectedLayer.getCurrentPath().connectPoint(selectedLayer, point, pageIndex, zoomLevel, false, this.core.getSettings().renderer);
         }
         else
         {
@@ -728,7 +723,7 @@ export default class PixelPlugin
             }
 
             let layer = this.layers[this.selectedLayerIndex];
-            layer.getCurrentPath().draw(layer, point, pageIndex, zoomLevel, true, this.core.getSettings().renderer, canvas);
+            layer.getCurrentPath().connectPoint(layer, point, pageIndex, zoomLevel, true, this.core.getSettings().renderer, canvas);
 
             return;
         }
@@ -872,62 +867,10 @@ export default class PixelPlugin
         };
     }
 
-    fillPath(layer, point1, point2, zoomLevel, pageIndex, brushSize, blendMode)
-    {
-        let renderer = this.core.getSettings().renderer,
-            scaleRatio = Math.pow(2,zoomLevel),
-            lineWidth = brushSize,
-            absoluteLineWidth = lineWidth * scaleRatio,
-            highlightPageIndex = point1.pageIndex;
-
-        if (pageIndex !== highlightPageIndex)
-            return;
-
-        // Calculates where the highlights should be drawn as a function of the whole webpage coordinates
-        // (to make it look like it is on top of a page in Diva)
-        let point1highlightOffset = point1.getAbsolutePaddedCoordinates(zoomLevel, pageIndex, renderer);
-        var point2highlightOffset = point2.getAbsolutePaddedCoordinates(zoomLevel,pageIndex,renderer);
-
-        new Circle(point1, lineWidth/2).getPixels(layer, pageIndex, zoomLevel, renderer, this.matrix, blendMode);
-        new Circle(point2, lineWidth/2).getPixels(layer, pageIndex, zoomLevel, renderer, this.matrix, blendMode);
-
-        let ang = new Line(point1, point2).getAngleRad(zoomLevel,pageIndex,renderer);
-
-        // find the first point on the circumference that is orthogonal
-        // to the line intersecting the two circle origos
-
-        // These are values with padding
-        var start1 = {
-            absolutePaddedX: point1highlightOffset.x + Math.cos(ang + Math.PI / 2) * absoluteLineWidth / 2,
-            absolutePaddedY: point1highlightOffset.y + Math.sin(ang + Math.PI / 2) * absoluteLineWidth / 2
-        };
-        var end1 = {
-            absolutePaddedX: point2highlightOffset.x + Math.cos(ang + Math.PI / 2) * absoluteLineWidth / 2,
-            absolutePaddedY: point2highlightOffset.y + Math.sin(ang + Math.PI / 2) * absoluteLineWidth / 2
-        };
-
-        // find the second point on the circumference that is orthogonal
-        // to the line intersecting the two circle origos
-        var start2 = {
-            absolutePaddedX: point1highlightOffset.x + Math.cos(ang - Math.PI / 2) * absoluteLineWidth / 2,
-            absolutePaddedY: point1highlightOffset.y + Math.sin(ang - Math.PI / 2) * absoluteLineWidth / 2
-        };
-        var end2 = {
-            absolutePaddedX: point2highlightOffset.x + Math.cos(ang - Math.PI / 2) * absoluteLineWidth / 2,
-            absolutePaddedY: point2highlightOffset.y + Math.sin(ang - Math.PI / 2) * absoluteLineWidth / 2
-        };
-
-        // 1. get ymax and ymin
-        let ymax = Math.round(Math.max(start1.absolutePaddedY, start2.absolutePaddedY, end1.absolutePaddedY, end2.absolutePaddedY));
-        let ymin = Math.round(Math.min(start1.absolutePaddedY, start2.absolutePaddedY, end1.absolutePaddedY, end2.absolutePaddedY));
-        let pairOfEdges = [[start1, end1], [start2, end2], [start1, start2], [end1, end2]];
-
-        // Logic for polygon fill using scan lines
-        new Shape().getPixels(layer, pageIndex, zoomLevel, renderer, ymax, ymin, pairOfEdges, this.matrix, blendMode);
-    }
-
     drawLayer (zoomLevel, layer, canvas)
     {
+        console.log("Drawing Layer");
+
         if (!layer.isActivated())
             return;
 
@@ -940,21 +883,7 @@ export default class PixelPlugin
         {
             layer.actions.forEach((action) =>
             {
-                switch (action.type)
-                {
-                    case "shape":
-                        action.draw(layer, pageIndex, zoomLevel, renderer, canvas);
-                        break;
-                    case "path":
-                        let isDown = false;
-                        action.points.forEach((point) => {
-                            action.draw(layer, point, pageIndex, zoomLevel, isDown, renderer, canvas);
-                            isDown = true;
-                        });
-                        break;
-                    default:
-                        return;
-                }
+                action.draw(layer, pageIndex, zoomLevel, renderer, canvas);
             });
         });
     }
@@ -980,7 +909,6 @@ export default class PixelPlugin
                     return;
             }
         });
-
     }
 
     drawHighlights (zoomLevel)

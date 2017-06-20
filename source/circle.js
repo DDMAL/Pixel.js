@@ -15,6 +15,7 @@ export class Circle extends Shape
      * @param pageIndex
      * @param zoomLevel
      * @param renderer
+     * @param canvas
      */
     draw (layer, pageIndex, zoomLevel, renderer, canvas)
     {
@@ -55,12 +56,14 @@ export class Circle extends Shape
     }
 
     /**
-     * Copies the circle to a matrix that represents a page
+     * * Copies the pixels spanned by the circle from the diva canvas to the canvas passed to it
      * @param layer
      * @param pageIndex
      * @param zoomLevel
      * @param renderer
-     * @param matrix
+     * @param canvas
+     * @param blendMode
+     * @param divaCanvas
      */
     getPixels (layer, pageIndex, zoomLevel, renderer, canvas, blendMode, divaCanvas)
     {

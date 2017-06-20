@@ -15,7 +15,16 @@ export class Path
         this.points.push(point);
     }
 
-    draw (layer, point, pageIndex, zoomLevel, isDown, renderer)
+    draw (layer, pageIndex, zoomLevel, renderer, canvas)
+    {
+        let isDown = false;
+        this.points.forEach((point) => {
+            this.connectPoint(layer, point, pageIndex, zoomLevel, isDown, renderer, canvas);
+            isDown = true;
+        });
+    }
+
+    connectPoint (layer, point, pageIndex, zoomLevel, isDown, renderer)
     {
         let canvas = layer.getCanvas();
 

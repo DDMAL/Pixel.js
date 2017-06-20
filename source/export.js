@@ -466,7 +466,7 @@ export class Export
 
         return {
             progressCanvas: this.createProgressCanvas()
-        }
+        };
     }
 
     destroyExportElements ()

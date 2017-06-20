@@ -21,7 +21,7 @@ plugins: (process.env.NODE_ENV === "production") ? productionPlugins() : develop
 - Include the path to ```pixel.js``` file to the list of plugins your plugins entry should look like the following
 ``` js
 entry: {
-        'pixel': './source/js/plugins/Pixel.js/pixel.js',
+        'pixel': './source/js/plugins/Pixel.js/source/pixel.js',
         'download': './source/js/plugins/download.js',
         'manipulation': './source/js/plugins/manipulation.js'
     }
