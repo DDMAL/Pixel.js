@@ -365,7 +365,7 @@ export default class PixelPlugin
         opacitySlider.setAttribute('max', 50);
         opacitySlider.setAttribute('min', 0);
 
-        opacitySlider.setAttribute('value', layer.getOpacity() * 50);
+        opacitySlider.setAttribute('value', layer.getLayerOpacity() * 50);
         opacitySlider.setAttribute("draggable", "false");
 
         opacitySlider.addEventListener("input", () =>
@@ -417,7 +417,11 @@ export default class PixelPlugin
         layerOptionsDiv.setAttribute("class", "unchecked-layer-settings");
         layerOptionsDiv.setAttribute("id", "layer-" + layer.layerId + "-options");
 
-        layerActivationDiv.setAttribute("class", "layer-activated");
+        if (this.background.isActivated())
+            layerActivationDiv.setAttribute("class", "layer-activated");
+        else
+            layerActivationDiv.setAttribute("class", "layer-deactivated");
+
         layerActivationDiv.setAttribute("id", "layer-" + layer.layerId + "-activation");
 
         if (layer.layerId === this.selectedLayerIndex)
@@ -506,7 +510,12 @@ export default class PixelPlugin
             layerOptionsDiv.setAttribute("class", "unchecked-layer-settings");
             layerOptionsDiv.setAttribute("id", "layer-" + layer.layerId + "-options");
 
-            layerActivationDiv.setAttribute("class", "layer-activated");
+            if (layer.isActivated())
+                layerActivationDiv.setAttribute("class", "layer-activated");
+            else
+                layerActivationDiv.setAttribute("class", "layer-deactivated");
+
+
             layerActivationDiv.setAttribute("id", "layer-" + layer.layerId + "-activation");
 
             if (layer.layerId === this.selectedLayerIndex)
