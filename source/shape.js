@@ -37,6 +37,10 @@ export class Shape
      */
     getPixels(layer, pageIndex, zoomLevel, renderer, ymax, ymin, pairOfEdges, canvas, blendMode, divaCanvas, matrix)
     {
+        console.log("here");
+
+        let ctx = canvas.getContext('2d');
+
         // TODO: Check for horizontal or vertical lines
         // For every scan line
         for(var y = ymin; y < ymax; y++)
@@ -93,10 +97,12 @@ export class Shape
                         let absoluteCoords = new Point().getAbsoluteCoordinatesFromPadded(pageIndex,renderer,fill,y);
 
                         // Necessary check because sometimes the brush draws outside of a page because of brush width
-                        if (absoluteCoords.y >= 0 && absoluteCoords.x >= 0 && absoluteCoords.y <= matrix.length && absoluteCoords.x <= matrix[0].length)
+                        if (absoluteCoords.y >= 0 && absoluteCoords.x >= 0 && absoluteCoords.y <= canvas.height && absoluteCoords.x <= canvas.width)
                         {
                             // TODO: Draw on canvas. Right now only adding to the matrix
-                            matrix[absoluteCoords.y][absoluteCoords.x] = layer.layerId;
+                            // matrix[absoluteCoords.y][absoluteCoords.x] = layer.layerId;
+                            ctx.fillStyle = layer.colour.toHTMLColour();
+                            ctx.fillRect(absoluteCoords.x, absoluteCoords.y, 1, 1);
                         }
                     }
                 }

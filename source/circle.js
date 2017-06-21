@@ -56,7 +56,7 @@ export class Circle extends Shape
     }
 
     /**
-     * * Copies the pixels spanned by the circle from the diva canvas to the canvas passed to it
+     * * Copies the pixels spanned by the circle from the diva canvas to the canvas passed to it in page coordinates
      * @param layer
      * @param pageIndex
      * @param zoomLevel
@@ -102,7 +102,7 @@ export class Circle extends Shape
                             let data = divaCtx.getImageData(paddedCoords.x, paddedCoords.y, 1, 1).data;
                             let colour = new Colour(data[0], data[1], data[2], data[3]);
 
-                            pixelCtx.fillStyle = colour.toHTMLColour();
+                            pixelCtx.fillStyle = layer.colour.toHTMLColour();
                             pixelCtx.fillRect(absoluteCoords.x, absoluteCoords.y, 1, 1);
                         }
 

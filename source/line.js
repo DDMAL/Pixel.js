@@ -3,12 +3,13 @@ import {Circle} from './circle';
 
 export class Line extends Shape
 {
-    constructor (startPoint, endPoint, lineWidth, lineJoin)
+    constructor (startPoint, endPoint, lineWidth, lineJoin, blendMode)
     {
         super(startPoint);
         this.endPoint = endPoint;
         this.lineWidth = lineWidth;
         this.lineJoin = lineJoin;
+        this.blendMode = blendMode;
     }
 
     getLineEquation ()
@@ -87,22 +88,19 @@ export class Line extends Shape
      */
     getPixels (layer, zoomLevel, pageIndex, renderer, canvas, divaCanvas)
     {
-        let point1 = this.origin,
-            point2 = this.endPoint,
+        let point1 = this.origin.getAbsolutePaddedCoordinates(zoomLevel, pageIndex, renderer),
+            point2 = this.endPoint.getAbsolutePaddedCoordinates(zoomLevel, pageIndex, renderer),
             scaleRatio = Math.pow(2,zoomLevel),
             absoluteLineWidth = this.lineWidth * scaleRatio,
-            highlightPageIndex = point1.pageIndex;
+            highlightPageIndex = this.origin.pageIndex;
 
         if (pageIndex !== highlightPageIndex)
             return;
 
         // Calculates where the highlights should be drawn as a function of the whole webpage coordinates
         // (to make it look like it is on top of a page in Diva)
-        let point1highlightOffset = point1.getAbsolutePaddedCoordinates(zoomLevel, pageIndex, renderer),
-            point2highlightOffset = point2.getAbsolutePaddedCoordinates(zoomLevel,pageIndex,renderer);
-
-        new Circle(point1, this.lineWidth/2).getPixels(layer, pageIndex, zoomLevel, renderer, canvas, this.blendMode, divaCanvas);
-        new Circle(point2, this.lineWidth/2).getPixels(layer, pageIndex, zoomLevel, renderer, canvas, this.blendMode, divaCanvas);
+        new Circle(this.origin, this.lineWidth/2).getPixels(layer, pageIndex, zoomLevel, renderer, canvas, this.blendMode, divaCanvas);
+        new Circle(this.endPoint, this.lineWidth/2).getPixels(layer, pageIndex, zoomLevel, renderer, canvas, this.blendMode, divaCanvas);
 
         let ang = this.getAngleRad(zoomLevel,pageIndex,renderer);
 
@@ -111,23 +109,23 @@ export class Line extends Shape
 
         // These are values with padding
         var start1 = {
-            absolutePaddedX: point1highlightOffset.x + Math.cos(ang + Math.PI / 2) * absoluteLineWidth / 2,
-            absolutePaddedY: point1highlightOffset.y + Math.sin(ang + Math.PI / 2) * absoluteLineWidth / 2
+            absolutePaddedX: point1.x + Math.cos(ang + Math.PI / 2) * absoluteLineWidth / 2,
+            absolutePaddedY: point1.y + Math.sin(ang + Math.PI / 2) * absoluteLineWidth / 2
         };
         var end1 = {
-            absolutePaddedX: point2highlightOffset.x + Math.cos(ang + Math.PI / 2) * absoluteLineWidth / 2,
-            absolutePaddedY: point2highlightOffset.y + Math.sin(ang + Math.PI / 2) * absoluteLineWidth / 2
+            absolutePaddedX: point2.x + Math.cos(ang + Math.PI / 2) * absoluteLineWidth / 2,
+            absolutePaddedY: point2.y + Math.sin(ang + Math.PI / 2) * absoluteLineWidth / 2
         };
 
         // find the second point on the circumference that is orthogonal
         // to the line intersecting the two circle origos
         var start2 = {
-            absolutePaddedX: point1highlightOffset.x + Math.cos(ang - Math.PI / 2) * absoluteLineWidth / 2,
-            absolutePaddedY: point1highlightOffset.y + Math.sin(ang - Math.PI / 2) * absoluteLineWidth / 2
+            absolutePaddedX: point1.x + Math.cos(ang - Math.PI / 2) * absoluteLineWidth / 2,
+            absolutePaddedY: point1.y + Math.sin(ang - Math.PI / 2) * absoluteLineWidth / 2
         };
         var end2 = {
-            absolutePaddedX: point2highlightOffset.x + Math.cos(ang - Math.PI / 2) * absoluteLineWidth / 2,
-            absolutePaddedY: point2highlightOffset.y + Math.sin(ang - Math.PI / 2) * absoluteLineWidth / 2
+            absolutePaddedX: point2.x + Math.cos(ang - Math.PI / 2) * absoluteLineWidth / 2,
+            absolutePaddedY: point2.y + Math.sin(ang - Math.PI / 2) * absoluteLineWidth / 2
         };
 
         // 1. get ymax and ymin
