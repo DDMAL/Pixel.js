@@ -30,6 +30,7 @@ export default class PixelPlugin
         this.background = null;
         this.layers = null;
         this.mousePressed = false;
+        this.rightMousePressed = false;
         this.selectedLayerIndex = 0;
         this.layerChangedMidDraw = false;
         this.actions = [];
@@ -414,29 +415,47 @@ export default class PixelPlugin
     onMouseDown (evt)
     {
         let canvas = document.getElementById("diva-1-outer");
-        switch (this.tools.getCurrentTool())
+        if (evt.which === 1)
         {
-            case this.tools.type.brush:
-                this.mousePressed = true;
-                this.initializeNewPathInCurrentLayer(canvas, evt);
-                break;
-            case this.tools.type.rectangle:
-                this.mousePressed = true;
-                this.initializeRectanglePreview(canvas, evt);
-                break;
-            case this.tools.type.grab:
-                this.mousePressed = true;
-                break;
-            case this.tools.type.eraser:
-                this.mousePressed = true;
-                this.initializeNewPathInCurrentLayer(canvas, evt);
-                break;
-            case this.tools.type.select:
-                this.mousePressed = true;
-                this.initializeRectanglePreview(canvas, evt);
-                break;
-            default:
-                this.mousePressed = true;
+            this.rightMousePressed = false;
+            switch (this.tools.getCurrentTool())
+            {
+                case this.tools.type.brush:
+                    this.mousePressed = true;
+                    this.initializeNewPathInCurrentLayer(canvas, evt);
+                    break;
+                case this.tools.type.rectangle:
+                    this.mousePressed = true;
+                    this.initializeRectanglePreview(canvas, evt);
+                    break;
+                case this.tools.type.grab:
+                    this.mousePressed = true;
+                    break;
+                case this.tools.type.eraser:
+                    this.mousePressed = true;
+                    this.initializeNewPathInCurrentLayer(canvas, evt);
+                    break;
+                case this.tools.type.select:
+                    this.mousePressed = true;
+                    this.initializeRectanglePreview(canvas, evt);
+                    break;
+                default:
+                    this.mousePressed = true;
+            }
+        }
+        else //if (evt.which === 3)
+        {
+            this.rightMousePressed = true;
+            switch (this.tools.getCurrentTool())
+            {
+                case this.tools.type.rectangle:
+                    this.mousePressed = true;
+                    this.initializeRectanglePreview(canvas, evt);
+                    break;
+                default:
+                    this.mousePressed = true;
+            }
+
         }
 
         // FIXME: At deactivation mouse is down so it clears the actions to redo
@@ -766,6 +785,8 @@ export default class PixelPlugin
 
             if (this.tools.getCurrentTool() === this.tools.type.select)
                 selectedLayer.addShapeToLayer(new Rectangle(new Point(relativeCoords.x,relativeCoords.y,pageIndex), 0, 0, "select", this.tools.getCurrentTool()));
+            else if (this.rightMousePressed)
+                selectedLayer.addShapeToLayer(new Rectangle(new Point(relativeCoords.x,relativeCoords.y,pageIndex), 0, 0, "subtract", this.tools.getCurrentTool()));
             else
                 selectedLayer.addShapeToLayer(new Rectangle(new Point(relativeCoords.x,relativeCoords.y,pageIndex), 0, 0, "add", this.tools.getCurrentTool()));
 
