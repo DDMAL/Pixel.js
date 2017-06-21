@@ -9,13 +9,13 @@ export class Tools
                 rectangle: "rectangle",
                 grab: "grab",
                 eraser: "eraser"
-            }
+            };
         this.currentTool = this.type.brush;
     }
 
     getAllTools ()
     {
-        let allTools = []
+        let allTools = [];
 
         for(let type in this.type)
         {
@@ -28,13 +28,12 @@ export class Tools
     setCurrentTool (tool)
     {
         this.currentTool = tool;
-        this.pixelInstance.uiGenerator.markToolSelected(tool);
+        this.pixelInstance.uiManager.markToolSelected(tool);
 
         if (tool === this.type.grab)
             this.pixelInstance.enableDragScrollable();
         else
             this.pixelInstance.disableDragScrollable();
-
     }
 
     getCurrentTool ()

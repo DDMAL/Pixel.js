@@ -5,19 +5,15 @@
  *
  * {string} pluginName - Added to the class prototype. Defines the name for the plugin.
  *
- *
  **/
 
 import {Point} from './point';
 import {Rectangle} from './rectangle';
-import {Shape} from './shape';
-import {Circle} from './circle';
 import {Layer} from './layer';
 import {Action} from './action';
 import {Colour} from './colour';
-import {Line} from './line';
 import {Export} from './export';
-import {UIGenerator} from './ui-generator';
+import {UIManager} from './ui-manager';
 import {Tools} from './tools';
 
 export default class PixelPlugin
@@ -34,8 +30,6 @@ export default class PixelPlugin
         this.background = null;
         this.layers = null;
         this.mousePressed = false;
-        this.lastAbsX = null;
-        this.lastAbsY = null;
         this.selectedLayerIndex = 0;
         this.layerChangedMidDraw = false;
         this.actions = [];
@@ -43,7 +37,7 @@ export default class PixelPlugin
         this.shiftDown = false;
         this.lastRelCoordX = null;
         this.lastRelCoordY = null;
-        this.uiGenerator = null;
+        this.uiManager = null;
         this.tools = null;
     }
 
@@ -91,10 +85,10 @@ export default class PixelPlugin
             let divaCanvas = this.core.getSettings().renderer._canvas;
 
             // Start by creating layers
-            let background = new Layer(-1, new Colour(242, 242, 242, 1), "Background", divaCanvas),
-                layer1 = new Layer(0, new Colour(51, 102, 255, 1), "Layer 1", divaCanvas),
-                layer2 = new Layer(1, new Colour(255, 51, 102, 1), "Layer 2", divaCanvas),
-                layer3 = new Layer(2, new Colour(255, 255, 10, 1), "Layer 3", divaCanvas);
+            let background = new Layer(-1, new Colour(242, 242, 242, 1), "Background", divaCanvas, 1),
+                layer1 = new Layer(0, new Colour(51, 102, 255, 1), "Layer 1", divaCanvas, 0.5),
+                layer2 = new Layer(1, new Colour(255, 51, 102, 1), "Layer 2", divaCanvas, 0.5),
+                layer3 = new Layer(2, new Colour(255, 255, 10, 1), "Layer 3", divaCanvas, 0.5);
 
             layer1.addShapeToLayer(new Rectangle(new Point(23, 42, 0), 24, 24, "add"));
             layer2.addShapeToLayer(new Rectangle(new Point(48, 50, 0), 57, 5, "add"));
@@ -105,9 +99,9 @@ export default class PixelPlugin
             this.background.canvas = this.core.getSettings().renderer._canvas;  // Link background canvas to the actual diva canvas
         }
 
-        this.uiGenerator = new UIGenerator(this);
+        this.uiManager = new UIManager(this);
         this.tools = new Tools(this);
-        this.uiGenerator.createPluginElements(this.layers);
+        this.uiManager.createPluginElements(this.layers);
         this.scrollEventHandle = this.subscribeToScrollEvent();
         this.zoomEventHandle = this.subscribeToZoomLevelWillChangeEvent();
 
@@ -129,10 +123,8 @@ export default class PixelPlugin
         this.unsubscribeFromKeyboardPress();
         this.repaint(); // Repaint the tiles to make the highlights disappear off the page
 
-        this.uiGenerator.destroyPluginElements(this.layers, this.background);
+        this.uiManager.destroyPluginElements(this.layers, this.background);
 
-        // TODO: Remove all layer canvases
-        // this._ctx.clearRect(0,0,this._canvas.width, this._canvas.height);
         this.enableDragScrollable();
         this.activated = false;
     }
@@ -310,14 +302,14 @@ export default class PixelPlugin
             }
             this.layers[destinationLayerIndex] = tempLayerStorage;
         }
-        this.uiGenerator.destroyPluginElements(this.layers, this.background);
-        this.uiGenerator.createPluginElements(this.layers);
+        this.uiManager.destroyPluginElements(this.layers, this.background);
+        this.uiManager.createPluginElements(this.layers);
         this.selectedLayerIndex = destinationLayerIndex;
-        this.highlightSelectedLayer(this.layers[this.selectedLayerIndex].layerId); // Layer Type and not index
+        this.highlightLayerSelector(this.layers[this.selectedLayerIndex].layerId); // Layer Type and not index
         // TODO: Optimization: Instead of destroying all of the canvases only destroy and reorder the ones of interest
-        this.uiGenerator.destroyPixelCanvases(this.layers);
-        this.uiGenerator.placeLayerCanvasesInDiva(this.layers);
-        this.uiGenerator.placeLayerCanvasesInDiva(this.background);
+        this.uiManager.destroyPixelCanvases(this.layers);
+        this.uiManager.placeLayerCanvasesInDiva(this.layers);
+        this.uiManager.placeLayerCanvasesInDiva(this.background);
         this.repaint();
     }
 
@@ -339,7 +331,7 @@ export default class PixelPlugin
 
         if (key >= KEY_1 && key < KEY_1 + numberOfLayers && key <= KEY_9)
         {
-            this.highlightSelectedLayer(key - KEY_1);
+            this.highlightLayerSelector(key - KEY_1);
 
             if (lastLayer !== this.selectedLayerIndex && this.mousePressed)
                 this.layerChangedMidDraw = true;
@@ -388,7 +380,7 @@ export default class PixelPlugin
 
         // TODO: Listen for changes when clicked outside of LayerName
         // TODO: Unsubscribe from other keyboard listeners
-        var key = e.which || e.keyCode;
+        let key = e.which || e.keyCode;
         if (key === RETURN_KEY)
         {
             // TODO: Subscribe to other keyboard listeners
@@ -420,7 +412,7 @@ export default class PixelPlugin
         {
             case this.tools.type.brush:
                 this.mousePressed = true;
-                this.initializeNewPath(canvas, evt);
+                this.initializeNewPathInCurrentLayer(canvas, evt);
                 break;
             case this.tools.type.rectangle:
                 this.mousePressed = true;
@@ -431,7 +423,7 @@ export default class PixelPlugin
                 break;
             case this.tools.type.eraser:
                 this.mousePressed = true;
-                this.initializeNewPath(canvas, evt);
+                this.initializeNewPathInCurrentLayer(canvas, evt);
                 break;
             default:
                 this.mousePressed = true;
@@ -447,13 +439,13 @@ export default class PixelPlugin
         switch (this.tools.getCurrentTool())
         {
             case this.tools.type.brush:
-                this.setupPointPainting(canvas, evt);
+                this.addPointToCurrentPath(canvas, evt);
                 break;
             case this.tools.type.rectangle:
                 this.rectanglePreview(canvas,evt);
                 break;
             case this.tools.type.eraser:
-                this.setupPointPainting(canvas, evt);
+                this.addPointToCurrentPath(canvas, evt);
                 break;
             default:
         }
@@ -467,7 +459,7 @@ export default class PixelPlugin
             case this.tools.type.brush:
                 this.mousePressed = false;
                 break;
-            case this.tools.type.rectangle:
+            case this.tools.type.rectangle: // TODO: Add action: resized rectangle. This is useful if a user wants to revert a rectangle resize (when implementd)
                 this.mousePressed = false;
                 break;
             case this.tools.type.eraser:
@@ -486,6 +478,7 @@ export default class PixelPlugin
 
     displayColourOptions ()
     {
+        // TODO: Implement function
         console.log("colour clicked here");
     }
 
@@ -495,13 +488,13 @@ export default class PixelPlugin
         {
             layerOptionsDiv.classList.remove("unchecked-layer-settings");
             layerOptionsDiv.classList.add("checked-layer-settings");
-            this.uiGenerator.createOpacitySlider(layer, layerOptionsDiv.parentElement.parentElement, layerOptionsDiv.parentElement);
+            this.uiManager.createOpacitySlider(layer, layerOptionsDiv.parentElement.parentElement, layerOptionsDiv.parentElement);
         }
         else
         {
             layerOptionsDiv.classList.remove("checked-layer-settings");
             layerOptionsDiv.classList.add("unchecked-layer-settings");
-            this.uiGenerator.destroyOpacitySlider(layer);
+            this.uiManager.destroyOpacitySlider(layer);
         }
     }
 
@@ -613,7 +606,7 @@ export default class PixelPlugin
      **/
 
     // Specify the class of the selected div. CSS takes care of the rest
-    highlightSelectedLayer (layerType)
+    highlightLayerSelector (layerType)
     {
         layerType = parseInt(layerType);
 
@@ -637,7 +630,7 @@ export default class PixelPlugin
         });
     }
 
-    initializeNewPath (canvas, evt)
+    initializeNewPathInCurrentLayer (canvas, evt)
     {
         if (!this.layers[this.selectedLayerIndex].isActivated())
             return;
@@ -671,7 +664,7 @@ export default class PixelPlugin
 
             // Add path to list of actions (used for undo/redo)
             this.actions.push(new Action(selectedLayer.getCurrentPath(), selectedLayer));
-            this.drawPath(selectedLayer, point, pageIndex, zoomLevel, brushSize, false, selectedLayer.getCurrentPath().blendMode, selectedLayer.getCanvas());
+            selectedLayer.getCurrentPath().connectPoint(selectedLayer, point, pageIndex, zoomLevel, false, this.core.getSettings().renderer, selectedLayer.getCanvas(), "viewport");
         }
         else
         {
@@ -679,7 +672,7 @@ export default class PixelPlugin
         }
     }
 
-    setupPointPainting (canvas, evt)
+    addPointToCurrentPath (canvas, evt)
     {
         if (!this.layers[this.selectedLayerIndex].isActivated())
             return;
@@ -718,23 +711,26 @@ export default class PixelPlugin
             }
 
             // Draw path with new point
-            let brushSize = this.layers[this.selectedLayerIndex].getCurrentPath().brushSize;
-
-            if (this.tools.getCurrentTool() === this.tools.type.brush)
+            switch (this.tools.getCurrentTool())
             {
-                this.layers[this.selectedLayerIndex].addToCurrentPath(point, "add");
-            }
-            else if (this.tools.getCurrentTool() === this.tools.type.eraser)
-            {
-                this.layers[this.selectedLayerIndex].addToCurrentPath(point, "subtract");
+                case this.tools.type.brush:
+                    this.layers[this.selectedLayerIndex].addToCurrentPath(point, "add");
+                    break;
+                case this.tools.type.eraser:
+                    this.layers[this.selectedLayerIndex].addToCurrentPath(point, "subtract");
+                    break;
+                default:
+                    this.layers[this.selectedLayerIndex].addToCurrentPath(point, "add");
             }
 
-            this.drawPath(this.layers[this.selectedLayerIndex], point, pageIndex, zoomLevel, brushSize, true, this.layers[this.selectedLayerIndex].getCurrentPath().blendMode, this.layers[this.selectedLayerIndex].getCanvas());
+            let layer = this.layers[this.selectedLayerIndex];
+            layer.getCurrentPath().connectPoint(layer, point, pageIndex, zoomLevel, true, this.core.getSettings().renderer, layer.getCanvas(), "viewport");
+
             return;
         }
 
         // If layer changed mid drawing then create a new path on selected layer
-        this.initializeNewPath(canvas, evt);
+        this.initializeNewPathInCurrentLayer(canvas, evt);
         this.layerChangedMidDraw = false;
     }
 
@@ -761,54 +757,63 @@ export default class PixelPlugin
         if (!this.layers[this.selectedLayerIndex].isActivated())
             return;
 
-        if (this.mousePressed)
+        if (!this.layerChangedMidDraw)
         {
-            let mousePos = this.getMousePos(canvas, evt),
-                relativeCoords = this.getRelativeCoordinatesFromPadded(mousePos.x, mousePos.y),
-                lastShape = this.layers[this.selectedLayerIndex].getCurrentShape();
-
-            if (!this.isInPageBounds(relativeCoords.x, relativeCoords.y))
-                return;
-
-            // If cursor is to the main diagonal (south east or north west of the point of origin)
-            if (this.isInMainDiagonal(relativeCoords, lastShape))
+            if (this.mousePressed)
             {
-                let lastWidth = lastShape.relativeRectWidth;
-                lastShape.relativeRectWidth = relativeCoords.x - lastShape.origin.relativeOriginX;
+                let mousePos = this.getMousePos(canvas, evt),
+                    relativeCoords = this.getRelativeCoordinatesFromPadded(mousePos.x, mousePos.y),
+                    lastShape = this.layers[this.selectedLayerIndex].getCurrentShape();
 
-                // Draw a square on shift down
-                if (this.shiftDown)
+                if (!this.isInPageBounds(relativeCoords.x, relativeCoords.y))
+                    return;
+
+                // If cursor is to the main diagonal (south east or north west of the point of origin)
+                if (this.isInMainDiagonal(relativeCoords, lastShape))
                 {
-                    let squareInBounds = this.isInPageBounds(lastShape.origin.relativeOriginX + lastShape.relativeRectWidth,
-                        lastShape.origin.relativeOriginY + lastShape.relativeRectWidth);
+                    let lastWidth = lastShape.relativeRectWidth;
+                    lastShape.relativeRectWidth = relativeCoords.x - lastShape.origin.relativeOriginX;
 
-                    if (squareInBounds)
-                        lastShape.relativeRectHeight = lastShape.relativeRectWidth;
+                    // Draw a square on shift down
+                    if (this.shiftDown)
+                    {
+                        let squareInBounds = this.isInPageBounds(lastShape.origin.relativeOriginX + lastShape.relativeRectWidth,
+                            lastShape.origin.relativeOriginY + lastShape.relativeRectWidth);
+
+                        if (squareInBounds)
+                            lastShape.relativeRectHeight = lastShape.relativeRectWidth;
+                        else
+                            lastShape.relativeRectWidth = lastWidth;
+                    }
                     else
-                        lastShape.relativeRectWidth = lastWidth;
+                        lastShape.relativeRectHeight = relativeCoords.y - lastShape.origin.relativeOriginY;
                 }
-                else
-                    lastShape.relativeRectHeight = relativeCoords.y - lastShape.origin.relativeOriginY;
-            }
-            else        // If cursor is to the antidiagonal (north east or south west of the point of origin)
-            {
-                let lastWidth = lastShape.relativeRectWidth;
-                lastShape.relativeRectWidth = relativeCoords.x - lastShape.origin.relativeOriginX;
-
-                if (this.shiftDown)
+                else        // If cursor is to the antidiagonal (north east or south west of the point of origin)
                 {
-                    let squareInBounds = this.isInPageBounds(lastShape.origin.relativeOriginX + lastShape.relativeRectWidth,
-                        lastShape.origin.relativeOriginY - lastShape.relativeRectWidth);
+                    let lastWidth = lastShape.relativeRectWidth;
+                    lastShape.relativeRectWidth = relativeCoords.x - lastShape.origin.relativeOriginX;
 
-                    if (squareInBounds)
-                        lastShape.relativeRectHeight = - lastShape.relativeRectWidth;
+                    if (this.shiftDown)
+                    {
+                        let squareInBounds = this.isInPageBounds(lastShape.origin.relativeOriginX + lastShape.relativeRectWidth,
+                            lastShape.origin.relativeOriginY - lastShape.relativeRectWidth);
+
+                        if (squareInBounds)
+                            lastShape.relativeRectHeight = - lastShape.relativeRectWidth;
+                        else
+                            lastShape.relativeRectWidth = lastWidth;
+                    }
                     else
-                        lastShape.relativeRectWidth = lastWidth;
+                        lastShape.relativeRectHeight = relativeCoords.y - lastShape.origin.relativeOriginY;
                 }
-                else
-                    lastShape.relativeRectHeight = relativeCoords.y - lastShape.origin.relativeOriginY;
+                this.repaintLayer(this.layers[this.selectedLayerIndex]);
             }
-            this.repaintLayer(this.layers[this.selectedLayerIndex]);
+        }
+        else
+        {
+            // Create a new rectangle to which the change will be
+            this.layerChangedMidDraw = false;
+            this.initializeRectanglePreview(canvas, evt);
         }
     }
 
@@ -872,155 +877,6 @@ export default class PixelPlugin
         };
     }
 
-    drawPath (layer, point, pageIndex, zoomLevel, brushSize, isDown, blendMode, canvas)
-    {
-        let renderer = this.core.getSettings().renderer,
-            scaleRatio = Math.pow(2, zoomLevel),
-            ctx = canvas.getContext('2d');
-
-        if (pageIndex !== point.pageIndex)
-            return;
-
-        // Calculates where the highlights should be drawn as a function of the whole webpage coordinates
-        // (to make it look like it is on top of a page in Diva)
-        let absolutePaddedCoords = point.getAbsolutePaddedCoordinates(zoomLevel, pageIndex, renderer);
-
-        let highlightXOffset = absolutePaddedCoords.x,
-            highlightYOffset = absolutePaddedCoords.y;
-
-        if (isDown)
-        {
-            if (blendMode === "add")
-            {
-                ctx.globalCompositeOperation="source-over";
-                ctx.beginPath();
-                ctx.strokeStyle = layer.colour.toHTMLColour();
-                ctx.lineWidth = brushSize * scaleRatio;
-                ctx.lineJoin = "round";
-                ctx.moveTo(this.lastAbsX, this.lastAbsY);
-                ctx.lineTo(highlightXOffset, highlightYOffset);
-                ctx.closePath();
-                ctx.stroke();
-            }
-
-            else if (blendMode === "subtract")
-            {
-                ctx.globalCompositeOperation="destination-out";
-                ctx.beginPath();
-                ctx.strokeStyle = "rgba(250,250,250,1)"; // It is important to have the alpha always equal to 1. RGB are not important when erasing
-                ctx.lineWidth = brushSize * scaleRatio;
-                ctx.lineJoin = "round";
-                ctx.moveTo(this.lastAbsX, this.lastAbsY);
-                ctx.lineTo(highlightXOffset, highlightYOffset);
-                ctx.closePath();
-                ctx.stroke();
-            }
-            ctx.globalCompositeOperation="source-over";
-        }
-        this.lastAbsX = highlightXOffset;
-        this.lastAbsY = highlightYOffset;
-    }
-
-    drawAbsolutePath (layer, point, pageIndex, zoomLevel, brushSize, isDown, blendMode, canvas)
-    {
-        let scaleRatio = Math.pow(2, zoomLevel),
-            ctx = canvas.getContext('2d');
-
-        if (pageIndex !== point.pageIndex)
-            return;
-
-        // Calculates where the highlights should be drawn as a function of the whole webpage coordinates
-        // (to make it look like it is on top of a page in Diva)
-        let absoluteCoords = point.getAbsoluteCoordinates(zoomLevel);
-
-        if (isDown)
-        {
-            if (blendMode === "add")
-            {
-                ctx.globalCompositeOperation="source-over";
-                ctx.beginPath();
-                ctx.strokeStyle = layer.colour.toHTMLColour();
-                ctx.lineWidth = brushSize * scaleRatio;
-                ctx.lineJoin = "round";
-                ctx.moveTo(this.lastAbsX, this.lastAbsY);
-                ctx.lineTo(absoluteCoords.x, absoluteCoords.y);
-                ctx.closePath();
-                ctx.stroke();
-            }
-
-            else if (blendMode === "subtract")
-            {
-                ctx.globalCompositeOperation="destination-out";
-                ctx.beginPath();
-                ctx.strokeStyle = "rgba(250,250,250,1)"; // It is important to have the alpha always equal to 1. RGB are not important when erasing
-                ctx.lineWidth = brushSize * scaleRatio;
-                ctx.lineJoin = "round";
-                ctx.moveTo(this.lastAbsX, this.lastAbsY);
-                ctx.lineTo(absoluteCoords.x, absoluteCoords.y);
-                ctx.closePath();
-                ctx.stroke();
-            }
-            ctx.globalCompositeOperation="source-over";
-        }
-        this.lastAbsX = absoluteCoords.x;
-        this.lastAbsY = absoluteCoords.y;
-    }
-
-
-    fillPath(layer, point1, point2, zoomLevel, pageIndex, brushSize, blendMode)
-    {
-        let renderer = this.core.getSettings().renderer,
-            scaleRatio = Math.pow(2,zoomLevel),
-            lineWidth = brushSize,
-            absoluteLineWidth = lineWidth * scaleRatio,
-            highlightPageIndex = point1.pageIndex;
-
-        if (pageIndex !== highlightPageIndex)
-            return;
-
-        // Calculates where the highlights should be drawn as a function of the whole webpage coordinates
-        // (to make it look like it is on top of a page in Diva)
-        let point1highlightOffset = point1.getAbsolutePaddedCoordinates(zoomLevel, pageIndex, renderer);
-        var point2highlightOffset = point2.getAbsolutePaddedCoordinates(zoomLevel,pageIndex,renderer);
-
-        new Circle(point1, lineWidth/2).getPixels(layer, pageIndex, zoomLevel, renderer, this.matrix, blendMode);
-        new Circle(point2, lineWidth/2).getPixels(layer, pageIndex, zoomLevel, renderer, this.matrix, blendMode);
-
-        let ang = new Line(point1, point2).getAngleRad(zoomLevel,pageIndex,renderer);
-
-        // find the first point on the circumference that is orthogonal
-        // to the line intersecting the two circle origos
-
-        // These are values with padding
-        var start1 = {
-            absolutePaddedX: point1highlightOffset.x + Math.cos(ang + Math.PI / 2) * absoluteLineWidth / 2,
-            absolutePaddedY: point1highlightOffset.y + Math.sin(ang + Math.PI / 2) * absoluteLineWidth / 2
-        };
-        var end1 = {
-            absolutePaddedX: point2highlightOffset.x + Math.cos(ang + Math.PI / 2) * absoluteLineWidth / 2,
-            absolutePaddedY: point2highlightOffset.y + Math.sin(ang + Math.PI / 2) * absoluteLineWidth / 2
-        };
-
-        // find the second point on the circumference that is orthogonal
-        // to the line intersecting the two circle origos
-        var start2 = {
-            absolutePaddedX: point1highlightOffset.x + Math.cos(ang - Math.PI / 2) * absoluteLineWidth / 2,
-            absolutePaddedY: point1highlightOffset.y + Math.sin(ang - Math.PI / 2) * absoluteLineWidth / 2
-        };
-        var end2 = {
-            absolutePaddedX: point2highlightOffset.x + Math.cos(ang - Math.PI / 2) * absoluteLineWidth / 2,
-            absolutePaddedY: point2highlightOffset.y + Math.sin(ang - Math.PI / 2) * absoluteLineWidth / 2
-        };
-
-        // 1. get ymax and ymin
-        let ymax = Math.round(Math.max(start1.absolutePaddedY, start2.absolutePaddedY, end1.absolutePaddedY, end2.absolutePaddedY));
-        let ymin = Math.round(Math.min(start1.absolutePaddedY, start2.absolutePaddedY, end1.absolutePaddedY, end2.absolutePaddedY));
-        let pairOfEdges = [[start1, end1], [start2, end2], [start1, start2], [end1, end2]];
-
-        // Logic for polygon fill using scan lines
-        new Shape().getPixels(layer, pageIndex, zoomLevel, renderer, ymax, ymin, pairOfEdges, this.matrix, blendMode);
-    }
-
     drawLayer (zoomLevel, layer, canvas)
     {
         if (!layer.isActivated())
@@ -1035,46 +891,18 @@ export default class PixelPlugin
         {
             layer.actions.forEach((action) =>
             {
-                switch (action.type)
-                {
-                    case "shape":
-                        action.draw(layer, pageIndex, zoomLevel, this.core.getSettings().renderer, canvas);
-                        break;
-                    case "path":
-                        let isDown = false;
-                        action.points.forEach((point) => {
-                            this.drawPath(layer, point, pageIndex, zoomLevel, action.brushSize, isDown, action.blendMode, canvas);
-                            isDown = true;
-                        });
-                        break;
-                    default:
-                        return;
-                }
+                action.draw(layer, pageIndex, zoomLevel, renderer, canvas);
             });
         });
     }
 
+    // Called on export
     drawLayerOnPageCanvas (layer, zoomLevel, canvas, pageIndex)
     {
         layer.actions.forEach((action) =>
         {
-            switch (action.type)
-            {
-                case "shape":
-                    action.drawAbsolute(layer, pageIndex, zoomLevel, this.core.getSettings().renderer, canvas);
-                    break;
-                case "path":
-                    let isDown = false;
-                    action.points.forEach((point) => {
-                        this.drawAbsolutePath(layer, point, pageIndex, zoomLevel, action.brushSize, isDown, action.blendMode, canvas);
-                        isDown = true;
-                    });
-                    break;
-                default:
-                    return;
-            }
+            action.drawAbsolute(layer, pageIndex, zoomLevel, this.core.getSettings().renderer, canvas);
         });
-
     }
 
     drawHighlights (zoomLevel)
@@ -1097,7 +925,7 @@ export default class PixelPlugin
         let pageIndex = this.core.getSettings().currentPageIndex,
             zoomLevel = this.core.getSettings().zoomLevel;
 
-        new Export(this, this.layers, pageIndex, zoomLevel).exportLayersAsImageData();
+        new Export(this, this.layers, pageIndex, zoomLevel, this.uiManager).exportLayersAsImageData();
     }
 
     exportAsHighlights ()
@@ -1105,7 +933,7 @@ export default class PixelPlugin
         let pageIndex = this.core.getSettings().currentPageIndex,
             zoomLevel = this.core.getSettings().zoomLevel;
 
-        new Export(this, this.layers, pageIndex, zoomLevel).exportLayersAsHighlights();
+        new Export(this, this.layers, pageIndex, zoomLevel, this.uiManager).exportLayersAsHighlights();
     }
 
     exportAsCSV ()
@@ -1113,7 +941,7 @@ export default class PixelPlugin
         let pageIndex = this.core.getSettings().currentPageIndex,
             zoomLevel = this.core.getSettings().zoomLevel;
 
-        new Export(this, this.layers, pageIndex, zoomLevel).exportLayersAsCSV();
+        new Export(this, this.layers, pageIndex, zoomLevel, this.uiManager).exportLayersAsCSV();
     }
 }
 

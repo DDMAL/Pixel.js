@@ -1,15 +1,9 @@
-export class UIGenerator
+export class UIManager
 {
     constructor (pixelInstance)
     {
         this.pixelInstance = pixelInstance;
     }
-
-    /**
-     * ===============================================
-     *            Creating HTML UI Elements
-     * ===============================================
-     **/
 
     createPluginElements (layers)
     {
@@ -68,9 +62,7 @@ export class UIGenerator
             radio.setAttribute("name", "tool-selector");
             handleClick(radio);
 
-            // TODO: this.selectedTool (fixes tool selection after deactivating and activating plugin)
-            // Currently on reactivation, selected radio button does not correspond to tool
-            if (tool === "brush")      // Layer at position 0 is checked by default
+            if (tool === this.pixelInstance.tools.getCurrentTool())
                 radio.checked = true;
 
             form.appendChild(radio);
@@ -240,7 +232,7 @@ export class UIGenerator
             layerDiv.onmousedown = () =>
             {
                 departureIndex = layerDiv.getAttribute("index");
-                this.pixelInstance.highlightSelectedLayer(layerDiv.getAttribute("value"));
+                this.pixelInstance.highlightLayerSelector(layerDiv.getAttribute("value"));
             };
 
             layerDiv.ondragover = (evt) =>
@@ -420,6 +412,81 @@ export class UIGenerator
     destroyBackground (layers)
     {
         this.pixelInstance.destroyLockedLayerSelectors(layers);
+    }
+
+    createExportElements (exportInstance)
+    {
+        let exportDiv = document.createElement('div'),
+            text = document.createTextNode("Exporting"),
+            progressText = document.createTextNode("0%"),
+            progressBarOuterDiv = document.createElement('div'),
+            progressBarInnerDiv = document.createElement('div'),
+            progressBarInnerText = document.createElement('div'),
+            progressBarExportText = document.createElement('div'),
+            cancelExportDiv = document.createElement('div'),
+            cancelExportText = document.createTextNode("Cancel");
+
+        exportDiv.setAttribute("class", "export-div");
+        exportDiv.setAttribute("id", "pixel-export-div");
+
+        progressBarOuterDiv.setAttribute("class", "pbar-outer-div");
+        progressBarOuterDiv.setAttribute("id", "pbar-outer-div");
+
+        progressBarInnerDiv.setAttribute("class", "pbar-inner-div");
+        progressBarInnerDiv.setAttribute("id", "pbar-inner-div");
+
+        progressBarInnerText.setAttribute("class", "pbar-inner-text");
+        progressBarInnerText.setAttribute("id", "pbar-inner-text");
+
+        progressBarExportText.setAttribute("class", "pbar-export-text");
+        progressBarExportText.setAttribute("id", "pbar-export-text");
+
+        cancelExportDiv.setAttribute("class", "cancel-export-div");
+        cancelExportDiv.setAttribute("id", "cancel-export-div");
+        cancelExportDiv.addEventListener("click", () =>
+        {
+            cancelExportDiv.setAttribute("style", "background-color: #AAAAAA;");
+            exportInstance.exportInterrupted = true;
+        });
+
+        progressBarExportText.appendChild(text);
+        cancelExportDiv.appendChild(cancelExportText);
+        progressBarInnerText.appendChild(progressText);
+        progressBarOuterDiv.appendChild(progressBarInnerDiv);
+        progressBarOuterDiv.appendChild(progressBarInnerText);
+        progressBarOuterDiv.appendChild(progressBarExportText);
+        progressBarOuterDiv.appendChild(cancelExportDiv);
+        exportDiv.appendChild(progressBarOuterDiv);
+
+        document.body.appendChild(exportDiv);
+
+        return {
+            progressCanvas: this.createProgressCanvas(exportInstance.pageIndex, exportInstance.zoomLevel)
+        };
+    }
+
+    destroyExportElements ()
+    {
+        let exportDiv = document.getElementById("pixel-export-div");
+        exportDiv.parentNode.removeChild(exportDiv);
+    }
+
+    createProgressCanvas (pageIndex, zoomLevel)
+    {
+        let height = this.pixelInstance.core.publicInstance.getPageDimensionsAtZoomLevel(pageIndex, zoomLevel).height,
+            width = this.pixelInstance.core.publicInstance.getPageDimensionsAtZoomLevel(pageIndex, zoomLevel).width;
+
+        let progressCanvas = document.createElement('canvas');
+        progressCanvas.setAttribute("id", "progress-canvas");
+        progressCanvas.setAttribute("style", "opacity: 0.3;");
+        progressCanvas.width = width;
+        progressCanvas.height = height;
+        progressCanvas.globalAlpha = 1;
+
+        let exportDiv = document.getElementById("pixel-export-div");
+        exportDiv.appendChild(progressCanvas);
+
+        return progressCanvas;
     }
 
     markToolSelected (tool)

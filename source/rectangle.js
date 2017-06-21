@@ -5,18 +5,18 @@ import {Point} from './point';
 export class Rectangle extends Shape
 {
     constructor (point, relativeRectWidth, relativeRectHeight, blendMode) {
-        super(point);
+        super(point, blendMode);
         this.relativeRectWidth = relativeRectWidth;
         this.relativeRectHeight = relativeRectHeight;
-        this.blendMode = blendMode;
     }
 
     /**
-     * draws a rectangle on a canvas
+     * draws a rectangle of a certain layer in a canvas using viewport coordinates (padded coordinates)
      * @param layer
      * @param pageIndex
      * @param zoomLevel
      * @param renderer
+     * @param canvas
      */
     draw (layer, pageIndex, zoomLevel, renderer, canvas)
     {
@@ -65,6 +65,14 @@ export class Rectangle extends Shape
         }
     }
 
+    /**
+     * draws a rectangle of a certain layer in a canvas using absolute page coordinates
+     * @param layer
+     * @param pageIndex
+     * @param zoomLevel
+     * @param renderer
+     * @param canvas
+     */
     drawAbsolute (layer, pageIndex, zoomLevel, renderer, canvas)
     {
         let scaleRatio = Math.pow(2,zoomLevel);
@@ -100,18 +108,19 @@ export class Rectangle extends Shape
     }
 
     /**
-     * copies the rectangle to a matrix that represents a page
+     * Gets all the pixels spanned by a rectangle. Draws the image data that the rectangle covers (from the imageCanvas) in the drawingCanvas
      * @param layer
      * @param pageIndex
      * @param zoomLevel
      * @param renderer
-     * @param matrix
+     * @param drawingCanvas
+     * @param imageCanvas
      */
-    getPixels (layer, pageIndex, zoomLevel, renderer, canvas, blendMode, divaCanvas)
+    getPixels (layer, pageIndex, zoomLevel, renderer, drawingCanvas, imageCanvas)
     {
         let scaleRatio = Math.pow(2,zoomLevel);
-        let pixelCtx = canvas.getContext('2d');
-        let divaCtx = divaCanvas.getContext('2d');
+        let pixelCtx = drawingCanvas.getContext('2d');
+        let divaCtx = imageCanvas.getContext('2d');
 
         // The following absolute values are experimental values to highlight the square on the first page of Salzinnes, CDN-Hsmu M2149.L4
         // The relative values are used to scale the highlights according to the zoom level on the page itself
@@ -122,17 +131,13 @@ export class Rectangle extends Shape
 
         if (pageIndex === this.origin.pageIndex)
         {
-            // Want abs coord of start and finish
-            // let top = Math.round(Math.min(absoluteRectOriginY, absoluteRectOriginY + absoluteRectHeight));
-            // let bottom = Math.max(absoluteRectOriginY, absoluteRectOriginY + absoluteRectHeight);
-
             for(var row = Math.round(Math.min(absoluteRectOriginY, absoluteRectOriginY + absoluteRectHeight)); row <  Math.max(absoluteRectOriginY, absoluteRectOriginY + absoluteRectHeight); row++)
             {
                 for(var col = Math.round(Math.min(absoluteRectOriginX, absoluteRectOriginX + absoluteRectWidth)); col < Math.max(absoluteRectOriginX, absoluteRectOriginX + absoluteRectWidth); col++)
                 {
-                    if (row >= 0 && col >= 0 && row <= canvas.height && col <= canvas.width)
+                    if (row >= 0 && col >= 0 && row <= drawingCanvas.height && col <= drawingCanvas.width)
                     {
-                        if (blendMode === "add")
+                        if (this.blendMode === "add")
                         {
                             let paddedCoords = new Point().getPaddedCoordinatesFromAbsolute(pageIndex, renderer, col, row);
                             let data = divaCtx.getImageData(paddedCoords.x, paddedCoords.y, 1, 1).data;
@@ -142,7 +147,7 @@ export class Rectangle extends Shape
                             pixelCtx.fillRect(col, row, 1, 1);
                         }
 
-                        else if (blendMode === "subtract")
+                        else if (this.blendMode === "subtract")
                         {
                             pixelCtx.clearRect(col, row, 1, 1);
                         }
