@@ -2,21 +2,22 @@ import {Point} from './point';
 
 export class Shape
 {
-    constructor (point)
+    constructor (point, blendMode)
     {
         this.origin = point;
         this.type = "shape";
+        this.blendMode = blendMode;
     }
 
     /**
      * Abstract method, to be implemented by extending function
      */
-    draw (layer, pageIndex, zoomLevel, renderer, canvas)
+    draw ()
     {
 
     }
 
-    drawAbsolute (layer, pageIndex, zoomLevel, renderer, canvas)
+    drawAbsolute ()
     {
 
     }
@@ -31,14 +32,10 @@ export class Shape
      * @param ymin
      * @param pairOfEdges
      * @param canvas
-     * @param blendMode
      * @param divaCanvas
-     * @param matrix
      */
-    getPixels(layer, pageIndex, zoomLevel, renderer, ymax, ymin, pairOfEdges, canvas, blendMode, divaCanvas, matrix)
+    getPixels(layer, pageIndex, zoomLevel, renderer, canvas, divaCanvas, ymax, ymin, pairOfEdges)
     {
-        console.log("here");
-
         let ctx = canvas.getContext('2d');
 
         // TODO: Check for horizontal or vertical lines
@@ -99,8 +96,8 @@ export class Shape
                         // Necessary check because sometimes the brush draws outside of a page because of brush width
                         if (absoluteCoords.y >= 0 && absoluteCoords.x >= 0 && absoluteCoords.y <= canvas.height && absoluteCoords.x <= canvas.width)
                         {
-                            // TODO: Draw on canvas. Right now only adding to the matrix
-                            // matrix[absoluteCoords.y][absoluteCoords.x] = layer.layerId;
+                            // TODO: Can also pass in and fill a matrix
+                            // TODO: Can also fill canvas with the image data
                             ctx.fillStyle = layer.colour.toHTMLColour();
                             ctx.fillRect(absoluteCoords.x, absoluteCoords.y, 1, 1);
                         }

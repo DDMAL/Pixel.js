@@ -1,15 +1,15 @@
 import {Shape} from './shape';
 import {Circle} from './circle';
+import {Point} from './point';
 
 export class Line extends Shape
 {
     constructor (startPoint, endPoint, lineWidth, lineJoin, blendMode)
     {
-        super(startPoint);
+        super(startPoint, blendMode);
         this.endPoint = endPoint;
         this.lineWidth = lineWidth;
         this.lineJoin = lineJoin;
-        this.blendMode = blendMode;
     }
 
     getLineEquation ()
@@ -86,7 +86,7 @@ export class Line extends Shape
      * @param canvas
      * @param divaCanvas
      */
-    getPixels (layer, zoomLevel, pageIndex, renderer, canvas, divaCanvas)
+    getPixels (layer, pageIndex, zoomLevel, renderer, canvas, divaCanvas)
     {
         let point1 = this.origin.getAbsolutePaddedCoordinates(zoomLevel, pageIndex, renderer),
             point2 = this.endPoint.getAbsolutePaddedCoordinates(zoomLevel, pageIndex, renderer),
@@ -99,8 +99,8 @@ export class Line extends Shape
 
         // Calculates where the highlights should be drawn as a function of the whole webpage coordinates
         // (to make it look like it is on top of a page in Diva)
-        new Circle(this.origin, this.lineWidth/2).getPixels(layer, pageIndex, zoomLevel, renderer, canvas, this.blendMode, divaCanvas);
-        new Circle(this.endPoint, this.lineWidth/2).getPixels(layer, pageIndex, zoomLevel, renderer, canvas, this.blendMode, divaCanvas);
+        new Circle(this.origin, this.lineWidth/2, this.blendMode).getPixels(layer, pageIndex, zoomLevel, renderer, canvas, divaCanvas);
+        new Circle(this.endPoint, this.lineWidth/2, this.blendMode).getPixels(layer, pageIndex, zoomLevel, renderer, canvas, divaCanvas);
 
         let ang = this.getAngleRad(zoomLevel,pageIndex,renderer);
 
@@ -134,6 +134,6 @@ export class Line extends Shape
         let pairOfEdges = [[start1, end1], [start2, end2], [start1, start2], [end1, end2]];
 
         // Logic for polygon fill using scan lines
-        new Shape().getPixels(layer, pageIndex, zoomLevel, renderer, ymax, ymin, pairOfEdges, canvas, this.blendMode, divaCanvas);
+        new Shape(new Point(0,0,0), this.blendMode).getPixels(layer, pageIndex, zoomLevel, renderer, canvas, divaCanvas, ymax, ymin, pairOfEdges);
     }
 }

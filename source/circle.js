@@ -1,11 +1,11 @@
 import {Shape} from './shape';
 import {Point} from './point';
-import {Colour} from './colour';
+// import {Colour} from './colour';
 
 export class Circle extends Shape
 {
-    constructor (point, relativeRadius) {
-        super(point);
+    constructor (point, relativeRadius, blendMode) {
+        super(point, blendMode);
         this.relativeRadius = relativeRadius;
     }
 
@@ -62,10 +62,9 @@ export class Circle extends Shape
      * @param zoomLevel
      * @param renderer
      * @param canvas
-     * @param blendMode
      * @param divaCanvas
      */
-    getPixels (layer, pageIndex, zoomLevel, renderer, canvas, blendMode, divaCanvas)
+    getPixels (layer, pageIndex, zoomLevel, renderer, canvas, divaCanvas)
     {
         let circleTop = new Point(this.origin.relativeOriginX, this.origin.relativeOriginY - this.relativeRadius, 0);
         let circleBottom = new Point(this.origin.relativeOriginX, this.origin.relativeOriginY + this.relativeRadius, 0);
@@ -96,17 +95,17 @@ export class Circle extends Shape
                     // In bounds
                     if (absoluteCoords.y >= 0 && absoluteCoords.x >= 0 && absoluteCoords.y <= canvas.height && absoluteCoords.x <= canvas.width)
                     {
-                        if (blendMode === "add")
+                        if (this.blendMode === "add")
                         {
                             let paddedCoords = new Point().getPaddedCoordinatesFromAbsolute(pageIndex, renderer, absoluteCoords.x, absoluteCoords.y);
-                            let data = divaCtx.getImageData(paddedCoords.x, paddedCoords.y, 1, 1).data;
-                            let colour = new Colour(data[0], data[1], data[2], data[3]);
+                            // let data = divaCtx.getImageData(paddedCoords.x, paddedCoords.y, 1, 1).data;
+                            // let colour = new Colour(data[0], data[1], data[2], data[3]);
 
                             pixelCtx.fillStyle = layer.colour.toHTMLColour();
                             pixelCtx.fillRect(absoluteCoords.x, absoluteCoords.y, 1, 1);
                         }
 
-                        else if (blendMode === "subtract")
+                        else if (this.blendMode === "subtract")
                         {
                             pixelCtx.clearRect(absoluteCoords.x, absoluteCoords.y, 1, 1);
                         }

@@ -882,7 +882,8 @@ export default class PixelPlugin
         if (!layer.isActivated())
             return;
 
-        canvas.getContext('2d').clearRect(0, 0, canvas.width, canvas.height);;
+        let ctx = canvas.getContext('2d');
+        ctx.clearRect(0, 0, canvas.width, canvas.height);
 
         let renderer = this.core.getSettings().renderer;
 
@@ -900,7 +901,17 @@ export default class PixelPlugin
     {
         layer.actions.forEach((action) =>
         {
-            action.drawAbsolute(layer, pageIndex, zoomLevel, this.core.getSettings().renderer, canvas);
+            switch (action.type)
+            {
+                case "shape":
+                    action.drawAbsolute(layer, pageIndex, zoomLevel, this.core.getSettings().renderer, canvas);
+                    break;
+                case "path":
+                    action.drawAbsolute(layer, pageIndex, zoomLevel, this.core.getSettings().renderer, canvas);
+                    break;
+                default:
+                    return;
+            }
         });
     }
 

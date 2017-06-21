@@ -5,10 +5,9 @@ import {Point} from './point';
 export class Rectangle extends Shape
 {
     constructor (point, relativeRectWidth, relativeRectHeight, blendMode) {
-        super(point);
+        super(point, blendMode);
         this.relativeRectWidth = relativeRectWidth;
         this.relativeRectHeight = relativeRectHeight;
-        this.blendMode = blendMode;
     }
 
     /**
@@ -106,10 +105,9 @@ export class Rectangle extends Shape
      * @param zoomLevel
      * @param renderer
      * @param canvas
-     * @param blendMode
      * @param divaCanvas
      */
-    getPixels (layer, pageIndex, zoomLevel, renderer, canvas, blendMode, divaCanvas)
+    getPixels (layer, pageIndex, zoomLevel, renderer, canvas, divaCanvas)
     {
         let scaleRatio = Math.pow(2,zoomLevel);
         let pixelCtx = canvas.getContext('2d');
@@ -134,7 +132,7 @@ export class Rectangle extends Shape
                 {
                     if (row >= 0 && col >= 0 && row <= canvas.height && col <= canvas.width)
                     {
-                        if (blendMode === "add")
+                        if (this.blendMode === "add")
                         {
                             let paddedCoords = new Point().getPaddedCoordinatesFromAbsolute(pageIndex, renderer, col, row);
                             let data = divaCtx.getImageData(paddedCoords.x, paddedCoords.y, 1, 1).data;
@@ -144,7 +142,7 @@ export class Rectangle extends Shape
                             pixelCtx.fillRect(col, row, 1, 1);
                         }
 
-                        else if (blendMode === "subtract")
+                        else if (this.blendMode === "subtract")
                         {
                             pixelCtx.clearRect(col, row, 1, 1);
                         }
