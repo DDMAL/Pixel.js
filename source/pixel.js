@@ -13,7 +13,7 @@ import {Layer} from './layer';
 import {Action} from './action';
 import {Colour} from './colour';
 import {Export} from './export';
-import {UIGenerator} from './ui-generator';
+import {UIManager} from './ui-manager';
 import {Tools} from './tools';
 
 export default class PixelPlugin
@@ -37,7 +37,7 @@ export default class PixelPlugin
         this.shiftDown = false;
         this.lastRelCoordX = null;
         this.lastRelCoordY = null;
-        this.uiGenerator = null;
+        this.uiManager = null;
         this.tools = null;
     }
 
@@ -99,9 +99,9 @@ export default class PixelPlugin
             this.background.canvas = this.core.getSettings().renderer._canvas;  // Link background canvas to the actual diva canvas
         }
 
-        this.uiGenerator = new UIGenerator(this);
+        this.uiManager = new UIManager(this);
         this.tools = new Tools(this);
-        this.uiGenerator.createPluginElements(this.layers);
+        this.uiManager.createPluginElements(this.layers);
         this.scrollEventHandle = this.subscribeToScrollEvent();
         this.zoomEventHandle = this.subscribeToZoomLevelWillChangeEvent();
 
@@ -123,7 +123,7 @@ export default class PixelPlugin
         this.unsubscribeFromKeyboardPress();
         this.repaint(); // Repaint the tiles to make the highlights disappear off the page
 
-        this.uiGenerator.destroyPluginElements(this.layers, this.background);
+        this.uiManager.destroyPluginElements(this.layers, this.background);
 
         this.enableDragScrollable();
         this.activated = false;
@@ -302,14 +302,14 @@ export default class PixelPlugin
             }
             this.layers[destinationLayerIndex] = tempLayerStorage;
         }
-        this.uiGenerator.destroyPluginElements(this.layers, this.background);
-        this.uiGenerator.createPluginElements(this.layers);
+        this.uiManager.destroyPluginElements(this.layers, this.background);
+        this.uiManager.createPluginElements(this.layers);
         this.selectedLayerIndex = destinationLayerIndex;
         this.highlightLayerSelector(this.layers[this.selectedLayerIndex].layerId); // Layer Type and not index
         // TODO: Optimization: Instead of destroying all of the canvases only destroy and reorder the ones of interest
-        this.uiGenerator.destroyPixelCanvases(this.layers);
-        this.uiGenerator.placeLayerCanvasesInDiva(this.layers);
-        this.uiGenerator.placeLayerCanvasesInDiva(this.background);
+        this.uiManager.destroyPixelCanvases(this.layers);
+        this.uiManager.placeLayerCanvasesInDiva(this.layers);
+        this.uiManager.placeLayerCanvasesInDiva(this.background);
         this.repaint();
     }
 
@@ -488,13 +488,13 @@ export default class PixelPlugin
         {
             layerOptionsDiv.classList.remove("unchecked-layer-settings");
             layerOptionsDiv.classList.add("checked-layer-settings");
-            this.uiGenerator.createOpacitySlider(layer, layerOptionsDiv.parentElement.parentElement, layerOptionsDiv.parentElement);
+            this.uiManager.createOpacitySlider(layer, layerOptionsDiv.parentElement.parentElement, layerOptionsDiv.parentElement);
         }
         else
         {
             layerOptionsDiv.classList.remove("checked-layer-settings");
             layerOptionsDiv.classList.add("unchecked-layer-settings");
-            this.uiGenerator.destroyOpacitySlider(layer);
+            this.uiManager.destroyOpacitySlider(layer);
         }
     }
 
@@ -935,7 +935,7 @@ export default class PixelPlugin
         let pageIndex = this.core.getSettings().currentPageIndex,
             zoomLevel = this.core.getSettings().zoomLevel;
 
-        new Export(this, this.layers, pageIndex, zoomLevel).exportLayersAsImageData();
+        new Export(this, this.layers, pageIndex, zoomLevel, this.uiManager).exportLayersAsImageData();
     }
 
     exportAsHighlights ()
@@ -943,7 +943,7 @@ export default class PixelPlugin
         let pageIndex = this.core.getSettings().currentPageIndex,
             zoomLevel = this.core.getSettings().zoomLevel;
 
-        new Export(this, this.layers, pageIndex, zoomLevel).exportLayersAsHighlights();
+        new Export(this, this.layers, pageIndex, zoomLevel, this.uiManager).exportLayersAsHighlights();
     }
 
     exportAsCSV ()
@@ -951,7 +951,7 @@ export default class PixelPlugin
         let pageIndex = this.core.getSettings().currentPageIndex,
             zoomLevel = this.core.getSettings().zoomLevel;
 
-        new Export(this, this.layers, pageIndex, zoomLevel).exportLayersAsCSV();
+        new Export(this, this.layers, pageIndex, zoomLevel, this.uiManager).exportLayersAsCSV();
     }
 }
 

@@ -28,7 +28,7 @@ export class Tools
     setCurrentTool (tool)
     {
         this.currentTool = tool;
-        this.pixelInstance.uiGenerator.markToolSelected(tool);
+        this.pixelInstance.uiManager.markToolSelected(tool);
 
         if (tool === this.type.grab)
             this.pixelInstance.enableDragScrollable();
