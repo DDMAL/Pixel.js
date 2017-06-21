@@ -1,6 +1,6 @@
 import {Shape} from './shape';
 import {Point} from './point';
-// import {Colour} from './colour';
+import {Colour} from './colour';
 
 export class Circle extends Shape
 {
@@ -10,7 +10,7 @@ export class Circle extends Shape
     }
 
     /**
-     * Draws the circle on a canvas
+     * draws a circle of a certain layer in a canvas using viewport coordinates (padded coordinates)
      * @param layer
      * @param pageIndex
      * @param zoomLevel
@@ -36,6 +36,14 @@ export class Circle extends Shape
         }
     }
 
+    /**
+     * draws a circle of a certain layer in a canvas using absolute page coordinates
+     * @param layer
+     * @param pageIndex
+     * @param zoomLevel
+     * @param renderer
+     * @param canvas
+     */
     drawAbsolute (layer, pageIndex, zoomLevel, renderer, canvas)
     {
         let scaleRatio = Math.pow(2,zoomLevel);
@@ -56,23 +64,23 @@ export class Circle extends Shape
     }
 
     /**
-     * * Copies the pixels spanned by the circle from the diva canvas to the canvas passed to it in page coordinates
+     * Gets all the pixels spanned by a circle. Draws the image data that the circle covers (from the imageCanvas) in the drawingCanvas
      * @param layer
      * @param pageIndex
      * @param zoomLevel
      * @param renderer
-     * @param canvas
-     * @param divaCanvas
+     * @param drawingCanvas
+     * @param imageCanvas
      */
-    getPixels (layer, pageIndex, zoomLevel, renderer, canvas, divaCanvas)
+    getPixels (layer, pageIndex, zoomLevel, renderer, drawingCanvas, imageCanvas)
     {
         let circleTop = new Point(this.origin.relativeOriginX, this.origin.relativeOriginY - this.relativeRadius, 0);
         let circleBottom = new Point(this.origin.relativeOriginX, this.origin.relativeOriginY + this.relativeRadius, 0);
         let circleLeft = new Point(this.origin.relativeOriginX - this.relativeRadius, this.origin.relativeOriginY, 0);
         let circleRight = new Point(this.origin.relativeOriginX + this.relativeRadius, this.origin.relativeOriginY, 0);
 
-        let pixelCtx = canvas.getContext('2d');
-        let divaCtx = divaCanvas.getContext('2d');
+        let drawingCtx = drawingCanvas.getContext('2d');
+        let imageCtx = imageCanvas.getContext('2d');
 
         let scaleRatio = Math.pow(2, zoomLevel);
 
@@ -93,21 +101,21 @@ export class Circle extends Shape
                     let absoluteCoords = new Point().getAbsoluteCoordinatesFromPadded(pageIndex,renderer,x,y);
 
                     // In bounds
-                    if (absoluteCoords.y >= 0 && absoluteCoords.x >= 0 && absoluteCoords.y <= canvas.height && absoluteCoords.x <= canvas.width)
+                    if (absoluteCoords.y >= 0 && absoluteCoords.x >= 0 && absoluteCoords.y <= drawingCanvas.height && absoluteCoords.x <= drawingCanvas.width)
                     {
                         if (this.blendMode === "add")
                         {
                             let paddedCoords = new Point().getPaddedCoordinatesFromAbsolute(pageIndex, renderer, absoluteCoords.x, absoluteCoords.y);
-                            // let data = divaCtx.getImageData(paddedCoords.x, paddedCoords.y, 1, 1).data;
-                            // let colour = new Colour(data[0], data[1], data[2], data[3]);
+                            let data = imageCtx.getImageData(paddedCoords.x, paddedCoords.y, 1, 1).data;
+                            let colour = new Colour(data[0], data[1], data[2], data[3]);
 
-                            pixelCtx.fillStyle = layer.colour.toHTMLColour();
-                            pixelCtx.fillRect(absoluteCoords.x, absoluteCoords.y, 1, 1);
+                            drawingCtx.fillStyle = colour.toHTMLColour();
+                            drawingCtx.fillRect(absoluteCoords.x, absoluteCoords.y, 1, 1);
                         }
 
                         else if (this.blendMode === "subtract")
                         {
-                            pixelCtx.clearRect(absoluteCoords.x, absoluteCoords.y, 1, 1);
+                            drawingCtx.clearRect(absoluteCoords.x, absoluteCoords.y, 1, 1);
                         }
                     }
                 }

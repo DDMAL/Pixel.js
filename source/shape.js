@@ -1,4 +1,5 @@
 import {Point} from './point';
+import {Colour} from './colour';
 
 export class Shape
 {
@@ -10,33 +11,37 @@ export class Shape
     }
 
     /**
-     * Abstract method, to be implemented by extending function
+     * Abstract method, to be overridden
      */
     draw ()
     {
 
     }
 
+    /**
+     * Abstract method, to be overridden
+     */
     drawAbsolute ()
     {
 
     }
 
     /**
-     * * Copies the pixels spanned by the circle from the diva canvas to the canvas passed to it
+     * Gets all the pixels spanned by a shape given its set of edges. Draws the image data that the shape covers (from the imageCanvas) in the drawingCanvas
      * @param layer
      * @param pageIndex
      * @param zoomLevel
      * @param renderer
+     * @param drawingCanvas
+     * @param imageCanvas
      * @param ymax
      * @param ymin
      * @param pairOfEdges
-     * @param canvas
-     * @param divaCanvas
      */
-    getPixels(layer, pageIndex, zoomLevel, renderer, canvas, divaCanvas, ymax, ymin, pairOfEdges)
+    getPixels(layer, pageIndex, zoomLevel, renderer, drawingCanvas, imageCanvas, ymax, ymin, pairOfEdges)
     {
-        let ctx = canvas.getContext('2d');
+        let drawingCtx = drawingCanvas.getContext('2d');
+        let imageCtx = imageCanvas.getContext('2d');
 
         // TODO: Check for horizontal or vertical lines
         // For every scan line
@@ -55,6 +60,7 @@ export class Shape
                     let x2 = pairOfEdges[e][p + 1].absolutePaddedX;
                     let y2 = pairOfEdges[e][p + 1].absolutePaddedY;
 
+                    //ctx.fillStyle = layer.colour.toHTMLColour();
                     let deltax = x2 - x1;
                     let deltay = y2 - y1;
 
@@ -76,7 +82,7 @@ export class Shape
             });
 
             if (intersectionPoints.length <= 0)
-                return;
+                continue;
 
             // Start filling
             for (var index = 0; index < intersectionPoints.length - 1; index++)
@@ -93,13 +99,23 @@ export class Shape
                         // Remove padding to get absolute coordinates
                         let absoluteCoords = new Point().getAbsoluteCoordinatesFromPadded(pageIndex,renderer,fill,y);
 
-                        // Necessary check because sometimes the brush draws outside of a page because of brush width
-                        if (absoluteCoords.y >= 0 && absoluteCoords.x >= 0 && absoluteCoords.y <= canvas.height && absoluteCoords.x <= canvas.width)
+                        if (this.blendMode === "add")
                         {
-                            // TODO: Can also pass in and fill a matrix
-                            // TODO: Can also fill canvas with the image data
-                            ctx.fillStyle = layer.colour.toHTMLColour();
-                            ctx.fillRect(absoluteCoords.x, absoluteCoords.y, 1, 1);
+                            // Necessary check because sometimes the brush draws outside of a page because of brush width
+                            if (absoluteCoords.y >= 0 && absoluteCoords.x >= 0 && absoluteCoords.y <= drawingCanvas.height && absoluteCoords.x <= drawingCanvas.width)
+                            {
+                                // TODO: Can also pass in and fill a matrix
+                                let paddedCoords = new Point().getPaddedCoordinatesFromAbsolute(pageIndex, renderer, absoluteCoords.x, absoluteCoords.y);
+                                let data = imageCtx.getImageData(paddedCoords.x, paddedCoords.y, 1, 1).data;
+                                let colour = new Colour(data[0], data[1], data[2], data[3]);
+
+                                drawingCtx.fillStyle = colour.toHTMLColour();
+                                drawingCtx.fillRect(absoluteCoords.x, absoluteCoords.y, 1, 1);
+                            }
+                        }
+                        else if (this.blendMode === "subtract")
+                        {
+                            drawingCtx.clearRect(absoluteCoords.x, absoluteCoords.y, 1, 1);
                         }
                     }
                 }

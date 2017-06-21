@@ -35,11 +35,12 @@ export class Line extends Shape
     }
 
     /**
-     * Draws a line on a canvas
+     * draws a line of a certain layer in a canvas using viewport coordinates (padded coordinates)
      * @param layer
      * @param pageIndex
      * @param zoomLevel
      * @param renderer
+     * @param canvas
      */
     draw (layer, pageIndex, zoomLevel, renderer, canvas)
     {
@@ -59,6 +60,14 @@ export class Line extends Shape
         ctx.stroke();
     }
 
+    /**
+     * draws a line of a certain layer in a canvas using absolute page coordinates
+     * @param layer
+     * @param pageIndex
+     * @param zoomLevel
+     * @param renderer
+     * @param canvas
+     */
     drawAbsolute (layer, pageIndex, zoomLevel, renderer, canvas)
     {
         let scaleRatio = Math.pow(2,zoomLevel);
@@ -78,15 +87,15 @@ export class Line extends Shape
     }
 
     /**
-     * Gets all the pixels spanned by a round edged line.
+     * Gets all the pixels spanned by a line with round edges. Draws the image data that the line covers (from the imageCanvas) in the drawingCanvas
      * @param layer
-     * @param zoomLevel
      * @param pageIndex
+     * @param zoomLevel
      * @param renderer
-     * @param canvas
-     * @param divaCanvas
+     * @param drawingCanvas
+     * @param imageCanvas
      */
-    getPixels (layer, pageIndex, zoomLevel, renderer, canvas, divaCanvas)
+    getPixels (layer, pageIndex, zoomLevel, renderer, drawingCanvas, imageCanvas)
     {
         let point1 = this.origin.getAbsolutePaddedCoordinates(zoomLevel, pageIndex, renderer),
             point2 = this.endPoint.getAbsolutePaddedCoordinates(zoomLevel, pageIndex, renderer),
@@ -99,14 +108,13 @@ export class Line extends Shape
 
         // Calculates where the highlights should be drawn as a function of the whole webpage coordinates
         // (to make it look like it is on top of a page in Diva)
-        new Circle(this.origin, this.lineWidth/2, this.blendMode).getPixels(layer, pageIndex, zoomLevel, renderer, canvas, divaCanvas);
-        new Circle(this.endPoint, this.lineWidth/2, this.blendMode).getPixels(layer, pageIndex, zoomLevel, renderer, canvas, divaCanvas);
+        new Circle(this.origin, this.lineWidth/2, this.blendMode).getPixels(layer, pageIndex, zoomLevel, renderer, drawingCanvas, imageCanvas);
+        new Circle(this.endPoint, this.lineWidth/2, this.blendMode).getPixels(layer, pageIndex, zoomLevel, renderer, drawingCanvas, imageCanvas);
 
         let ang = this.getAngleRad(zoomLevel,pageIndex,renderer);
 
         // find the first point on the circumference that is orthogonal
         // to the line intersecting the two circle origos
-
         // These are values with padding
         var start1 = {
             absolutePaddedX: point1.x + Math.cos(ang + Math.PI / 2) * absoluteLineWidth / 2,
@@ -134,6 +142,6 @@ export class Line extends Shape
         let pairOfEdges = [[start1, end1], [start2, end2], [start1, start2], [end1, end2]];
 
         // Logic for polygon fill using scan lines
-        new Shape(new Point(0,0,0), this.blendMode).getPixels(layer, pageIndex, zoomLevel, renderer, canvas, divaCanvas, ymax, ymin, pairOfEdges);
+        new Shape(new Point(0,0,0), this.blendMode).getPixels(layer, pageIndex, zoomLevel, renderer, drawingCanvas, imageCanvas, ymax, ymin, pairOfEdges);
     }
 }
