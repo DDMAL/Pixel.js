@@ -372,6 +372,12 @@ export default class PixelPlugin
         {
             this.tools.setCurrentTool(this.tools.type.eraser);
         }
+        else if (e.key === "s")
+        {
+            this.disableDragScrollable();
+            this.currentTool =  "select";
+            document.getElementById(this.currentTool).checked = true;
+        }
     }
 
     editLayerName (e, layerName)
@@ -425,6 +431,10 @@ export default class PixelPlugin
                 this.mousePressed = true;
                 this.initializeNewPathInCurrentLayer(canvas, evt);
                 break;
+            case this.tools.type.select:
+                this.mousePressed = true;
+                this.initializeRectanglePreview(canvas, evt);
+                break;
             default:
                 this.mousePressed = true;
         }
@@ -447,6 +457,9 @@ export default class PixelPlugin
             case this.tools.type.eraser:
                 this.addPointToCurrentPath(canvas, evt);
                 break;
+            case "select":
+                this.rectanglePreview(canvas, evt);
+                break;
             default:
         }
     }
@@ -463,6 +476,9 @@ export default class PixelPlugin
                 this.mousePressed = false;
                 break;
             case this.tools.type.eraser:
+                this.mousePressed = false;
+                break;
+            case "select":
                 this.mousePressed = false;
                 break;
             default:
@@ -746,7 +762,14 @@ export default class PixelPlugin
         if (this.isInPageBounds(relativeCoords.x, relativeCoords.y))
         {
             let selectedLayer = this.layers[this.selectedLayerIndex];
-            selectedLayer.addShapeToLayer(new Rectangle(new Point(relativeCoords.x,relativeCoords.y,pageIndex), 0, 0, "add"));
+
+
+            if (this.tools.getCurrentTool() === this.tools.type.select)
+                selectedLayer.addShapeToLayer(new Rectangle(new Point(relativeCoords.x,relativeCoords.y,pageIndex), 0, 0, "select", this.tools.getCurrentTool()));
+            else
+                selectedLayer.addShapeToLayer(new Rectangle(new Point(relativeCoords.x,relativeCoords.y,pageIndex), 0, 0, "add", this.tools.getCurrentTool()));
+
+
             this.actions.push(new Action(selectedLayer.getCurrentShape(), selectedLayer));
             this.repaintLayer(selectedLayer);
         }

@@ -33,6 +33,29 @@ export class Rectangle extends Shape
             absoluteRectWidth = this.relativeRectWidth * scaleRatio,
             absoluteRectHeight = this.relativeRectHeight * scaleRatio;
 
+        //Selection tool
+            if (this.blendMode === "select")
+            {
+                console.log("select");
+
+                //TODO: SELECTION CODE HERE
+                if (pageIndex === this.origin.pageIndex)
+                {
+                    // Calculates where the highlights should be drawn as a function of the whole webpage coordinates
+                    // (to make it look like it is on top of a page in Diva)
+                    let highlightXOffset = renderer._getImageOffset(pageIndex).left - renderer._viewport.left + viewportPaddingX + absoluteRectOriginX,
+                        highlightYOffset = renderer._getImageOffset(pageIndex).top - renderer._viewport.top + viewportPaddingY + absoluteRectOriginY;
+
+                    //Draw the rectangle
+                    ctx.fillStyle = 'rgba(255, 0, 0, 1)';
+                    ctx.fillRect(highlightXOffset, highlightYOffset, absoluteRectWidth, absoluteRectHeight);
+                    // ctx.border()
+                }
+                return;
+            }
+
+
+        //Rectangle tool
         // TODO: Use padded coordinates
         if (this.blendMode === "add")
         {
@@ -45,7 +68,7 @@ export class Rectangle extends Shape
 
                 //Draw the rectangle
                 ctx.fillStyle = layer.colour.toHTMLColour();
-                ctx.fillRect(highlightXOffset, highlightYOffset,absoluteRectWidth,absoluteRectHeight);
+                ctx.fillRect(highlightXOffset, highlightYOffset, absoluteRectWidth, absoluteRectHeight);
             }
         }
 
@@ -60,7 +83,7 @@ export class Rectangle extends Shape
 
                 //Draw the rectangle
                 ctx.fillStyle = layer.colour.toHTMLColour();
-                ctx.clearRect(highlightXOffset, highlightYOffset,absoluteRectWidth,absoluteRectHeight);
+                ctx.clearRect(highlightXOffset, highlightYOffset, absoluteRectWidth, absoluteRectHeight);
             }
         }
     }
