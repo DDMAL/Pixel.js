@@ -763,10 +763,10 @@ export default class PixelPlugin
             let selectedLayer = this.layers[this.selectedLayerIndex];
 
 
-            if (this.currentTool === "select")
-                selectedLayer.addShapeToLayer(new Rectangle(new Point(relativeCoords.x,relativeCoords.y,pageIndex), 0, 0, "select", this.currentTool));
+            if (this.tools.getCurrentTool() === this.tools.type.select)
+                selectedLayer.addShapeToLayer(new Rectangle(new Point(relativeCoords.x,relativeCoords.y,pageIndex), 0, 0, "select", this.tools.getCurrentTool()));
             else
-                selectedLayer.addShapeToLayer(new Rectangle(new Point(relativeCoords.x,relativeCoords.y,pageIndex), 0, 0, "add", this.currentTool));
+                selectedLayer.addShapeToLayer(new Rectangle(new Point(relativeCoords.x,relativeCoords.y,pageIndex), 0, 0, "add", this.tools.getCurrentTool()));
 
 
             this.actions.push(new Action(selectedLayer.getCurrentShape(), selectedLayer));

@@ -47,9 +47,9 @@ export class Rectangle extends Shape
                         highlightYOffset = renderer._getImageOffset(pageIndex).top - renderer._viewport.top + viewportPaddingY + absoluteRectOriginY;
 
                     //Draw the rectangle
-                    ctx.fillStyle = 'rgba(255, 0, 0, 0.5)';
+                    ctx.fillStyle = 'rgba(255, 0, 0, 1)';
                     ctx.fillRect(highlightXOffset, highlightYOffset, absoluteRectWidth, absoluteRectHeight);
-                    ctx.border()
+                    // ctx.border()
                 }
                 return;
             }
