@@ -413,27 +413,29 @@ export default class PixelPlugin
 
     onMouseDown (evt)
     {
-        let canvas = document.getElementById("diva-1-outer");
+        let mouseClickDiv = document.getElementById("diva-1-outer"),
+            mousePos = this.getMousePos(mouseClickDiv, evt);
+
         switch (this.tools.getCurrentTool())
         {
             case this.tools.type.brush:
                 this.mousePressed = true;
-                this.initializeNewPathInCurrentLayer(canvas, evt);
+                this.initializeNewPathInCurrentLayer(mousePos);
                 break;
             case this.tools.type.rectangle:
                 this.mousePressed = true;
-                this.initializeRectanglePreview(canvas, evt);
+                this.initializeRectanglePreview(mousePos);
                 break;
             case this.tools.type.grab:
                 this.mousePressed = true;
                 break;
             case this.tools.type.eraser:
                 this.mousePressed = true;
-                this.initializeNewPathInCurrentLayer(canvas, evt);
+                this.initializeNewPathInCurrentLayer(mousePos);
                 break;
             case this.tools.type.select:
                 this.mousePressed = true;
-                this.initializeRectanglePreview(canvas, evt);
+                this.initializeRectanglePreview(mousePos);
                 break;
             default:
                 this.mousePressed = true;
@@ -445,20 +447,22 @@ export default class PixelPlugin
 
     onMouseMove (evt)
     {
-        let canvas = document.getElementById("diva-1-outer");
+        let mouseClickDiv = document.getElementById("diva-1-outer"),
+            mousePos = this.getMousePos(mouseClickDiv, evt);
+
         switch (this.tools.getCurrentTool())
         {
             case this.tools.type.brush:
-                this.addPointToCurrentPath(canvas, evt);
+                this.addPointToCurrentPath(mousePos);
                 break;
             case this.tools.type.rectangle:
-                this.rectanglePreview(canvas,evt);
+                this.rectanglePreview(mousePos);
                 break;
             case this.tools.type.eraser:
-                this.addPointToCurrentPath(canvas, evt);
+                this.addPointToCurrentPath(mousePos);
                 break;
             case "select":
-                this.rectanglePreview(canvas, evt);
+                this.rectanglePreview(mousePos);
                 break;
             default:
         }
@@ -646,14 +650,13 @@ export default class PixelPlugin
         });
     }
 
-    initializeNewPathInCurrentLayer (canvas, evt)
+    initializeNewPathInCurrentLayer (mousePos)
     {
         if (!this.layers[this.selectedLayerIndex].isActivated())
             return;
 
         let pageIndex = this.core.getSettings().currentPageIndex,
             zoomLevel = this.core.getSettings().zoomLevel,
-            mousePos = this.getMousePos(canvas, evt),
             relativeCoords = this.getRelativeCoordinatesFromPadded(mousePos.x, mousePos.y);
 
         // Make sure user is not drawing outside of a diva page
@@ -688,14 +691,13 @@ export default class PixelPlugin
         }
     }
 
-    addPointToCurrentPath (canvas, evt)
+    addPointToCurrentPath (mousePos)
     {
         if (!this.layers[this.selectedLayerIndex].isActivated())
             return;
 
         let point,
             horizontalMove = false,
-            mousePos = this.getMousePos(canvas, evt),
             relativeCoords = this.getRelativeCoordinatesFromPadded(mousePos.x, mousePos.y);
 
         // FIXME: direction of line drawing should be calculated only after the first shift button press
@@ -746,17 +748,16 @@ export default class PixelPlugin
         }
 
         // If layer changed mid drawing then create a new path on selected layer
-        this.initializeNewPathInCurrentLayer(canvas, evt);
+        this.initializeNewPathInCurrentLayer(mousePos);
         this.layerChangedMidDraw = false;
     }
 
-    initializeRectanglePreview (canvas, evt)
+    initializeRectanglePreview (mousePos)
     {
         if (!this.layers[this.selectedLayerIndex].isActivated())
             return;
 
         let pageIndex = this.core.getSettings().currentPageIndex,
-            mousePos = this.getMousePos(canvas, evt),
             relativeCoords = this.getRelativeCoordinatesFromPadded(mousePos.x, mousePos.y);
 
         if (this.isInPageBounds(relativeCoords.x, relativeCoords.y))
@@ -775,7 +776,7 @@ export default class PixelPlugin
         }
     }
 
-    rectanglePreview (canvas, evt)
+    rectanglePreview (mousePos)
     {
         if (!this.layers[this.selectedLayerIndex].isActivated())
             return;
@@ -784,8 +785,7 @@ export default class PixelPlugin
         {
             if (this.mousePressed)
             {
-                let mousePos = this.getMousePos(canvas, evt),
-                    relativeCoords = this.getRelativeCoordinatesFromPadded(mousePos.x, mousePos.y),
+                let relativeCoords = this.getRelativeCoordinatesFromPadded(mousePos.x, mousePos.y),
                     lastShape = this.layers[this.selectedLayerIndex].getCurrentShape();
 
                 if (!this.isInPageBounds(relativeCoords.x, relativeCoords.y))
@@ -836,7 +836,7 @@ export default class PixelPlugin
         {
             // Create a new rectangle to which the change will be
             this.layerChangedMidDraw = false;
-            this.initializeRectanglePreview(canvas, evt);
+            this.initializeRectanglePreview(mousePos);
         }
     }
 
