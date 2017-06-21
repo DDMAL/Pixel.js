@@ -4,18 +4,10 @@ import {Point} from './point';
 
 export class Rectangle extends Shape
 {
-<<<<<<< HEAD
-    constructor (point, relativeRectWidth, relativeRectHeight, mode) {
-        super(point);
-        this.relativeRectWidth = relativeRectWidth;
-        this.relativeRectHeight = relativeRectHeight;
-        this.mode = mode;
-=======
     constructor (point, relativeRectWidth, relativeRectHeight, blendMode) {
         super(point, blendMode);
         this.relativeRectWidth = relativeRectWidth;
         this.relativeRectHeight = relativeRectHeight;
->>>>>>> develop
     }
 
     /**
@@ -42,15 +34,30 @@ export class Rectangle extends Shape
             absoluteRectHeight = this.relativeRectHeight * scaleRatio;
 
         //Selection tool
-        if (this.mode === "select")
-        {
-            
-            return;
-        }
+            if (this.blendMode === "select")
+            {
+                console.log("select");
+
+                //TODO: SELECTION CODE HERE
+                if (pageIndex === this.origin.pageIndex)
+                {
+                    // Calculates where the highlights should be drawn as a function of the whole webpage coordinates
+                    // (to make it look like it is on top of a page in Diva)
+                    let highlightXOffset = renderer._getImageOffset(pageIndex).left - renderer._viewport.left + viewportPaddingX + absoluteRectOriginX,
+                        highlightYOffset = renderer._getImageOffset(pageIndex).top - renderer._viewport.top + viewportPaddingY + absoluteRectOriginY;
+
+                    //Draw the rectangle
+                    ctx.fillStyle = 'rgba(255, 0, 0, 0.5)';
+                    ctx.fillRect(highlightXOffset, highlightYOffset, absoluteRectWidth, absoluteRectHeight);
+                    ctx.border()
+                }
+                return;
+            }
+
 
         //Rectangle tool
         // TODO: Use padded coordinates
-        if (this.mode === "add")
+        if (this.blendMode === "add")
         {
             if (pageIndex === this.origin.pageIndex)
             {
@@ -65,7 +72,7 @@ export class Rectangle extends Shape
             }
         }
 
-        else if (this.mode === "subtract")
+        else if (this.blendMode === "subtract")
         {
             if (pageIndex === this.origin.pageIndex)
             {
@@ -102,7 +109,7 @@ export class Rectangle extends Shape
             absoluteRectHeight = this.relativeRectHeight * scaleRatio;
 
         // TODO: Use padded coordinates
-        if (this.mode === "add")
+        if (this.blendMode === "add")
         {
             if (pageIndex === this.origin.pageIndex)
             {
@@ -112,7 +119,7 @@ export class Rectangle extends Shape
             }
         }
 
-        else if (this.mode === "subtract")
+        else if (this.blendMode === "subtract")
         {
             if (pageIndex === this.origin.pageIndex)
             {
@@ -134,15 +141,9 @@ export class Rectangle extends Shape
      */
     getPixels (layer, pageIndex, zoomLevel, renderer, drawingCanvas, imageCanvas)
     {
-<<<<<<< HEAD
-        let scaleRatio = Math.pow(2, zoomLevel);
-        let pixelCtx = canvas.getContext('2d');
-        let divaCtx = divaCanvas.getContext('2d');
-=======
         let scaleRatio = Math.pow(2,zoomLevel);
         let pixelCtx = drawingCanvas.getContext('2d');
         let divaCtx = imageCanvas.getContext('2d');
->>>>>>> develop
 
         // The following absolute values are experimental values to highlight the square on the first page of Salzinnes, CDN-Hsmu M2149.L4
         // The relative values are used to scale the highlights according to the zoom level on the page itself
