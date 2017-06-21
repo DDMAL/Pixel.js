@@ -85,10 +85,10 @@ export default class PixelPlugin
             let divaCanvas = this.core.getSettings().renderer._canvas;
 
             // Start by creating layers
-            let background = new Layer(-1, new Colour(242, 242, 242, 1), "Background", divaCanvas),
-                layer1 = new Layer(0, new Colour(51, 102, 255, 1), "Layer 1", divaCanvas),
-                layer2 = new Layer(1, new Colour(255, 51, 102, 1), "Layer 2", divaCanvas),
-                layer3 = new Layer(2, new Colour(255, 255, 10, 1), "Layer 3", divaCanvas);
+            let background = new Layer(-1, new Colour(242, 242, 242, 1), "Background", divaCanvas, 1),
+                layer1 = new Layer(0, new Colour(51, 102, 255, 1), "Layer 1", divaCanvas, 0.5),
+                layer2 = new Layer(1, new Colour(255, 51, 102, 1), "Layer 2", divaCanvas, 0.5),
+                layer3 = new Layer(2, new Colour(255, 255, 10, 1), "Layer 3", divaCanvas, 0.5);
 
             layer1.addShapeToLayer(new Rectangle(new Point(23, 42, 0), 24, 24, "add"));
             layer2.addShapeToLayer(new Rectangle(new Point(48, 50, 0), 57, 5, "add"));
@@ -901,17 +901,7 @@ export default class PixelPlugin
     {
         layer.actions.forEach((action) =>
         {
-            switch (action.type)
-            {
-                case "shape":
-                    action.drawAbsolute(layer, pageIndex, zoomLevel, this.core.getSettings().renderer, canvas);
-                    break;
-                case "path":
-                    action.drawAbsolute(layer, pageIndex, zoomLevel, this.core.getSettings().renderer, canvas);
-                    break;
-                default:
-                    return;
-            }
+            action.drawAbsolute(layer, pageIndex, zoomLevel, this.core.getSettings().renderer, canvas);
         });
     }
 
