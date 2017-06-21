@@ -11,12 +11,12 @@ export class Shape
     /**
      * Abstract method, to be implemented by extending function
      */
-    draw ()
+    draw (layer, pageIndex, zoomLevel, renderer, canvas)
     {
 
     }
 
-    drawAbsolute ()
+    drawAbsolute (layer, pageIndex, zoomLevel, renderer, canvas)
     {
 
     }

@@ -380,7 +380,7 @@ export default class PixelPlugin
 
         // TODO: Listen for changes when clicked outside of LayerName
         // TODO: Unsubscribe from other keyboard listeners
-        var key = e.which || e.keyCode;
+        let key = e.which || e.keyCode;
         if (key === RETURN_KEY)
         {
             // TODO: Subscribe to other keyboard listeners
@@ -459,7 +459,7 @@ export default class PixelPlugin
             case this.tools.type.brush:
                 this.mousePressed = false;
                 break;
-            case this.tools.type.rectangle:
+            case this.tools.type.rectangle: // TODO: Add action: resized rectangle. This is useful if a user wants to revert a rectangle resize (when implementd)
                 this.mousePressed = false;
                 break;
             case this.tools.type.eraser:
@@ -478,6 +478,7 @@ export default class PixelPlugin
 
     displayColourOptions ()
     {
+        // TODO: Implement function
         console.log("colour clicked here");
     }
 
@@ -663,7 +664,7 @@ export default class PixelPlugin
 
             // Add path to list of actions (used for undo/redo)
             this.actions.push(new Action(selectedLayer.getCurrentPath(), selectedLayer));
-            selectedLayer.getCurrentPath().connectPoint(selectedLayer, point, pageIndex, zoomLevel, false, this.core.getSettings().renderer);
+            selectedLayer.getCurrentPath().connectPoint(selectedLayer, point, pageIndex, zoomLevel, false, this.core.getSettings().renderer, selectedLayer.getCanvas(), "viewport");
         }
         else
         {
@@ -710,17 +711,20 @@ export default class PixelPlugin
             }
 
             // Draw path with new point
-            if (this.tools.getCurrentTool() === this.tools.type.brush)
+            switch (this.tools.getCurrentTool())
             {
-                this.layers[this.selectedLayerIndex].addToCurrentPath(point, "add");
-            }
-            else if (this.tools.getCurrentTool() === this.tools.type.eraser)
-            {
-                this.layers[this.selectedLayerIndex].addToCurrentPath(point, "subtract");
+                case this.tools.type.brush:
+                    this.layers[this.selectedLayerIndex].addToCurrentPath(point, "add");
+                    break;
+                case this.tools.type.eraser:
+                    this.layers[this.selectedLayerIndex].addToCurrentPath(point, "subtract");
+                    break;
+                default:
+                    this.layers[this.selectedLayerIndex].addToCurrentPath(point, "add");
             }
 
             let layer = this.layers[this.selectedLayerIndex];
-            layer.getCurrentPath().connectPoint(layer, point, pageIndex, zoomLevel, true, this.core.getSettings().renderer, canvas);
+            layer.getCurrentPath().connectPoint(layer, point, pageIndex, zoomLevel, true, this.core.getSettings().renderer, layer.getCanvas(), "viewport");
 
             return;
         }
@@ -878,8 +882,7 @@ export default class PixelPlugin
         if (!layer.isActivated())
             return;
 
-        let ctx = canvas.getContext('2d');
-        ctx.clearRect(0, 0, canvas.width, canvas.height);
+        canvas.getContext('2d').clearRect(0, 0, canvas.width, canvas.height);;
 
         let renderer = this.core.getSettings().renderer;
 
@@ -897,21 +900,7 @@ export default class PixelPlugin
     {
         layer.actions.forEach((action) =>
         {
-            switch (action.type)
-            {
-                case "shape":
-                    action.drawAbsolute(layer, pageIndex, zoomLevel, this.core.getSettings().renderer, canvas);
-                    break;
-                case "path":
-                    let isDown = false;
-                    action.points.forEach((point) => {
-                        action.drawAbsolute(layer, point, pageIndex, zoomLevel, isDown, canvas);
-                        isDown = true;
-                    });
-                    break;
-                default:
-                    return;
-            }
+            action.drawAbsolute(layer, pageIndex, zoomLevel, this.core.getSettings().renderer, canvas);
         });
     }
 
