@@ -171,6 +171,7 @@
   -moz-border-radius: 5px;
   top: 28%;
   left: 40%;
+  z-index: 10;
 }
 
 .pbar-inner-div {

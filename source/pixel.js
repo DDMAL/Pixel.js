@@ -5,18 +5,16 @@
  *
  * {string} pluginName - Added to the class prototype. Defines the name for the plugin.
  *
- *
  **/
 
 import {Point} from './point';
 import {Rectangle} from './rectangle';
-import {Shape} from './shape';
-import {Circle} from './circle';
 import {Layer} from './layer';
 import {Action} from './action';
 import {Colour} from './colour';
-import {Line} from './line';
 import {Export} from './export';
+import {UIManager} from './ui-manager';
+import {Tools} from './tools';
 
 export default class PixelPlugin
 {
@@ -32,17 +30,15 @@ export default class PixelPlugin
         this.background = null;
         this.layers = null;
         this.mousePressed = false;
-        this.keyboardPress = false;
-        this.lastAbsX = null;
-        this.lastAbsY = null;
         this.selectedLayerIndex = 0;
         this.layerChangedMidDraw = false;
         this.actions = [];
         this.undoneActions = [];
         this.shiftDown = false;
-        this.currentTool = "brush";
         this.lastRelCoordX = null;
         this.lastRelCoordY = null;
+        this.uiManager = null;
+        this.tools = null;
     }
 
     /**
@@ -84,28 +80,15 @@ export default class PixelPlugin
     {
         // this.tutorial();
 
-        this._canvas = document.createElement('canvas');
-        this._canvas.setAttribute("id", "pixel-canvas");
-        this._canvas.setAttribute("style", "position: absolute; top: 0; left: 0;");
-        this._canvas.width = this.core.getSettings().renderer._canvas.width;
-        this._canvas.height = this.core.getSettings().renderer._canvas.height;
-        this._ctx = this._canvas.getContext('2d');
-
-        // pixel canvas has to be placed on top of diva canvas and before the diva-viewport
-        // This means it should be appended as its next sibling
-        // Otherwise it will block diva's scrolling functionality
-        let divaCanvas = this.core.getSettings().renderer._canvas;
-        divaCanvas.parentNode.insertBefore(this._canvas, divaCanvas.nextSibling);
-
         if (this.layers === null)
         {
-            let divaCanvas = this.core.getSettings().renderer._canvas,
-                pageIndex = this.core.getSettings().currentPageIndex;
+            let divaCanvas = this.core.getSettings().renderer._canvas;
+
             // Start by creating layers
-            let background = new Layer(-1, new Colour(242, 242, 242, 1), "Background", divaCanvas),
-                layer1 = new Layer(0, new Colour(51, 102, 255, 1), "Layer 1", divaCanvas),
-                layer2 = new Layer(1, new Colour(255, 51, 102, 1), "Layer 2", divaCanvas),
-                layer3 = new Layer(2, new Colour(255, 255, 10, 1), "Layer 3", divaCanvas);
+            let background = new Layer(-1, new Colour(242, 242, 242, 1), "Background", divaCanvas, 1),
+                layer1 = new Layer(0, new Colour(51, 102, 255, 1), "Layer 1", divaCanvas, 0.5),
+                layer2 = new Layer(1, new Colour(255, 51, 102, 1), "Layer 2", divaCanvas, 0.5),
+                layer3 = new Layer(2, new Colour(255, 255, 10, 1), "Layer 3", divaCanvas, 0.5);
 
             layer1.addShapeToLayer(new Rectangle(new Point(23, 42, 0), 24, 24, "add"));
             layer2.addShapeToLayer(new Rectangle(new Point(48, 50, 0), 57, 5, "add"));
@@ -116,28 +99,32 @@ export default class PixelPlugin
             this.background.canvas = this.core.getSettings().renderer._canvas;  // Link background canvas to the actual diva canvas
         }
 
-        this.disableDragScrollable();
-        this.createPluginElements(this.layers);
+        this.uiManager = new UIManager(this);
+        this.tools = new Tools(this);
+        this.uiManager.createPluginElements(this.layers);
         this.scrollEventHandle = this.subscribeToScrollEvent();
         this.zoomEventHandle = this.subscribeToZoomLevelWillChangeEvent();
+
+        this.disableDragScrollable();
         this.subscribeToMouseEvents();
         this.subscribeToKeyboardEvents();
         this.repaint();  // Repaint the tiles to retrigger VisibleTilesDidLoad
+
         this.activated = true;
     }
 
     deactivatePlugin ()
     {
-        Diva.Events.unsubscribe(this.scrollEventHandle);
-        Diva.Events.unsubscribe(this.zoomEventHandle);
+        global.Diva.Events.unsubscribe(this.scrollEventHandle);
+        global.Diva.Events.unsubscribe(this.zoomEventHandle);
+
         this.unsubscribeFromMouseEvents();
         this.unsubscribeFromKeyboardEvents();
         this.unsubscribeFromKeyboardPress();
         this.repaint(); // Repaint the tiles to make the highlights disappear off the page
-        this.destroyPluginElements(this.layers, this.background);
 
-        // TODO: Remove all layer canvases
-        // this._ctx.clearRect(0,0,this._canvas.width, this._canvas.height);
+        this.uiManager.destroyPluginElements(this.layers, this.background);
+
         this.enableDragScrollable();
         this.activated = false;
     }
@@ -154,6 +141,37 @@ export default class PixelPlugin
             this.core.viewerState.viewportObject.setAttribute('nochilddrag', "");
     }
 
+    createIcon ()
+    {
+        const pageToolsIcon = document.createElement('div');
+        pageToolsIcon.classList.add('diva-pixel-icon');
+
+        let root = document.createElementNS("http://www.w3.org/2000/svg", "svg");
+        root.setAttribute("x", "0px");
+        root.setAttribute("y", "0px");
+        root.setAttribute("viewBox", "0 0 25 25");
+        root.id = `${this.core.settings.selector}pixel-icon`;
+
+        let g = document.createElementNS("http://www.w3.org/2000/svg", "g");
+        g.id = `${this.core.settings.selector}pixel-icon-glyph`;
+        g.setAttribute("transform", "matrix(1, 0, 0, 1, -11.5, -11.5)");
+        g.setAttribute("class", "diva-pagetool-icon");
+
+        //Placeholder icon
+        let rect = document.createElementNS("http://www.w3.org/2000/svg", "rect");
+        rect.setAttribute('x', '15');
+        rect.setAttribute('y', '10');
+        rect.setAttribute('width', '25');
+        rect.setAttribute('height', 25);
+
+        g.appendChild(rect);
+        root.appendChild(g);
+
+        pageToolsIcon.appendChild(root);
+
+        return pageToolsIcon;
+    }
+
     /**
      * ===============================================
      *        Event Subscription/Unsubscription
@@ -162,7 +180,7 @@ export default class PixelPlugin
 
     subscribeToZoomLevelWillChangeEvent ()
     {
-        let handle = Diva.Events.subscribe('ZoomLevelWillChange', (zoomLevel) =>
+        let handle = global.Diva.Events.subscribe('ZoomLevelWillChange', (zoomLevel) =>
         {
             this.drawHighlights(zoomLevel);
         });
@@ -172,7 +190,7 @@ export default class PixelPlugin
 
     subscribeToScrollEvent()
     {
-        let handle = Diva.Events.subscribe('ViewerDidScroll', () =>
+        let handle = global.Diva.Events.subscribe('ViewerDidScroll', () =>
         {
             this.drawHighlights(this.core.getSettings().zoomLevel);
         });
@@ -239,6 +257,7 @@ export default class PixelPlugin
 
     /**
      * ===============================================
+<<<<<<< HEAD
      *            Creating HTML UI Elements
      * ===============================================
      **/
@@ -688,6 +707,8 @@ export default class PixelPlugin
 
     /**
      * ===============================================
+=======
+>>>>>>> develop
      *       Handling Keyboard and Mouse Events
      * ===============================================
      *         Layer reordering (Drag and Drop)
@@ -733,14 +754,14 @@ export default class PixelPlugin
             }
             this.layers[destinationLayerIndex] = tempLayerStorage;
         }
-        this.destroyPluginElements(this.layers, this.background);
-        this.createPluginElements(this.layers);
+        this.uiManager.destroyPluginElements(this.layers, this.background);
+        this.uiManager.createPluginElements(this.layers);
         this.selectedLayerIndex = destinationLayerIndex;
-        this.highlightSelectedLayer(this.layers[this.selectedLayerIndex].layerId); // Layer Type and not index
+        this.highlightLayerSelector(this.layers[this.selectedLayerIndex].layerId); // Layer Type and not index
         // TODO: Optimization: Instead of destroying all of the canvases only destroy and reorder the ones of interest
-        this.destroyPixelCanvases(this.layers);
-        this.placeLayerCanvasesInDiva(this.layers);
-        this.placeLayerCanvasesInDiva(this.background);
+        this.uiManager.destroyPixelCanvases(this.layers);
+        this.uiManager.placeLayerCanvasesInDiva(this.layers);
+        this.uiManager.placeLayerCanvasesInDiva(this.background);
         this.repaint();
     }
 
@@ -762,7 +783,7 @@ export default class PixelPlugin
 
         if (key >= KEY_1 && key < KEY_1 + numberOfLayers && key <= KEY_9)
         {
-            this.highlightSelectedLayer(key - KEY_1);
+            this.highlightLayerSelector(key - KEY_1);
 
             if (lastLayer !== this.selectedLayerIndex && this.mousePressed)
                 this.layerChangedMidDraw = true;
@@ -789,27 +810,19 @@ export default class PixelPlugin
         }
         else if (e.key === "b")
         {
-            this.disableDragScrollable();
-            this.currentTool = "brush";
-            document.getElementById(this.currentTool).checked = true;
+            this.tools.setCurrentTool(this.tools.type.brush);
         }
         else if (e.key === "r")
         {
-            this.disableDragScrollable();
-            this.currentTool = "rectangle";
-            document.getElementById(this.currentTool).checked = true;
+            this.tools.setCurrentTool(this.tools.type.rectangle);
         }
         else if (e.key === "g")
         {
-            this.enableDragScrollable();
-            this.currentTool = "grab";
-            document.getElementById(this.currentTool).checked = true;
+            this.tools.setCurrentTool(this.tools.type.grab);
         }
         else if (e.key === "e")
         {
-            this.disableDragScrollable();
-            this.currentTool = "eraser";
-            document.getElementById(this.currentTool).checked = true;
+            this.tools.setCurrentTool(this.tools.type.eraser);
         }
         else if (e.key === "s")
         {
@@ -825,7 +838,7 @@ export default class PixelPlugin
 
         // TODO: Listen for changes when clicked outside of LayerName
         // TODO: Unsubscribe from other keyboard listeners
-        var key = e.which || e.keyCode;
+        let key = e.which || e.keyCode;
         if (key === RETURN_KEY)
         {
             // TODO: Subscribe to other keyboard listeners
@@ -853,22 +866,22 @@ export default class PixelPlugin
     onMouseDown (evt)
     {
         let canvas = document.getElementById("diva-1-outer");
-        switch (this.currentTool)
+        switch (this.tools.getCurrentTool())
         {
-            case "brush":
+            case this.tools.type.brush:
                 this.mousePressed = true;
-                this.initializeNewPath(canvas, evt);
+                this.initializeNewPathInCurrentLayer(canvas, evt);
                 break;
-            case "rectangle":
+            case this.tools.type.rectangle:
                 this.mousePressed = true;
                 this.initializeRectanglePreview(canvas, evt);
                 break;
-            case "grab":
+            case this.tools.type.grab:
                 this.mousePressed = true;
                 break;
-            case "eraser":
+            case this.tools.type.eraser:
                 this.mousePressed = true;
-                this.initializeNewPath(canvas, evt);
+                this.initializeNewPathInCurrentLayer(canvas, evt);
                 break;
             case "select":
                 this.mousePressed = true;
@@ -885,16 +898,21 @@ export default class PixelPlugin
     onMouseMove (evt)
     {
         let canvas = document.getElementById("diva-1-outer");
-        switch (this.currentTool)
+        switch (this.tools.getCurrentTool())
         {
-            case "brush":
-                this.setupPointPainting(canvas, evt);
+            case this.tools.type.brush:
+                this.addPointToCurrentPath(canvas, evt);
                 break;
+<<<<<<< HEAD
             case "rectangle":
                 this.rectanglePreview(canvas, evt);
+=======
+            case this.tools.type.rectangle:
+                this.rectanglePreview(canvas,evt);
+>>>>>>> develop
                 break;
-            case "eraser":
-                this.setupPointPainting(canvas, evt);
+            case this.tools.type.eraser:
+                this.addPointToCurrentPath(canvas, evt);
                 break;
             case "select":
                 this.rectanglePreview(canvas, evt);
@@ -906,15 +924,15 @@ export default class PixelPlugin
     onMouseUp ()    // can take an event as an argument
     {
         // let canvas = document.getElementById("diva-1-outer");
-        switch (this.currentTool)
+        switch (this.tools.getCurrentTool())
         {
-            case "brush":
+            case this.tools.type.brush:
                 this.mousePressed = false;
                 break;
-            case "rectangle":
+            case this.tools.type.rectangle: // TODO: Add action: resized rectangle. This is useful if a user wants to revert a rectangle resize (when implementd)
                 this.mousePressed = false;
                 break;
-            case "eraser":
+            case this.tools.type.eraser:
                 this.mousePressed = false;
                 break;
             case "select":
@@ -933,6 +951,7 @@ export default class PixelPlugin
 
     displayColourOptions ()
     {
+        // TODO: Implement function
         console.log("colour clicked here");
     }
 
@@ -942,13 +961,13 @@ export default class PixelPlugin
         {
             layerOptionsDiv.classList.remove("unchecked-layer-settings");
             layerOptionsDiv.classList.add("checked-layer-settings");
-            this.createOpacitySlider(layer, layerOptionsDiv.parentElement.parentElement, layerOptionsDiv.parentElement);
+            this.uiManager.createOpacitySlider(layer, layerOptionsDiv.parentElement.parentElement, layerOptionsDiv.parentElement);
         }
         else
         {
             layerOptionsDiv.classList.remove("checked-layer-settings");
             layerOptionsDiv.classList.add("unchecked-layer-settings");
-            this.destroyOpacitySlider(layer);
+            this.uiManager.destroyOpacitySlider(layer);
         }
     }
 
@@ -1060,7 +1079,7 @@ export default class PixelPlugin
      **/
 
     // Specify the class of the selected div. CSS takes care of the rest
-    highlightSelectedLayer (layerType)
+    highlightLayerSelector (layerType)
     {
         layerType = parseInt(layerType);
 
@@ -1084,7 +1103,7 @@ export default class PixelPlugin
         });
     }
 
-    initializeNewPath (canvas, evt)
+    initializeNewPathInCurrentLayer (canvas, evt)
     {
         if (!this.layers[this.selectedLayerIndex].isActivated())
             return;
@@ -1105,12 +1124,12 @@ export default class PixelPlugin
             this.lastRelCoordY = relativeCoords.y;
 
             // Create New Path in Layer
-            if (this.currentTool === "brush")
+            if (this.tools.getCurrentTool() === this.tools.type.brush)
             {
                 selectedLayer.createNewPath(brushSize, "add");
                 selectedLayer.addToCurrentPath(point, "add");
             }
-            else if (this.currentTool === "eraser")
+            else if (this.tools.getCurrentTool() === this.tools.type.eraser)
             {
                 selectedLayer.createNewPath(brushSize, "subtract");
                 selectedLayer.addToCurrentPath(point, "subtract");
@@ -1118,7 +1137,11 @@ export default class PixelPlugin
 
             // Add path to list of actions (used for undo/redo)
             this.actions.push(new Action(selectedLayer.getCurrentPath(), selectedLayer));
+<<<<<<< HEAD
             this.drawPath(selectedLayer, point, pageIndex, zoomLevel, brushSize, false, selectedLayer.getCurrentPath().mode, selectedLayer.getCanvas());
+=======
+            selectedLayer.getCurrentPath().connectPoint(selectedLayer, point, pageIndex, zoomLevel, false, this.core.getSettings().renderer, selectedLayer.getCanvas(), "viewport");
+>>>>>>> develop
         }
         else
         {
@@ -1126,7 +1149,7 @@ export default class PixelPlugin
         }
     }
 
-    setupPointPainting (canvas, evt)
+    addPointToCurrentPath (canvas, evt)
     {
         if (!this.layers[this.selectedLayerIndex].isActivated())
             return;
@@ -1165,23 +1188,30 @@ export default class PixelPlugin
             }
 
             // Draw path with new point
-            let brushSize = this.layers[this.selectedLayerIndex].getCurrentPath().brushSize;
-
-            if (this.currentTool === "brush")
+            switch (this.tools.getCurrentTool())
             {
-                this.layers[this.selectedLayerIndex].addToCurrentPath(point, "add");
-            }
-            else if (this.currentTool === "eraser")
-            {
-                this.layers[this.selectedLayerIndex].addToCurrentPath(point, "subtract");
+                case this.tools.type.brush:
+                    this.layers[this.selectedLayerIndex].addToCurrentPath(point, "add");
+                    break;
+                case this.tools.type.eraser:
+                    this.layers[this.selectedLayerIndex].addToCurrentPath(point, "subtract");
+                    break;
+                default:
+                    this.layers[this.selectedLayerIndex].addToCurrentPath(point, "add");
             }
 
+<<<<<<< HEAD
             this.drawPath(this.layers[this.selectedLayerIndex], point, pageIndex, zoomLevel, brushSize, true, this.layers[this.selectedLayerIndex].getCurrentPath().mode, this.layers[this.selectedLayerIndex].getCanvas());
+=======
+            let layer = this.layers[this.selectedLayerIndex];
+            layer.getCurrentPath().connectPoint(layer, point, pageIndex, zoomLevel, true, this.core.getSettings().renderer, layer.getCanvas(), "viewport");
+
+>>>>>>> develop
             return;
         }
 
         // If layer changed mid drawing then create a new path on selected layer
-        this.initializeNewPath(canvas, evt);
+        this.initializeNewPathInCurrentLayer(canvas, evt);
         this.layerChangedMidDraw = false;
     }
 
@@ -1214,54 +1244,63 @@ export default class PixelPlugin
         if (!this.layers[this.selectedLayerIndex].isActivated())
             return;
 
-        if (this.mousePressed)
+        if (!this.layerChangedMidDraw)
         {
-            let mousePos = this.getMousePos(canvas, evt),
-                relativeCoords = this.getRelativeCoordinatesFromPadded(mousePos.x, mousePos.y),
-                lastShape = this.layers[this.selectedLayerIndex].getCurrentShape();
-
-            if (!this.isInPageBounds(relativeCoords.x, relativeCoords.y))
-                return;
-
-            // If cursor is to the main diagonal (south east or north west of the point of origin)
-            if (this.isInMainDiagonal(relativeCoords, lastShape))
+            if (this.mousePressed)
             {
-                let lastWidth = lastShape.relativeRectWidth;
-                lastShape.relativeRectWidth = relativeCoords.x - lastShape.origin.relativeOriginX;
+                let mousePos = this.getMousePos(canvas, evt),
+                    relativeCoords = this.getRelativeCoordinatesFromPadded(mousePos.x, mousePos.y),
+                    lastShape = this.layers[this.selectedLayerIndex].getCurrentShape();
 
-                // Draw a square on shift down
-                if (this.shiftDown)
+                if (!this.isInPageBounds(relativeCoords.x, relativeCoords.y))
+                    return;
+
+                // If cursor is to the main diagonal (south east or north west of the point of origin)
+                if (this.isInMainDiagonal(relativeCoords, lastShape))
                 {
-                    let squareInBounds = this.isInPageBounds(lastShape.origin.relativeOriginX + lastShape.relativeRectWidth,
-                        lastShape.origin.relativeOriginY + lastShape.relativeRectWidth);
+                    let lastWidth = lastShape.relativeRectWidth;
+                    lastShape.relativeRectWidth = relativeCoords.x - lastShape.origin.relativeOriginX;
 
-                    if (squareInBounds)
-                        lastShape.relativeRectHeight = lastShape.relativeRectWidth;
+                    // Draw a square on shift down
+                    if (this.shiftDown)
+                    {
+                        let squareInBounds = this.isInPageBounds(lastShape.origin.relativeOriginX + lastShape.relativeRectWidth,
+                            lastShape.origin.relativeOriginY + lastShape.relativeRectWidth);
+
+                        if (squareInBounds)
+                            lastShape.relativeRectHeight = lastShape.relativeRectWidth;
+                        else
+                            lastShape.relativeRectWidth = lastWidth;
+                    }
                     else
-                        lastShape.relativeRectWidth = lastWidth;
+                        lastShape.relativeRectHeight = relativeCoords.y - lastShape.origin.relativeOriginY;
                 }
-                else
-                    lastShape.relativeRectHeight = relativeCoords.y - lastShape.origin.relativeOriginY;
-            }
-            else        // If cursor is to the antidiagonal (north east or south west of the point of origin)
-            {
-                let lastWidth = lastShape.relativeRectWidth;
-                lastShape.relativeRectWidth = relativeCoords.x - lastShape.origin.relativeOriginX;
-
-                if (this.shiftDown)
+                else        // If cursor is to the antidiagonal (north east or south west of the point of origin)
                 {
-                    let squareInBounds = this.isInPageBounds(lastShape.origin.relativeOriginX + lastShape.relativeRectWidth,
-                        lastShape.origin.relativeOriginY - lastShape.relativeRectWidth);
+                    let lastWidth = lastShape.relativeRectWidth;
+                    lastShape.relativeRectWidth = relativeCoords.x - lastShape.origin.relativeOriginX;
 
-                    if (squareInBounds)
-                        lastShape.relativeRectHeight = - lastShape.relativeRectWidth;
+                    if (this.shiftDown)
+                    {
+                        let squareInBounds = this.isInPageBounds(lastShape.origin.relativeOriginX + lastShape.relativeRectWidth,
+                            lastShape.origin.relativeOriginY - lastShape.relativeRectWidth);
+
+                        if (squareInBounds)
+                            lastShape.relativeRectHeight = - lastShape.relativeRectWidth;
+                        else
+                            lastShape.relativeRectWidth = lastWidth;
+                    }
                     else
-                        lastShape.relativeRectWidth = lastWidth;
+                        lastShape.relativeRectHeight = relativeCoords.y - lastShape.origin.relativeOriginY;
                 }
-                else
-                    lastShape.relativeRectHeight = relativeCoords.y - lastShape.origin.relativeOriginY;
+                this.repaintLayer(this.layers[this.selectedLayerIndex]);
             }
-            this.repaintLayer(this.layers[this.selectedLayerIndex]);
+        }
+        else
+        {
+            // Create a new rectangle to which the change will be
+            this.layerChangedMidDraw = false;
+            this.initializeRectanglePreview(canvas, evt);
         }
     }
 
@@ -1325,6 +1364,7 @@ export default class PixelPlugin
         };
     }
 
+<<<<<<< HEAD
     drawPath (layer, point, pageIndex, zoomLevel, brushSize, isDown, blendMode, canvas)
     {
         let renderer = this.core.getSettings().renderer,
@@ -1475,6 +1515,8 @@ export default class PixelPlugin
     }
 
     //used on initial draw, scroll, zoom
+=======
+>>>>>>> develop
     drawLayer (zoomLevel, layer, canvas)
     {
         if (!layer.isActivated())
@@ -1489,6 +1531,7 @@ export default class PixelPlugin
         {
             layer.actions.forEach((action) =>
             {
+<<<<<<< HEAD
                 switch (action.type)
                 {
                     case "shape":
@@ -1504,15 +1547,23 @@ export default class PixelPlugin
                     default:
                         return;
                 }
+=======
+                action.draw(layer, pageIndex, zoomLevel, renderer, canvas);
+>>>>>>> develop
             });
         });
     }
 
+<<<<<<< HEAD
     //used on export
+=======
+    // Called on export
+>>>>>>> develop
     drawLayerOnPageCanvas (layer, zoomLevel, canvas, pageIndex)
     {
         layer.actions.forEach((action) =>
         {
+<<<<<<< HEAD
             switch (action.type)
             {
                 case "shape":
@@ -1528,8 +1579,10 @@ export default class PixelPlugin
                 default:
                     return;
             }
+=======
+            action.drawAbsolute(layer, pageIndex, zoomLevel, this.core.getSettings().renderer, canvas);
+>>>>>>> develop
         });
-
     }
 
     drawHighlights (zoomLevel)
@@ -1552,7 +1605,7 @@ export default class PixelPlugin
         let pageIndex = this.core.getSettings().currentPageIndex,
             zoomLevel = this.core.getSettings().zoomLevel;
 
-        new Export(this, this.layers, pageIndex, zoomLevel).exportLayersAsImageData();
+        new Export(this, this.layers, pageIndex, zoomLevel, this.uiManager).exportLayersAsImageData();
     }
 
     exportAsHighlights ()
@@ -1560,7 +1613,7 @@ export default class PixelPlugin
         let pageIndex = this.core.getSettings().currentPageIndex,
             zoomLevel = this.core.getSettings().zoomLevel;
 
-        new Export(this, this.layers, pageIndex, zoomLevel).exportLayersAsHighlights();
+        new Export(this, this.layers, pageIndex, zoomLevel, this.uiManager).exportLayersAsHighlights();
     }
 
     exportAsCSV ()
@@ -1568,7 +1621,7 @@ export default class PixelPlugin
         let pageIndex = this.core.getSettings().currentPageIndex,
             zoomLevel = this.core.getSettings().zoomLevel;
 
-        new Export(this, this.layers, pageIndex, zoomLevel).exportLayersAsCSV();
+        new Export(this, this.layers, pageIndex, zoomLevel, this.uiManager).exportLayersAsCSV();
     }
 }
 

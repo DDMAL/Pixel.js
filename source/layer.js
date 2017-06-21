@@ -2,7 +2,7 @@ import {Path} from './path';
 
 export class Layer
 {
-    constructor (layerId, colour, layerName, divaCanvas)
+    constructor (layerId, colour, layerName, divaCanvas, layerOpacity)
     {
         this.layerId = layerId;
         this.shapes = [];
@@ -13,7 +13,7 @@ export class Layer
         this.ctx = null;
         this.actions = [];
         this.activated = true;
-        this.layerOpacity = 1;
+        this.layerOpacity = layerOpacity;
         this.cloneCanvas(divaCanvas);
     }
 
@@ -68,6 +68,7 @@ export class Layer
     /**
      * Creates a new path that has the brush size selector width
      * @param point
+     * @oaram blendMode
      */
     addToCurrentPath (point, blendMode)
     {
