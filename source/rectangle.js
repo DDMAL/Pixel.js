@@ -46,10 +46,12 @@ export class Rectangle extends Shape
                     let highlightXOffset = renderer._getImageOffset(pageIndex).left - renderer._viewport.left + viewportPaddingX + absoluteRectOriginX,
                         highlightYOffset = renderer._getImageOffset(pageIndex).top - renderer._viewport.top + viewportPaddingY + absoluteRectOriginY;
 
-                    //Draw the rectangle
-                    ctx.fillStyle = 'rgba(255, 0, 0, 1)';
+                    //Draw the selection rectangle
+                    ctx.fillStyle = 'rgba(147, 192, 255, 0.3)';
+                    ctx.lineWidth = 1;
+                    ctx.strokeStyle = 'rgba(25, 25, 25, 1)';
                     ctx.fillRect(highlightXOffset, highlightYOffset, absoluteRectWidth, absoluteRectHeight);
-                    // ctx.border()
+                    ctx.strokeRect(highlightXOffset, highlightYOffset, absoluteRectWidth, absoluteRectHeight);
                 }
                 return;
             }

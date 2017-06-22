@@ -375,9 +375,7 @@ export default class PixelPlugin
         }
         else if (e.key === "s")
         {
-            this.disableDragScrollable();
-            this.currentTool =  "select";
-            document.getElementById(this.currentTool).checked = true;
+            this.tools.setCurrentTool(this.tools.type.select);
         }
     }
 
@@ -387,6 +385,7 @@ export default class PixelPlugin
 
         // TODO: Listen for changes when clicked outside of LayerName
         // TODO: Unsubscribe from other keyboard listeners
+        // TODO: Disable drag for layers
         let key = e.which || e.keyCode;
         if (key === RETURN_KEY)
         {
@@ -443,7 +442,7 @@ export default class PixelPlugin
                     this.mousePressed = true;
             }
         }
-        else //if (evt.which === 3)
+        else
         {
             this.rightMousePressed = true;
             switch (this.tools.getCurrentTool())
@@ -780,10 +779,10 @@ export default class PixelPlugin
         if (this.isInPageBounds(relativeCoords.x, relativeCoords.y)) {
             let selectedLayer = this.layers[this.selectedLayerIndex];
 
-
             if (this.tools.getCurrentTool() === this.tools.type.select)
                 selectedLayer.addShapeToLayer(new Rectangle(new Point(relativeCoords.x,relativeCoords.y,pageIndex), 0, 0, "select", this.tools.getCurrentTool()));
 
+            //next 2 condition checks assume the selected tool is rectangle
             else if (this.rightMousePressed)
                 selectedLayer.addShapeToLayer(new Rectangle(new Point(relativeCoords.x,relativeCoords.y,pageIndex), 0, 0, "subtract", this.tools.getCurrentTool()));
 

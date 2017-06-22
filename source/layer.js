@@ -68,7 +68,7 @@ export class Layer
     /**
      * Creates a new path that has the brush size selector width
      * @param point
-     * @oaram blendMode
+     * @param blendMode
      */
     addToCurrentPath (point, blendMode)
     {
