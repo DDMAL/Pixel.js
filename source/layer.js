@@ -1,8 +1,9 @@
 import {Path} from './path';
+import {Point} from './point';
 
 export class Layer
 {
-    constructor (layerId, colour, layerName, divaCanvas, layerOpacity)
+    constructor (layerId, colour, layerName, pixelInstance, layerOpacity)
     {
         this.layerId = layerId;
         this.shapes = [];
@@ -14,18 +15,56 @@ export class Layer
         this.actions = [];
         this.activated = true;
         this.layerOpacity = layerOpacity;
-        this.cloneCanvas(divaCanvas);
+        this.pixelInstance = pixelInstance;
+        this.pageIndex = this.pixelInstance.core.getSettings().currentPageIndex;
+        this.cloneCanvas();
     }
 
-    cloneCanvas (divaCanvas)
+    cloneCanvas ()
     {
+        let maxZoomLevel = this.pixelInstance.core.getSettings().maxZoomLevel;
+
+        let height = this.pixelInstance.core.publicInstance.getPageDimensionsAtZoomLevel(this.pageIndex, maxZoomLevel).height,
+            width = this.pixelInstance.core.publicInstance.getPageDimensionsAtZoomLevel(this.pageIndex, maxZoomLevel).width;
+
         this.canvas = document.createElement('canvas');
         this.canvas.setAttribute("class", "pixel-canvas");
         this.canvas.setAttribute("id", "layer-" + this.layerId + "-canvas");
-        this.canvas.width = divaCanvas.width;
-        this.canvas.height = divaCanvas.height;
+        this.canvas.width = width;
+        this.canvas.height = height;
 
         this.ctx = this.canvas.getContext('2d');
+
+        this.resizeLayerCanvasToZoomLevel(this.pixelInstance.core.getSettings().zoomLevel);
+        this.placeLayerCanvasOnTopOfEditingPage();
+    }
+
+    resizeLayerCanvasToZoomLevel (zoomLevel)
+    {
+        let floorZoom = Math.floor(zoomLevel),
+            extra = zoomLevel - floorZoom,
+            scaleRatio = Math.pow(2, extra);
+
+        let height = this.pixelInstance.core.publicInstance.getPageDimensionsAtZoomLevel(this.pageIndex, floorZoom).height,
+            width = this.pixelInstance.core.publicInstance.getPageDimensionsAtZoomLevel(this.pageIndex, floorZoom).width;
+
+        width *= scaleRatio;
+        height *= scaleRatio;
+
+        this.canvas.style.width = width + "px";
+        this.canvas.style.height = height + "px";
+
+        this.placeLayerCanvasOnTopOfEditingPage();
+    }
+
+    placeLayerCanvasOnTopOfEditingPage ()
+    {
+        let zoomLevel = this.pixelInstance.core.getSettings().zoomLevel;
+
+        let coords = new Point (0,0,0).getAbsolutePaddedCoordinates(zoomLevel, this.pageIndex, this.pixelInstance.core.getSettings().renderer);
+
+        this.canvas.style.left = coords.x + "px";
+        this.canvas.style.top = coords.y + "px";
     }
 
     placeCanvasAfterElement (element)
@@ -73,10 +112,8 @@ export class Layer
     addToCurrentPath (point, blendMode)
     {
         if (this.paths.length === 0)
-        {
-            let brushSizeSelector = document.getElementById("brush-size-selector");
-            this.createNewPath(brushSizeSelector.value / 10, blendMode);
-        }
+            this.createNewPath(this.pixelInstance.uiManager.getBrushSizeSelectorValue(), blendMode);
+
         this.paths[this.paths.length - 1].addPointToPath(point);
     }
 

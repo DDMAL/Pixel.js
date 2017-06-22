@@ -82,13 +82,11 @@ export default class PixelPlugin
 
         if (this.layers === null)
         {
-            let divaCanvas = this.core.getSettings().renderer._canvas;
-
             // Start by creating layers
-            let background = new Layer(-1, new Colour(242, 242, 242, 1), "Background", divaCanvas, 1),
-                layer1 = new Layer(0, new Colour(51, 102, 255, 1), "Layer 1", divaCanvas, 0.5),
-                layer2 = new Layer(1, new Colour(255, 51, 102, 1), "Layer 2", divaCanvas, 0.5),
-                layer3 = new Layer(2, new Colour(255, 255, 10, 1), "Layer 3", divaCanvas, 0.5);
+            let background = new Layer(-1, new Colour(242, 242, 242, 1), "Background", this, 1),
+                layer1 = new Layer(0, new Colour(51, 102, 255, 1), "Layer 1", this, 0.5),
+                layer2 = new Layer(1, new Colour(255, 51, 102, 1), "Layer 2", this, 0.5),
+                layer3 = new Layer(2, new Colour(255, 255, 10, 1), "Layer 3", this, 0.5);
 
             layer1.addShapeToLayer(new Rectangle(new Point(23, 42, 0), 24, 24, "add"));
             layer2.addShapeToLayer(new Rectangle(new Point(48, 50, 0), 57, 5, "add"));
@@ -106,6 +104,7 @@ export default class PixelPlugin
         this.zoomEventHandle = this.subscribeToZoomLevelWillChangeEvent();
 
         this.disableDragScrollable();
+        this.subscribeToWindowResizeEvent();
         this.subscribeToMouseEvents();
         this.subscribeToKeyboardEvents();
         this.repaint();  // Repaint the tiles to retrigger VisibleTilesDidLoad
@@ -178,11 +177,25 @@ export default class PixelPlugin
      * ===============================================
      **/
 
+    subscribeToWindowResizeEvent ()
+    {
+        window.addEventListener("resize", () =>
+        {
+            this.layers.forEach((layer) =>
+            {
+                layer.placeLayerCanvasOnTopOfEditingPage();
+            });
+        });
+    }
+
     subscribeToZoomLevelWillChangeEvent ()
     {
         let handle = global.Diva.Events.subscribe('ZoomLevelWillChange', (zoomLevel) =>
         {
-            this.drawHighlights(zoomLevel);
+            this.layers.forEach((layer) =>
+            {
+                layer.resizeLayerCanvasToZoomLevel(zoomLevel);
+            });
         });
 
         return handle;
@@ -192,7 +205,10 @@ export default class PixelPlugin
     {
         let handle = global.Diva.Events.subscribe('ViewerDidScroll', () =>
         {
-            this.drawHighlights(this.core.getSettings().zoomLevel);
+            this.layers.forEach((layer) =>
+            {
+                layer.placeLayerCanvasOnTopOfEditingPage();
+            });
         });
 
         return handle;
@@ -524,7 +540,7 @@ export default class PixelPlugin
         {
             layerActivationDiv.classList.remove("layer-deactivated");
             layerActivationDiv.classList.add("layer-activated");
-            layer.getCanvas().setAttribute("style", layer.getLayerOpacityCSSString());
+            layer.getCanvas().style.opacity = layer.getLayerOpacity();
 
             if (layer.layerId === -1)      // Background
             {
@@ -543,8 +559,7 @@ export default class PixelPlugin
 
             if (layer.layerId === -1)      // Background
             {
-                let opacityStr = "opacity : 0;";
-                layer.getCanvas().setAttribute("style", opacityStr);
+                layer.getCanvas().style.opacity = 0;
                 layer.activated = false;
             }
             else
@@ -656,7 +671,7 @@ export default class PixelPlugin
             return;
 
         let pageIndex = this.core.getSettings().currentPageIndex,
-            zoomLevel = this.core.getSettings().zoomLevel,
+            zoomLevel = this.core.getSettings().maxZoomLevel,
             relativeCoords = this.getRelativeCoordinatesFromPadded(mousePos.x, mousePos.y);
 
         // Make sure user is not drawing outside of a diva page
@@ -664,7 +679,7 @@ export default class PixelPlugin
         {
             let selectedLayer = this.layers[this.selectedLayerIndex],
                 point = new Point(relativeCoords.x, relativeCoords.y, pageIndex),
-                brushSize = document.getElementById("brush-size-selector").value / 10;
+                brushSize = this.uiManager.getBrushSizeSelectorValue();
 
             this.lastRelCoordX = relativeCoords.x;
             this.lastRelCoordY = relativeCoords.y;
@@ -683,7 +698,7 @@ export default class PixelPlugin
 
             // Add path to list of actions (used for undo/redo)
             this.actions.push(new Action(selectedLayer.getCurrentPath(), selectedLayer));
-            selectedLayer.getCurrentPath().connectPoint(selectedLayer, point, pageIndex, zoomLevel, false, this.core.getSettings().renderer, selectedLayer.getCanvas(), "viewport");
+            selectedLayer.getCurrentPath().connectPoint(selectedLayer, point, pageIndex, zoomLevel, false, this.core.getSettings().renderer, selectedLayer.getCanvas(), "page");
         }
         else
         {
@@ -714,7 +729,7 @@ export default class PixelPlugin
         if (!this.layerChangedMidDraw)
         {
             let pageIndex = this.core.getSettings().currentPageIndex,
-                zoomLevel = this.core.getSettings().zoomLevel;
+                zoomLevel = this.core.getSettings().maxZoomLevel;
 
             if (this.mousePressed && this.shiftDown)
             {
@@ -742,7 +757,7 @@ export default class PixelPlugin
             }
 
             let layer = this.layers[this.selectedLayerIndex];
-            layer.getCurrentPath().connectPoint(layer, point, pageIndex, zoomLevel, true, this.core.getSettings().renderer, layer.getCanvas(), "viewport");
+            layer.getCurrentPath().connectPoint(layer, point, pageIndex, zoomLevel, true, this.core.getSettings().renderer, layer.getCanvas(), "page");
 
             return;
         }
@@ -853,12 +868,12 @@ export default class PixelPlugin
 
     repaintLayer (layer)
     {
-        this.drawLayer(this.core.getSettings().zoomLevel, layer, layer.getCanvas());
+        this.drawLayer(this.core.getSettings().maxZoomLevel, layer, layer.getCanvas());
     }
 
     repaint ()
     {
-        this.drawHighlights(this.core.getSettings().zoomLevel);
+        this.drawHighlights(this.core.getSettings().maxZoomLevel);
     }
 
     isInPageBounds (relativeX, relativeY)
@@ -914,7 +929,7 @@ export default class PixelPlugin
         {
             layer.actions.forEach((action) =>
             {
-                action.draw(layer, pageIndex, zoomLevel, renderer, canvas);
+                action.drawAbsolute(layer, pageIndex, zoomLevel, renderer, canvas);
             });
         });
     }

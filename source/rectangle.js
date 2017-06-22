@@ -141,6 +141,8 @@ export class Rectangle extends Shape
      */
     getPixels (layer, pageIndex, zoomLevel, renderer, drawingCanvas, imageCanvas)
     {
+        // FIXME: sometimes copying and pasting scaled image data goes beyond the rectangle (compute bounds using the scaleRatio)
+
         let scaleRatio = Math.pow(2,zoomLevel);
         let pixelCtx = drawingCanvas.getContext('2d');
         let divaCtx = imageCanvas.getContext('2d');
@@ -158,7 +160,7 @@ export class Rectangle extends Shape
             {
                 for(var col = Math.round(Math.min(absoluteRectOriginX, absoluteRectOriginX + absoluteRectWidth)); col < Math.max(absoluteRectOriginX, absoluteRectOriginX + absoluteRectWidth); col++)
                 {
-                    if (row >= 0 && col >= 0 && row <= drawingCanvas.height && col <= drawingCanvas.width)
+                    if (row >= 0 && col >= 0 && row < drawingCanvas.height && col < drawingCanvas.width)
                     {
                         if (this.blendMode === "add")
                         {
@@ -166,8 +168,12 @@ export class Rectangle extends Shape
                             let data = divaCtx.getImageData(paddedCoords.x, paddedCoords.y, 1, 1).data;
                             let colour = new Colour(data[0], data[1], data[2], data[3]);
 
+
+                            let maxLevelCol = (col/scaleRatio) * Math.pow(2,5),     // FIXME: Replace with maxZoomLevel
+                                maxLevelRow = (row/scaleRatio) * Math.pow(2,5);
+
                             pixelCtx.fillStyle = colour.toHTMLColour();
-                            pixelCtx.fillRect(col, row, 1, 1);
+                            pixelCtx.fillRect(maxLevelCol, maxLevelRow, Math.pow(2,5), Math.pow(2,5));
                         }
 
                         else if (this.blendMode === "subtract")
