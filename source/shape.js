@@ -13,7 +13,7 @@ export class Shape
     /**
      * Abstract method, to be overridden
      */
-    draw ()
+    drawInViewport ()
     {
 
     }
@@ -21,7 +21,7 @@ export class Shape
     /**
      * Abstract method, to be overridden
      */
-    drawAbsolute ()
+    drawOnPage ()
     {
 
     }

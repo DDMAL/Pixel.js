@@ -27,8 +27,8 @@ export class Line extends Shape
      */
     getAngleRad (zoomLevel, pageIndex, renderer)
     {
-        let startPointAbsolutePaddedCoords = this.origin.getAbsolutePaddedCoordinates(zoomLevel, pageIndex, renderer);
-        let endPointAbsolutePaddedCoords = this.endPoint.getAbsolutePaddedCoordinates(zoomLevel, pageIndex, renderer);
+        let startPointAbsolutePaddedCoords = this.origin.getCoordsInViewport(zoomLevel, pageIndex, renderer);
+        let endPointAbsolutePaddedCoords = this.endPoint.getCoordsInViewport(zoomLevel, pageIndex, renderer);
 
         return Math.atan2(endPointAbsolutePaddedCoords.y - startPointAbsolutePaddedCoords.y,
             endPointAbsolutePaddedCoords.x - startPointAbsolutePaddedCoords.x);
@@ -42,13 +42,13 @@ export class Line extends Shape
      * @param renderer
      * @param canvas
      */
-    draw (layer, pageIndex, zoomLevel, renderer, canvas)
+    drawInViewport (layer, pageIndex, zoomLevel, renderer, canvas)
     {
         let scaleRatio = Math.pow(2,zoomLevel);
         let ctx = canvas.getContext('2d');
 
-        let startPointAbsoluteCoordsWithPadding = this.origin.getAbsolutePaddedCoordinates(zoomLevel, pageIndex, renderer);
-        let endPointAbsoluteCoordsWithPadding = this.endPoint.getAbsolutePaddedCoordinates(zoomLevel, pageIndex, renderer);
+        let startPointAbsoluteCoordsWithPadding = this.origin.getCoordsInViewport(zoomLevel, pageIndex, renderer);
+        let endPointAbsoluteCoordsWithPadding = this.endPoint.getCoordsInViewport(zoomLevel, pageIndex, renderer);
 
         ctx.beginPath();
         ctx.strokeStyle = layer.colour.toHTMLColour();
@@ -68,13 +68,13 @@ export class Line extends Shape
      * @param renderer
      * @param canvas
      */
-    drawAbsolute (layer, pageIndex, zoomLevel, renderer, canvas)
+    drawOnPage (layer, pageIndex, zoomLevel, renderer, canvas)
     {
         let scaleRatio = Math.pow(2,zoomLevel);
         let ctx = canvas.getContext('2d');
 
-        let startPointAbsoluteCoords = this.origin.getAbsoluteCoordinates(zoomLevel);
-        let endPointAbsoluteCoords = this.endPoint.getAbsoluteCoordinates(zoomLevel);
+        let startPointAbsoluteCoords = this.origin.getCoordsInPage(zoomLevel);
+        let endPointAbsoluteCoords = this.endPoint.getCoordsInPage(zoomLevel);
 
         ctx.beginPath();
         ctx.strokeStyle = layer.colour.toHTMLColour();
@@ -97,8 +97,8 @@ export class Line extends Shape
      */
     getPixels (layer, pageIndex, zoomLevel, renderer, drawingCanvas, imageCanvas)
     {
-        let point1 = this.origin.getAbsolutePaddedCoordinates(zoomLevel, pageIndex, renderer),
-            point2 = this.endPoint.getAbsolutePaddedCoordinates(zoomLevel, pageIndex, renderer),
+        let point1 = this.origin.getCoordsInViewport(zoomLevel, pageIndex, renderer),
+            point2 = this.endPoint.getCoordsInViewport(zoomLevel, pageIndex, renderer),
             scaleRatio = Math.pow(2,zoomLevel),
             absoluteLineWidth = this.lineWidth * scaleRatio,
             highlightPageIndex = this.origin.pageIndex;

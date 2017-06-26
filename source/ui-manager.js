@@ -310,7 +310,7 @@ export class UIManager
         brushSizeSelector.setAttribute("type", "range");
         brushSizeSelector.setAttribute('max', 40);
         brushSizeSelector.setAttribute('min', 1);
-        brushSizeSelector.setAttribute('value', 20);
+        brushSizeSelector.setAttribute('value', 25);
 
         document.body.appendChild(brushSizeSelector);
     }
@@ -505,7 +505,8 @@ export class UIManager
     getBrushSizeSelectorValue ()
     {
         // Brush size relative to scaleRatio to allow for more precise manipulations on higher zoom levels
-        let scaleRatio = Math.pow(2, this.pixelInstance.core.getSettings().zoomLevel + 1);
-        return document.getElementById("brush-size-selector").value / scaleRatio;
+        let brushSizeSlider = document.getElementById("brush-size-selector")
+        let brushSizeValue = (brushSizeSlider.value / brushSizeSlider.max) * 10;
+        return 0.05 + Math.exp(brushSizeValue - 6); // 0.05 + e ^ (x - 6) was the most intuitive function we found in terms of brush size range
     }
 }

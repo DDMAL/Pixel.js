@@ -107,7 +107,7 @@ export default class PixelPlugin
         this.subscribeToWindowResizeEvent();
         this.subscribeToMouseEvents();
         this.subscribeToKeyboardEvents();
-        this.repaint();  // Repaint the tiles to retrigger VisibleTilesDidLoad
+        this.redrawAllLayers();  // Repaint the tiles to retrigger VisibleTilesDidLoad
 
         this.activated = true;
     }
@@ -120,7 +120,7 @@ export default class PixelPlugin
         this.unsubscribeFromMouseEvents();
         this.unsubscribeFromKeyboardEvents();
         this.unsubscribeFromKeyboardPress();
-        this.repaint(); // Repaint the tiles to make the highlights disappear off the page
+        this.redrawAllLayers(); // Repaint the tiles to make the highlights disappear off the page
 
         this.uiManager.destroyPluginElements(this.layers, this.background);
 
@@ -326,7 +326,7 @@ export default class PixelPlugin
         this.uiManager.destroyPixelCanvases(this.layers);
         this.uiManager.placeLayerCanvasesInDiva(this.layers);
         this.uiManager.placeLayerCanvasesInDiva(this.background);
-        this.repaint();
+        this.redrawAllLayers();
     }
 
     /**
@@ -549,7 +549,7 @@ export default class PixelPlugin
             else
             {
                 layer.activateLayer();
-                this.repaintLayer(layer);
+                this.redrawLayer(layer);
             }
         }
         else    // Deactivating
@@ -597,7 +597,7 @@ export default class PixelPlugin
                 this.actions.push(actionToRedo);
                 this.undoneActions.splice(this.undoneActions.length - 1,1);
             }
-            this.repaintLayer(actionToRedo.layer);
+            this.redrawLayer(actionToRedo.layer);
         }
     }
 
@@ -630,7 +630,7 @@ export default class PixelPlugin
                 actionToRemove.layer.removeShapeFromLayer(actionToRemove.action);
                 this.actions.splice(index, 1);
             }
-            this.repaintLayer(actionToRemove.layer);
+            this.redrawLayer(actionToRemove.layer);
         }
     }
 
@@ -787,7 +787,7 @@ export default class PixelPlugin
 
 
             this.actions.push(new Action(selectedLayer.getCurrentShape(), selectedLayer));
-            this.repaintLayer(selectedLayer);
+            this.redrawLayer(selectedLayer);
         }
     }
 
@@ -844,7 +844,7 @@ export default class PixelPlugin
                     else
                         lastShape.relativeRectHeight = relativeCoords.y - lastShape.origin.relativeOriginY;
                 }
-                this.repaintLayer(this.layers[this.selectedLayerIndex]);
+                this.redrawLayer(this.layers[this.selectedLayerIndex]);
             }
         }
         else
@@ -866,14 +866,17 @@ export default class PixelPlugin
         return false;
     }
 
-    repaintLayer (layer)
+    redrawLayer (layer)
     {
-        this.drawLayer(this.core.getSettings().maxZoomLevel, layer, layer.getCanvas());
+        layer.drawLayer(this.core.getSettings().maxZoomLevel, layer.getCanvas());
     }
 
-    repaint ()
+    redrawAllLayers ()
     {
-        this.drawHighlights(this.core.getSettings().maxZoomLevel);
+        this.layers.forEach((layer) =>
+        {
+            this.redrawLayer(layer);
+        });
     }
 
     isInPageBounds (relativeX, relativeY)
@@ -883,7 +886,7 @@ export default class PixelPlugin
             renderer  = this.core.getSettings().renderer;
 
         let pageDimensions = this.core.publicInstance.getCurrentPageDimensionsAtCurrentZoomLevel(),
-            absolutePageOrigin = new Point(0,0).getAbsolutePaddedCoordinates(zoomLevel,pageIndex,renderer),
+            absolutePageOrigin = new Point(0,0).getCoordsInViewport(zoomLevel,pageIndex,renderer),
             absolutePageWidthOffset = pageDimensions.width + absolutePageOrigin.x,  //Taking into account the padding, etc...
             absolutePageHeightOffset = pageDimensions.height + absolutePageOrigin.y,
             relativeBounds = this.getRelativeCoordinatesFromPadded(absolutePageWidthOffset, absolutePageHeightOffset);
@@ -915,41 +918,6 @@ export default class PixelPlugin
         };
     }
 
-    drawLayer (zoomLevel, layer, canvas)
-    {
-        if (!layer.isActivated())
-            return;
-
-        let ctx = canvas.getContext('2d');
-        ctx.clearRect(0, 0, canvas.width, canvas.height);
-
-        let renderer = this.core.getSettings().renderer;
-
-        renderer._renderedPages.forEach((pageIndex) =>
-        {
-            layer.actions.forEach((action) =>
-            {
-                action.drawAbsolute(layer, pageIndex, zoomLevel, renderer, canvas);
-            });
-        });
-    }
-
-    // Called on export
-    drawLayerOnPageCanvas (layer, zoomLevel, canvas, pageIndex)
-    {
-        layer.actions.forEach((action) =>
-        {
-            action.drawAbsolute(layer, pageIndex, zoomLevel, this.core.getSettings().renderer, canvas);
-        });
-    }
-
-    drawHighlights (zoomLevel)
-    {
-        this.layers.forEach((layer) =>
-        {
-            this.drawLayer(zoomLevel, layer, layer.getCanvas());
-        });
-    }
     /**
      * ===============================================
      *                    Export

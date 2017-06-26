@@ -35,7 +35,7 @@ export class Export {
             layerCanvas.width = width;
             layerCanvas.height = height;
 
-            this.pixelInstance.drawLayerOnPageCanvas(layer, this.zoomLevel, layerCanvas, this.pageIndex);
+            layer.drawLayerInPageCoords(this.zoomLevel, layerCanvas, this.pageIndex);
 
             let pngCanvas = document.createElement('canvas');
             pngCanvas.setAttribute("class", "export-page-data-canvas");
@@ -71,7 +71,7 @@ export class Export {
             layerCanvas.width = width;
             layerCanvas.height = height;
 
-            this.pixelInstance.drawLayerOnPageCanvas(layer, this.zoomLevel, layerCanvas, this.pageIndex);
+            layer.drawLayerInPageCoords(this.zoomLevel, layerCanvas, this.pageIndex);
             this.fillMatrix(layer, this.matrix, layerCanvas, progressCanvas);
         });
     }
@@ -93,7 +93,7 @@ export class Export {
             layerCanvas.width = width;
             layerCanvas.height = height;
 
-            this.pixelInstance.drawLayerOnPageCanvas(layer, this.zoomLevel, layerCanvas, this.pageIndex);
+            layer.drawLayerInPageCoords(this.zoomLevel, layerCanvas, this.pageIndex);
 
             let png = layerCanvas.toDataURL('image/png');
 

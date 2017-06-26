@@ -61,7 +61,7 @@ export class Layer
     {
         let zoomLevel = this.pixelInstance.core.getSettings().zoomLevel;
 
-        let coords = new Point (0,0,0).getAbsolutePaddedCoordinates(zoomLevel, this.pageIndex, this.pixelInstance.core.getSettings().renderer);
+        let coords = new Point (0,0,0).getCoordsInViewport(zoomLevel, this.pageIndex, this.pixelInstance.core.getSettings().renderer);
 
         this.canvas.style.left = coords.x + "px";
         this.canvas.style.top = coords.y + "px";
@@ -206,5 +206,33 @@ export class Layer
     getLayerOpacityCSSString ()
     {
         return "opacity : " + this.layerOpacity;
+    }
+
+    drawLayer (zoomLevel, canvas)
+    {
+        if (!this.isActivated())
+            return;
+
+        let ctx = canvas.getContext('2d');
+        ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+        let renderer = this.pixelInstance.core.getSettings().renderer;
+
+        renderer._renderedPages.forEach((pageIndex) =>
+        {
+            this.actions.forEach((action) =>
+            {
+                action.drawOnPage(this, pageIndex, zoomLevel, renderer, canvas);
+            });
+        });
+    }
+
+    // Called on export
+    drawLayerInPageCoords (zoomLevel, canvas, pageIndex)
+    {
+        this.actions.forEach((action) =>
+        {
+            action.drawOnPage(this, pageIndex, zoomLevel, this.pixelInstance.core.getSettings().renderer, canvas);
+        });
     }
 }
