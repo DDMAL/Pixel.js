@@ -119,7 +119,6 @@ export default class PixelPlugin
 
         this.unsubscribeFromMouseEvents();
         this.unsubscribeFromKeyboardEvents();
-        this.unsubscribeFromKeyboardPress();
         this.redrawAllLayers(); // Repaint the tiles to make the highlights disappear off the page
 
         this.uiManager.destroyPluginElements(this.layers, this.background);
@@ -266,14 +265,9 @@ export default class PixelPlugin
         document.removeEventListener("keydown", this.keyboardHandles.keydown);
     }
 
-    unsubscribeFromKeyboardPress ()
-    {
-        document.removeEventListener("keydown", this.keyboardHandles);
-    }
-
     /**
      * ===============================================
-     *       Handling Keyboard and Mouse Events
+     *        Handling Keyboard and Mouse Events
      * ===============================================
      *         Layer reordering (Drag and Drop)
      * -----------------------------------------------
@@ -318,14 +312,14 @@ export default class PixelPlugin
             }
             this.layers[destinationLayerIndex] = tempLayerStorage;
         }
+
+        this.selectedLayerIndex = destinationLayerIndex;
         this.uiManager.destroyPluginElements(this.layers, this.background);
         this.uiManager.createPluginElements(this.layers);
-        this.selectedLayerIndex = destinationLayerIndex;
-        this.highlightLayerSelector(this.layers[this.selectedLayerIndex].layerId); // Layer Type and not index
-        // TODO: Optimization: Instead of destroying all of the canvases only destroy and reorder the ones of interest
-        this.uiManager.destroyPixelCanvases(this.layers);
+        this.uiManager.destroyPixelCanvases(this.layers);   // TODO: Optimization: Instead of destroying all of the canvases only destroy and reorder the ones of interest
         this.uiManager.placeLayerCanvasesInDiva(this.layers);
         this.uiManager.placeLayerCanvasesInDiva(this.background);
+        this.highlightLayerSelector(this.layers[this.selectedLayerIndex].layerId);
         this.redrawAllLayers();
     }
 
@@ -345,6 +339,7 @@ export default class PixelPlugin
             numberOfLayers = this.layers.length,
             key = e.keyCode ? e.keyCode : e.which;
 
+        // Selecting Layer
         if (key >= KEY_1 && key < KEY_1 + numberOfLayers && key <= KEY_9)
         {
             this.highlightLayerSelector(key - KEY_1);
@@ -352,47 +347,38 @@ export default class PixelPlugin
             if (lastLayer !== this.selectedLayerIndex && this.mousePressed)
                 this.layerChangedMidDraw = true;
         }
+
         if (key === SHIFT_KEY)
             this.shiftDown = false;
     }
 
     onKeyDown (e)
     {
-        // Cmd + Z
-        if (e.code === "KeyZ" && e.shiftKey === false)
+        switch (e.key)
         {
-            this.undoAction();
-        }
-        // Cmd + Shift + Z
-        else if (e.code === "KeyZ" && e.shiftKey === true)
-        {
-            this.redoAction();
-        }
-        else if (e.key === "Shift")
-        {
-            this.shiftDown = true;
-        }
-        else if (e.key === "b")
-        {
-            this.tools.setCurrentTool(this.tools.type.brush);
-        }
-        else if (e.key === "r")
-        {
-            this.tools.setCurrentTool(this.tools.type.rectangle);
-        }
-        else if (e.key === "g")
-        {
-            this.tools.setCurrentTool(this.tools.type.grab);
-        }
-        else if (e.key === "e")
-        {
-            this.tools.setCurrentTool(this.tools.type.eraser);
-        }
-        else if (e.key === "s")
-        {
-            this.disableDragScrollable();
-            this.currentTool =  "select";
-            document.getElementById(this.currentTool).checked = true;
+            case "z":
+                if (e.ctrlKey || e.metaKey)                // Cmd + Z
+                    this.undoAction();
+                break;
+            case "Z":
+                if (e.ctrlKey || e.metaKey)                 // Cmd + Shift + Z
+                    this.redoAction();
+                break;
+            case "Shift":
+                this.shiftDown = true;
+                break;
+            case "b":
+                this.tools.setCurrentTool(this.tools.type.brush);
+                break;
+            case "r":
+                this.tools.setCurrentTool(this.tools.type.rectangle);
+                break;
+            case "g":
+                this.tools.setCurrentTool(this.tools.type.grab);
+                break;
+            case "e":
+                this.tools.setCurrentTool(this.tools.type.eraser);
+                break;
         }
     }
 

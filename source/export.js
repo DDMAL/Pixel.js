@@ -97,16 +97,20 @@ export class Export {
 
             let png = layerCanvas.toDataURL('image/png');
 
-            let link = document.createElement("a");
-            if (link.download !== undefined) {
-                // Browsers that support HTML5 download attribute
-                link.setAttribute("href", png);
-                link.setAttribute("download", layer.layerName);
-                link.style.visibility = 'hidden';
+            let text = document.createTextNode("Download " + layer.layerName + " PNG ");
+            let link = document.getElementById(layer.layerName + "-png-download");
+            if (link === null)
+            {
+                link = document.createElement("a");
+                link.appendChild(text);
                 document.body.appendChild(link);
-                link.click();
-                document.body.removeChild(link);
             }
+            // Browsers that support HTML5 download attribute
+            link.setAttribute("class", "export-download");
+            link.setAttribute("id", layer.layerName + "-png-download");
+            link.setAttribute("href", png);
+            link.setAttribute("download", layer.layerName);
+
         });
     }
 
@@ -212,32 +216,45 @@ export class Export {
         // Finished exporting a layer
         else {
             // Last layer to be processed is cancelled
-            if (this.exportInterrupted && (this.exportLayersCount === 0)) {
+            if (this.exportInterrupted && (this.exportLayersCount === 0))
+            {
                 this.exportInterrupted = false;
                 this.uiManager.destroyExportElements();
             }
-            else if (this.exportInterrupted) {
+            else if (this.exportInterrupted)
+            {
                 // Do nothing and wait until last layer has finished processing to cancel
             }
-            else {
-                // Download as PNG
+            else
+            {
                 // TODO: Create download buttons that the user can click whenever they want
-                drawingCanvas.toBlob((blob) => {
-                    let newImg = document.createElement('img'),
-                        url = URL.createObjectURL(blob);
+                drawingCanvas.toBlob((blob) =>
+                {
+                    let text = document.createTextNode("Download " + drawingCanvas.getAttribute("value") + " image data ");
+                    let link = document.getElementById(drawingCanvas.getAttribute("value") + "-image-data-download");
+                    if (link === null)
+                    {
+                        let newImg = document.createElement('img'),
+                            url = URL.createObjectURL(blob);
 
-                    newImg.src = url;
-                    let link = document.createElement("a");
+                        newImg.src = url;
+
+                        link = document.createElement("a");
+                        link.appendChild(text);
+                        document.body.appendChild(link);
+                    }
+
+                    // Browsers that support HTML5 download attribute
+                    let url = URL.createObjectURL(blob);
+                    link.setAttribute("class", "export-download");
+                    link.setAttribute("id", drawingCanvas.getAttribute("value") + "-image-data-download");
                     link.setAttribute("href", url);
-                    link.setAttribute("download", drawingCanvas.getAttribute("value"));
-                    link.style.visibility = 'hidden';
-                    document.body.appendChild(link);
-                    link.click();
-                    document.body.removeChild(link);
+                    link.setAttribute("download", drawingCanvas.getAttribute("value") + " image data");
                 });
 
                 // Finished exporting all layers
-                if (this.exportLayersCount === 0) {
+                if (this.exportLayersCount === 0)
+                {
                     this.uiManager.destroyExportElements();
                 }
             }
@@ -336,18 +353,23 @@ export class Export {
         let blob = new Blob([csvContent], {type: 'text/csv;charset=utf-8;'});
         if (navigator.msSaveBlob) { // IE 10+
             navigator.msSaveBlob(blob, filename);
-        } else {
-            let link = document.createElement("a");
-            if (link.download !== undefined) {
-                // Browsers that support HTML5 download attribute
-                let url = URL.createObjectURL(blob);
-                link.setAttribute("href", url);
-                link.setAttribute("download", filename);
-                link.style.visibility = 'hidden';
+        }
+        else
+        {
+            let text = document.createTextNode("Download CSV ");
+            let link = document.getElementById("csv-download");
+            if (link === null)
+            {
+                link = document.createElement("a");
+                link.appendChild(text);
                 document.body.appendChild(link);
-                link.click();
-                document.body.removeChild(link);
             }
+            // Browsers that support HTML5 download attribute
+            let url = URL.createObjectURL(blob);
+            link.setAttribute("class", "export-download");
+            link.setAttribute("id", "csv-download");
+            link.setAttribute("href", url);
+            link.setAttribute("download", filename);
         }
     }
 
