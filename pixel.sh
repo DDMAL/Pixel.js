@@ -1,88 +1,93 @@
 #!/bin/sh
 
+OS=$(uname -s)
 
 scp ./index.html ../../../../
 
 cd ../../../../
 
-pwd
 
-echo "Building this project requires npm, gulp and webpack. You can install these with homebrew."
-read -p "Would you like to install homebrew? y/n " BREW
-
-if [ "$BREW" = "y" ]
+if [ $OS = "Linux" ]
 then
-/usr/bin/ruby -e "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/master/install)"
-echo "
 
+read -p "Building this project requires npm, gulp and webpack. This script will install what's missing. Would you like to install them? [y/n]" INSTALL
 
+if [ "$INSTALL" = "y" ]
+then
 
-"
+if ! type npm > /dev/null;
+then
+echo "> Installing npm"
+sudo apt-get install nodejs
+sudo apt-get install npm
+sudo ln -s /usr/bin/nodejs /usr/bin/node
 fi
 
-
-read -p "Would you like to install npm? y/n " NPM
-
-if [ "$NPM" = "y" ]
+if ! type webpack > /dev/null;
 then
-brew install npm
-echo "
-
-
-
-"
+echo "> Installing webpack"
+sudo npm install --save-dev webpack
 fi
 
-
-read -p "Would you like to install webpack? y/n " WEBPACK
-
-if [ "$WEBPACK" = "y" ]
+if ! type gulp > /dev/null;
 then
-brew install webpack
-echo "
-
-
-
-"
+echo "> Installing gulp"
+sudo npm install -g gulp
+sudo npm install gulp
 fi
 
-
-read -p "Would you like to install gulp? y/n " GULP
-if [ "$GULP" = "y" ]
-then
-brew install gulp
-echo "
-
-
-
-"
-fi
-
-
-read -p "Build project? y/n " BREW
-
-if [ "$BREW" = "y" ]
-then
 echo "> npm install"
-npm install
-
+sudo npm install
 echo "> npm install -g gulp webpack"
-npm install -g gulp webpack
-echo "
+sudo npm install -g gulp webpack
 
-
-
-"
 fi
+
+elif [ $OS = "Darwin" ]
+then
+read -p "Building this project requires npm, gulp and webpack. You can install these with homebrew. This script will install what's missing. Would you like to install them? [y/n]" INSTALL
+
+if [ "$INSTALL" = "y" ]
+then
+
+if ! type brew > /dev/null;
+then
+echo "> Installing brew"
+/usr/bin/ruby -e "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/master/install)"
+fi
+
+if ! type npm > /dev/null;
+then
+echo "> Installing npm"
+brew install npm
+fi
+
+if ! type webpack > /dev/null;
+then
+echo "> Installing webpack"
+brew install webpack
+fi
+
+if ! type gulp > /dev/null;
+then
+echo "> Installing gulp"
+brew install gulp
+fi  # end gulp
+
+echo "> npm install"
+sudo npm install
+echo "> npm install -g gulp webpack"
+sudo npm install -g gulp webpack
+
+fi  # end install
+fi  # end OS
 
 mkdir build
 mkdir build/css
 echo "> scp ./source/css/diva.css ./build/css/"
 scp ./source/css/diva.css ./build/css/
 
-
-read -p "Compile and run on http://localhost:9001/ (You might get a JSHint failed message, that should be ok, Diva will be still running)? y/n " RUN
-
+read -p "Build and run on http://localhost:9001/ (You might get a JSHint failed message, that should be ok, Diva will be still running)? [y/n] " RUN
 if [ "$RUN" = "y" ]
 then
 echo "> gulp"

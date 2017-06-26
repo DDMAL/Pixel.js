@@ -26,6 +26,7 @@ export class UIManager
         this.destroyPixelCanvases(layers);
         this.destroyToolsView(["brush", "rectangle", "grab", "eraser"]);
         this.destroyLockedLayerSelectors(background);
+        this.destroyDownloadLinks();
     }
 
     // Tools are strings or enums
@@ -469,6 +470,16 @@ export class UIManager
     {
         let exportDiv = document.getElementById("pixel-export-div");
         exportDiv.parentNode.removeChild(exportDiv);
+    }
+
+    destroyDownloadLinks ()
+    {
+        let downloadElements = document.getElementsByClassName("export-download");
+
+        while(downloadElements[0])
+        {
+            downloadElements[0].parentNode.removeChild(downloadElements[0]);
+        }
     }
 
     createProgressCanvas (pageIndex, zoomLevel)
