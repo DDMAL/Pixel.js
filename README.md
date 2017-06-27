@@ -12,8 +12,6 @@ The following is a list of prerequisites that are necessary to run [```Diva.js``
 - [webpack](https://webpack.js.org/guides/installation/) v3.0.0 or higher
 - [gulp](https://www.npmjs.com/package/gulp)
 
-
-## Quick Start
 - Download [```Diva.js v.6.0```](https://github.com/DDMAL/diva.js/tree/develop-diva6) and [```Pixel.js```](https://github.com/DDMAL/Pixel.js/tree/develop).
 - If necessary, rename the pixel folder to ```Pixel.js``` and place the entire folder into `diva.js/source/js/plugins`
 - In `diva.js/webpack.config.js` you should find the list of plugins included in the Diva build like the following:
@@ -35,6 +33,7 @@ entry: {
     }
 ```
 
+## Quick Start
 - In the ```Pixel.js``` directory, run the `pixel.sh` script using the following command. (This will install the dependencies, build and run Diva with the pixel plugin instantiated).
 ```bash
 $ ./pixel.sh
