@@ -82,6 +82,11 @@ sudo npm install -g gulp webpack
 fi  # end install
 fi  # end OS
 
+# Mandatory installation of the newest stable version of npm
+sudo npm install -g npm
+sudo npm install -g n
+sudo n stable
+
 mkdir build
 mkdir build/css
 echo "> scp ./source/css/diva.css ./build/css/"
