@@ -502,9 +502,6 @@ export default class PixelPlugin
             case this.tools.type.select:
                 this.rectanglePreview(mousePos);
                 break;
-            case this.tools.type.select:
-                this.rectanglePreview(mousePos);
-                break;
             default:
         }
     }
