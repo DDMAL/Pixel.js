@@ -56,30 +56,9 @@ export default class PixelPlugin
             this.deactivatePlugin();
     }
 
-    tutorial ()
-    {
-        let overlay = document.createElement('canvas');
-        overlay.setAttribute("id", "tutorial canvas");
-        overlay.setAttribute("style", "position: absolute; top: 0; left: 0;");
-        overlay.width = window.innerWidth;
-        overlay.height = window.innerHeight;
-        let context = overlay.getContext('2d');
-        context.fillStyle = "rgba(0,0,0,0.8)";
-        context.fillRect(0, 0,overlay.width,overlay.height);
-
-        let h1 = document.createElement('h1');
-        h1.setAttribute("style", "position: absolute; top: 0; left: 0; color: #FFFFFF; font-family: sans-serif");
-        let text = document.createTextNode("Hello World");
-
-        h1.appendChild(text);
-
-        document.body.appendChild(overlay);
-        document.body.appendChild(h1);
-    }
-
     activatePlugin ()
     {
-        // this.tutorial();
+        this.tutorial();
 
         if (this.layers === null)
         {
@@ -87,13 +66,11 @@ export default class PixelPlugin
             let background = new Layer(0, new Colour(242, 242, 242, 1), "Background", this, 1),
                 layer1 = new Layer(1, new Colour(51, 102, 255, 1), "Layer 1", this, 0.5),
                 layer2 = new Layer(2, new Colour(255, 51, 102, 1), "Layer 2", this, 0.5),
-                layer3 = new Layer(3, new Colour(255, 255, 10, 1), "Layer 3", this, 0.5);
+                layer3 = new Layer(3, new Colour(255, 255, 10, 1), "Layer 3", this, 0.5),
+                layer4 = new Layer(4, new Colour(10, 255, 10, 1), "Layer 4", this, 0.5),
+                layer5 = new Layer(5, new Colour(255, 137, 0, 1), "Layer 5", this, 0.5);
 
-            layer1.addShapeToLayer(new Rectangle(new Point(23, 42, 0), 24, 24, "add"));
-            layer2.addShapeToLayer(new Rectangle(new Point(48, 50, 0), 57, 5, "add"));
-            layer3.addShapeToLayer(new Rectangle(new Point(50, 80, 0), 50, 10, "add"));
-
-            this.layers = [layer1, layer2, layer3];
+            this.layers = [layer1, layer2, layer3, layer4, layer5];
             this.background = background;
             this.background.canvas = this.core.getSettings().renderer._canvas;  // Link background canvas to the actual diva canvas
         }
@@ -977,6 +954,108 @@ export default class PixelPlugin
             zoomLevel = this.core.getSettings().zoomLevel;
 
         new Export(this, this.layers, pageIndex, zoomLevel, this.uiManager).exportLayersAsCSV();
+    }
+
+    /**
+     * ===============================================
+     *                     Tutorial
+     * ===============================================
+     **/
+
+    tutorial ()
+    {
+        let overlay = document.createElement('div');
+        overlay.setAttribute("id", "tutorial-div");
+
+        let background = document.createElement('div');
+        background.setAttribute("id", "tutorial-overlay");
+
+        let modal = document.createElement('div');
+        modal.setAttribute("id", "myModal");
+        modal.setAttribute("class", "modal");
+
+        let modalContent = document.createElement('div');
+        modalContent.setAttribute("class", "modal-content");
+
+        let modalHeader = document.createElement('div');
+        modalHeader.setAttribute("class", "modal-header");
+
+        let text = document.createTextNode("Hello, World");
+        let h2 = document.createElement('h2');
+        h2.appendChild(text);
+
+        let closeModal = document.createElement('span');
+        closeModal.setAttribute("class", "close");
+        closeModal.innerHTML = "&times;";
+
+        let modalBody = document.createElement('div');
+        modalBody.setAttribute("class", "modal-body");
+
+        let tutorialP = document.createElement('p');
+        tutorialP.innerHTML = "The following is a glossary of the hotkeys you will find useful when using Pixel.js";
+
+        let hotkeyGlossary = document.createElement('ul');
+        hotkeyGlossary.setAttribute("style", "list-style-type:none;");
+
+        let LayerSelect = document.createElement('li');
+        LayerSelect.innerHTML = "<kbd>1</kbd> ... <kbd>9</kbd> layer select";
+
+        let brushTool = document.createElement('li');
+        brushTool.innerHTML = "<kbd>b</kbd> brush tool";
+
+        let rectangleTool = document.createElement('li');
+        rectangleTool.innerHTML = "<kbd>r</kbd> rectangle tool";
+
+        let grabTool = document.createElement('li');
+        grabTool.innerHTML = "<kbd>g</kbd> grab tool";
+
+        let eraserTool = document.createElement('li');
+        eraserTool.innerHTML = "<kbd>e</kbd> eraser tool";
+
+        let shift = document.createElement('li');
+        shift.innerHTML = "<kbd>Shift</kbd>  force tools to paint in an exact way.";
+
+        let undo = document.createElement('li');
+        undo.innerHTML = "<kbd>cmd</kbd> + <kbd>z</kbd> undo";
+
+        let redo = document.createElement('li');
+        redo.innerHTML = "<kbd>cmd</kbd> + <kbd>Shift</kbd> + <kbd>z</kbd> redo";
+
+        let modalFooter = document.createElement('div');
+        modalFooter.setAttribute("class", "modal-footer");
+
+        let close = document.createElement('h2');
+        close.innerHTML = "Got It!";
+
+        hotkeyGlossary.appendChild(LayerSelect);
+        hotkeyGlossary.appendChild(brushTool);
+        hotkeyGlossary.appendChild(rectangleTool);
+        hotkeyGlossary.appendChild(grabTool);
+        hotkeyGlossary.appendChild(eraserTool);
+        hotkeyGlossary.appendChild(shift);
+        hotkeyGlossary.appendChild(undo);
+        hotkeyGlossary.appendChild(redo);
+
+        modal.appendChild(modalContent);
+        modalContent.appendChild(modalHeader);
+        modalContent.appendChild(modalBody);
+        modalContent.appendChild(modalFooter);
+        modalHeader.appendChild(h2);
+        modalHeader.appendChild(closeModal);
+        modalBody.appendChild(tutorialP);
+        modalBody.appendChild(hotkeyGlossary);
+        modalFooter.appendChild(close);
+
+        overlay.appendChild(background);
+        overlay.appendChild(modal);
+        document.body.appendChild(overlay);
+
+        modal.style.display = "block";
+
+        modalFooter.addEventListener("click", () =>
+        {
+            overlay.parentNode.removeChild(overlay);
+        });
     }
 }
 
