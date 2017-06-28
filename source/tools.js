@@ -8,7 +8,9 @@ export class Tools
                 brush: "brush",
                 rectangle: "rectangle",
                 grab: "grab",
-                eraser: "eraser",
+                eraser: "eraser"
+                //select: "select"
+
             };
         this.currentTool = this.type.brush;
     }
