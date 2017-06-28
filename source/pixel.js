@@ -84,10 +84,10 @@ export default class PixelPlugin
         if (this.layers === null)
         {
             // Start by creating layers
-            let background = new Layer(-1, new Colour(242, 242, 242, 1), "Background", this, 1),
-                layer1 = new Layer(0, new Colour(51, 102, 255, 1), "Layer 1", this, 0.5),
-                layer2 = new Layer(1, new Colour(255, 51, 102, 1), "Layer 2", this, 0.5),
-                layer3 = new Layer(2, new Colour(255, 255, 10, 1), "Layer 3", this, 0.5);
+            let background = new Layer(0, new Colour(242, 242, 242, 1), "Background", this, 1),
+                layer1 = new Layer(1, new Colour(51, 102, 255, 1), "Layer 1", this, 0.5),
+                layer2 = new Layer(2, new Colour(255, 51, 102, 1), "Layer 2", this, 0.5),
+                layer3 = new Layer(3, new Colour(255, 255, 10, 1), "Layer 3", this, 0.5);
 
             layer1.addShapeToLayer(new Rectangle(new Point(23, 42, 0), 24, 24, "add"));
             layer2.addShapeToLayer(new Rectangle(new Point(48, 50, 0), 57, 5, "add"));
@@ -343,7 +343,7 @@ export default class PixelPlugin
         // Selecting Layer
         if (key >= KEY_1 && key < KEY_1 + numberOfLayers && key <= KEY_9)
         {
-            this.highlightLayerSelector(key - KEY_1);
+            this.highlightLayerSelector(key - KEY_1 + 1);
 
             if (lastLayer !== this.selectedLayerIndex && this.mousePressed)
                 this.layerChangedMidDraw = true;

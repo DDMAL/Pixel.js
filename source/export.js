@@ -337,7 +337,7 @@ export class Export {
         let height = core.publicInstance.getPageDimensionsAtZoomLevel(this.pageIndex, this.zoomLevel).height,
             width = core.publicInstance.getPageDimensionsAtZoomLevel(this.pageIndex, this.zoomLevel).width;
 
-        this.matrix = new Array(height).fill(null).map(() => new Array(width).fill(-1));
+        this.matrix = new Array(height).fill(null).map(() => new Array(width).fill(0));
     }
 
     transformMatrixToCSV() {
@@ -390,7 +390,7 @@ export class Export {
 
         for (var row = 0; row < this.matrix.length; row++) {
             for (var col = 0; col < rowlen; col++) {
-                if (this.matrix[row][col] !== -1) {
+                if (this.matrix[row][col] !== 0) {
                     handleHit(row, col);
                 }
             }

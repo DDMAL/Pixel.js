@@ -185,11 +185,6 @@ export class UIManager
 
         layerActivationDiv.setAttribute("id", "layer-" + layer.layerId + "-activation");
 
-        if (layer.layerId === this.pixelInstance.selectedLayerIndex)
-        {
-            layerDiv.classList.add("selected-layer");
-        }
-
         colourDiv.addEventListener("click", () => { this.pixelInstance.displayColourOptions(); });
         layerActivationDiv.addEventListener("click", () => { this.pixelInstance.toggleLayerActivation(layer, layerActivationDiv); });
         layerName.addEventListener('keypress', (e) => { this.pixelInstance.editLayerName(e, layerName); });
@@ -279,7 +274,7 @@ export class UIManager
 
             layerActivationDiv.setAttribute("id", "layer-" + layer.layerId + "-activation");
 
-            if (layer.layerId === this.pixelInstance.selectedLayerIndex)
+            if (layer.layerId === this.pixelInstance.layers[this.pixelInstance.selectedLayerIndex].layerId)
             {
                 layerDiv.classList.add("selected-layer");
             }
@@ -306,6 +301,11 @@ export class UIManager
 
     createBrushSizeSelector ()
     {
+        let brushSizeDiv = document.createElement("div");
+        brushSizeDiv.setAttribute("class", "tool-settings");
+        brushSizeDiv.setAttribute("id", "brush-size");
+
+        let text = document.createTextNode("brush size:");
         let brushSizeSelector = document.createElement("input");
         brushSizeSelector.setAttribute("id", "brush-size-selector");
         brushSizeSelector.setAttribute("type", "range");
@@ -313,13 +313,15 @@ export class UIManager
         brushSizeSelector.setAttribute('min', 1);
         brushSizeSelector.setAttribute('value', 25);
 
-        document.body.appendChild(brushSizeSelector);
+        brushSizeDiv.appendChild(text);
+        brushSizeDiv.appendChild(brushSizeSelector);
+        document.body.appendChild(brushSizeDiv);
     }
 
     destroyBrushSizeSelector ()
     {
-        let brushSizeSelector = document.getElementById("brush-size-selector");
-        brushSizeSelector.parentNode.removeChild(brushSizeSelector);
+        let brushSizeDiv = document.getElementById("brush-size");
+        brushSizeDiv.parentNode.removeChild(brushSizeDiv);
     }
 
     createUndoButton ()
@@ -367,9 +369,9 @@ export class UIManager
         let csvExportButton = document.createElement("button"),
             csvExportText = document.createTextNode("Export as CSV"),
             pngExportButton = document.createElement("button"),
-            pngExportText = document.createTextNode("Export as PNG"),
+            pngExportText = document.createTextNode("Export as highlights PNG"),
             pngDataExportButton = document.createElement("button"),
-            pngDataExportText = document.createTextNode("Export as PNG Data");
+            pngDataExportText = document.createTextNode("Export as image Data PNG");
 
         this.exportCSV = () => { this.pixelInstance.exportAsCSV(); };
         this.exportPNG = () => { this.pixelInstance.exportAsHighlights(); };
