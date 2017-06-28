@@ -5,7 +5,13 @@
 - Transform [```Diva.js```](https://github.com/DDMAL/diva.js) from a document image viewer to a document editor and annotator.
 - Label every pixel of the image with its corresponding class (background, staff lines, text, etc...). This will be used to provide the ground truth data for the machine learning algorithm that classifies and isolates the different components of old manuscripts and scores.
 
-## Quick Start
+## Prerequisites
+The following is a list of prerequisites that are necessary to run [```Diva.js```](https://github.com/DDMAL/diva.js) (and thus Pixel.js). The script in the quick start section is intended to install them as well as build and run pixel.
+- [Node.js](https://github.com/nodesource/distributions#debinstall) v8.0.0 or higher
+- [npm](https://www.npmjs.com/get-npm) v5.0.0 or higher
+- [webpack](https://webpack.js.org/guides/installation/) v3.0.0 or higher
+- [gulp](https://www.npmjs.com/package/gulp)
+
 - Download [```Diva.js v.6.0```](https://github.com/DDMAL/diva.js/tree/develop-diva6) and [```Pixel.js```](https://github.com/DDMAL/Pixel.js/tree/develop).
 - If necessary, rename the pixel folder to ```Pixel.js``` and place the entire folder into `diva.js/source/js/plugins`
 - In `diva.js/webpack.config.js` you should find the list of plugins included in the Diva build like the following:
@@ -27,11 +33,11 @@ entry: {
     }
 ```
 
-- In the ```Pixel.js``` directory, run the `pixel.sh` script using the following command.
+## Quick Start
+- In the ```Pixel.js``` directory, run the `pixel.sh` script using the following command. (This will install the dependencies, build and run Diva with the pixel plugin instantiated).
 ```bash
 $ ./pixel.sh
-```
-This will install the dependencies, build and run Diva with the pixel plugin instantiated. 
+``` 
 - By the end of the script, You might get a JSHint error. This is okay, Diva should be running on ```http://localhost:9001/``` 
 - You can now start using Pixel by pressing on the pixel plugin icon on top of a page (black square)
 
@@ -47,13 +53,7 @@ var diva = new Diva('diva-wrapper', {
 ```
 
 ### Running Diva.js
-- Running diva requires [npm](https://www.npmjs.com/), [gulp](http://gulpjs.com/), and [webpack](https://webpack.github.io/). You can install these using [homebrew](https://brew.sh/) and running the following commands
-```bash
-$ brew install npm
-$ brew install gulp
-$ brew install webpack
-```
-- Now to run diva, run the following commands
+- To run diva, make sure that all the prerequisites are met then run the following commands
 ```bash
 $ npm install 
 $ npm install -g gulp webpack

@@ -20,7 +20,7 @@ export class Point
      * @param zoomLevel
      * @returns {{x: number, y: number}}
      */
-    getAbsoluteCoordinates(zoomLevel)
+    getCoordsInPage(zoomLevel)
     {
         let scaleRatio = Math.pow(2,zoomLevel);
         return {
@@ -38,12 +38,12 @@ export class Point
      * @param renderer
      * @returns {{x: number, y: number}}
      */
-    getAbsolutePaddedCoordinates(zoomLevel, pageIndex, renderer)
+    getCoordsInViewport(zoomLevel, pageIndex, renderer)
     {
         const viewportPaddingX = Math.max(0, (renderer._viewport.width - renderer.layout.dimensions.width) / 2);
         const viewportPaddingY = Math.max(0, (renderer._viewport.height - renderer.layout.dimensions.height) / 2);
 
-        let absoluteCoordinates = this.getAbsoluteCoordinates(zoomLevel);
+        let absoluteCoordinates = this.getCoordsInPage(zoomLevel);
 
         // Calculates where the highlights should be drawn as a function of the whole canvas coordinates system
         // (to make it look like it is on top of a page in Diva)

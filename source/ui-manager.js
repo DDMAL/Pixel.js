@@ -26,6 +26,7 @@ export class UIManager
         this.destroyPixelCanvases(layers);
         this.destroyToolsView(["brush", "rectangle", "grab", "eraser"]);
         this.destroyLockedLayerSelectors(background);
+        this.destroyDownloadLinks();
     }
 
     // Tools are strings or enums
@@ -87,15 +88,15 @@ export class UIManager
             layer.placeCanvasAfterElement(divaCanvas);
 
             if (layer.isActivated())
-                layer.getCanvas().setAttribute("style", layer.getLayerOpacityCSSString());
+                layer.getCanvas().style.opacity = layer.getLayerOpacity();
             else
-                layer.getCanvas().setAttribute("style", "opacity: 0;");
+                layer.getCanvas().style.opacity = 0;
         }
 
         if (this.pixelInstance.background.isActivated())
-            this.pixelInstance.background.getCanvas().setAttribute("style", this.pixelInstance.background.getLayerOpacityCSSString());
+            this.pixelInstance.background.getCanvas().style.opacity = this.pixelInstance.background.getLayerOpacity();
         else
-            this.pixelInstance.background.getCanvas().setAttribute("style", "opacity: 0;");
+            this.pixelInstance.background.getCanvas().style.opacity = 0;
     }
 
     destroyPixelCanvases (layers)
@@ -132,7 +133,7 @@ export class UIManager
         {
             layer.setLayerOpacity(opacitySlider.value / 50);
             if (layer.isActivated())    // Respecify opacity only when the layer is activated
-                layer.getCanvas().setAttribute("style", layer.getLayerOpacityCSSString());
+                layer.getCanvas().style.opacity = layer.getLayerOpacity();
         });
 
         opacityText.appendChild(text);
@@ -184,11 +185,6 @@ export class UIManager
 
         layerActivationDiv.setAttribute("id", "layer-" + layer.layerId + "-activation");
 
-        if (layer.layerId === this.pixelInstance.selectedLayerIndex)
-        {
-            layerDiv.classList.add("selected-layer");
-        }
-
         colourDiv.addEventListener("click", () => { this.pixelInstance.displayColourOptions(); });
         layerActivationDiv.addEventListener("click", () => { this.pixelInstance.toggleLayerActivation(layer, layerActivationDiv); });
         layerName.addEventListener('keypress', (e) => { this.pixelInstance.editLayerName(e, layerName); });
@@ -200,7 +196,7 @@ export class UIManager
         layerDiv.appendChild(layerActivationDiv);
         backgroundViewDiv.appendChild(layerDiv);
 
-        this.pixelInstance.background.getCanvas().setAttribute("style", "opacity: 1;");
+        this.pixelInstance.background.getCanvas().style.opacity = 1;
 
         document.body.appendChild(backgroundViewDiv);
     }
@@ -278,7 +274,7 @@ export class UIManager
 
             layerActivationDiv.setAttribute("id", "layer-" + layer.layerId + "-activation");
 
-            if (layer.layerId === this.pixelInstance.selectedLayerIndex)
+            if (layer.layerId === this.pixelInstance.layers[this.pixelInstance.selectedLayerIndex].layerId)
             {
                 layerDiv.classList.add("selected-layer");
             }
@@ -305,20 +301,27 @@ export class UIManager
 
     createBrushSizeSelector ()
     {
+        let brushSizeDiv = document.createElement("div");
+        brushSizeDiv.setAttribute("class", "tool-settings");
+        brushSizeDiv.setAttribute("id", "brush-size");
+
+        let text = document.createTextNode("brush size:");
         let brushSizeSelector = document.createElement("input");
         brushSizeSelector.setAttribute("id", "brush-size-selector");
         brushSizeSelector.setAttribute("type", "range");
-        brushSizeSelector.setAttribute('max', 50);
+        brushSizeSelector.setAttribute('max', 40);
         brushSizeSelector.setAttribute('min', 1);
-        brushSizeSelector.setAttribute('value', 10);
+        brushSizeSelector.setAttribute('value', 25);
 
-        document.body.appendChild(brushSizeSelector);
+        brushSizeDiv.appendChild(text);
+        brushSizeDiv.appendChild(brushSizeSelector);
+        document.body.appendChild(brushSizeDiv);
     }
 
     destroyBrushSizeSelector ()
     {
-        let brushSizeSelector = document.getElementById("brush-size-selector");
-        brushSizeSelector.parentNode.removeChild(brushSizeSelector);
+        let brushSizeDiv = document.getElementById("brush-size");
+        brushSizeDiv.parentNode.removeChild(brushSizeDiv);
     }
 
     createUndoButton ()
@@ -366,9 +369,9 @@ export class UIManager
         let csvExportButton = document.createElement("button"),
             csvExportText = document.createTextNode("Export as CSV"),
             pngExportButton = document.createElement("button"),
-            pngExportText = document.createTextNode("Export as PNG"),
+            pngExportText = document.createTextNode("Export as highlights PNG"),
             pngDataExportButton = document.createElement("button"),
-            pngDataExportText = document.createTextNode("Export as PNG Data");
+            pngDataExportText = document.createTextNode("Export as image Data PNG");
 
         this.exportCSV = () => { this.pixelInstance.exportAsCSV(); };
         this.exportPNG = () => { this.pixelInstance.exportAsHighlights(); };
@@ -471,6 +474,16 @@ export class UIManager
         exportDiv.parentNode.removeChild(exportDiv);
     }
 
+    destroyDownloadLinks ()
+    {
+        let downloadElements = document.getElementsByClassName("export-download");
+
+        while(downloadElements[0])
+        {
+            downloadElements[0].parentNode.removeChild(downloadElements[0]);
+        }
+    }
+
     createProgressCanvas (pageIndex, zoomLevel)
     {
         let height = this.pixelInstance.core.publicInstance.getPageDimensionsAtZoomLevel(pageIndex, zoomLevel).height,
@@ -478,10 +491,18 @@ export class UIManager
 
         let progressCanvas = document.createElement('canvas');
         progressCanvas.setAttribute("id", "progress-canvas");
-        progressCanvas.setAttribute("style", "opacity: 0.3;");
+        progressCanvas.style.opacity = 0.3;
         progressCanvas.width = width;
         progressCanvas.height = height;
         progressCanvas.globalAlpha = 1;
+
+        let w = window,
+            d = document,
+            e = d.documentElement,
+            g = d.getElementsByTagName('body')[0],
+            y = w.innerHeight|| e.clientHeight|| g.clientHeight;
+
+        progressCanvas.style.height = y + "px";
 
         let exportDiv = document.getElementById("pixel-export-div");
         exportDiv.appendChild(progressCanvas);
@@ -492,5 +513,13 @@ export class UIManager
     markToolSelected (tool)
     {
         document.getElementById(tool).checked = true;
+    }
+
+    getBrushSizeSelectorValue ()
+    {
+        // Brush size relative to scaleRatio to allow for more precise manipulations on higher zoom levels
+        let brushSizeSlider = document.getElementById("brush-size-selector")
+        let brushSizeValue = (brushSizeSlider.value / brushSizeSlider.max) * 10;
+        return 0.05 + Math.exp(brushSizeValue - 6); // 0.05 + e ^ (x - 6) was the most intuitive function we found in terms of brush size range
     }
 }

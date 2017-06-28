@@ -17,7 +17,7 @@ export class Circle extends Shape
      * @param renderer
      * @param canvas
      */
-    draw (layer, pageIndex, zoomLevel, renderer, canvas)
+    drawInViewport (layer, pageIndex, zoomLevel, renderer, canvas)
     {
         let scaleRatio = Math.pow(2,zoomLevel);
         let ctx = canvas.getContext('2d');
@@ -26,7 +26,7 @@ export class Circle extends Shape
         {
             // Calculates where the highlights should be drawn as a function of the whole webpage coordinates
             // (to make it look like it is on top of a page in Diva)
-            let absoluteCenterWithPadding = this.origin.getAbsolutePaddedCoordinates(zoomLevel, pageIndex, renderer);
+            let absoluteCenterWithPadding = this.origin.getCoordsInViewport(zoomLevel, pageIndex, renderer);
 
             //Draw the circle
             ctx.fillStyle = layer.colour.toHTMLColour();
@@ -44,7 +44,7 @@ export class Circle extends Shape
      * @param renderer
      * @param canvas
      */
-    drawAbsolute (layer, pageIndex, zoomLevel, renderer, canvas)
+    drawOnPage (layer, pageIndex, zoomLevel, renderer, canvas)
     {
         let scaleRatio = Math.pow(2,zoomLevel);
         let ctx = canvas.getContext('2d');
@@ -53,7 +53,7 @@ export class Circle extends Shape
         {
             // Calculates where the highlights should be drawn as a function of the whole webpage coordinates
             // (to make it look like it is on top of a page in Diva)
-            let absoluteCenter = this.origin.getAbsoluteCoordinates(zoomLevel);
+            let absoluteCenter = this.origin.getCoordsInPage(zoomLevel);
 
             //Draw the circle
             ctx.fillStyle = layer.colour.toHTMLColour();
@@ -84,12 +84,12 @@ export class Circle extends Shape
 
         let scaleRatio = Math.pow(2, zoomLevel);
 
-        for(var y = circleTop.getAbsolutePaddedCoordinates(zoomLevel, pageIndex, renderer).y;
-            y <= circleBottom.getAbsolutePaddedCoordinates(zoomLevel, pageIndex, renderer).y; y++)
+        for(var y = circleTop.getCoordsInViewport(zoomLevel, pageIndex, renderer).y;
+            y <= circleBottom.getCoordsInViewport(zoomLevel, pageIndex, renderer).y; y++)
         {
-            for(var  x = circleLeft.getAbsolutePaddedCoordinates(zoomLevel, pageIndex, renderer).x;
-                x <= circleRight.getAbsolutePaddedCoordinates(zoomLevel, pageIndex, renderer).x; x++){
-                let point1highlightOffset = this.origin.getAbsolutePaddedCoordinates(zoomLevel, pageIndex, renderer);
+            for(var  x = circleLeft.getCoordsInViewport(zoomLevel, pageIndex, renderer).x;
+                x <= circleRight.getCoordsInViewport(zoomLevel, pageIndex, renderer).x; x++){
+                let point1highlightOffset = this.origin.getCoordsInViewport(zoomLevel, pageIndex, renderer);
 
                 let shiftedX = x - point1highlightOffset.x;
                 let shiftedY = y - point1highlightOffset.y;
