@@ -83,13 +83,11 @@ export default class PixelPlugin
 
         if (this.layers === null)
         {
-            let divaCanvas = this.core.getSettings().renderer._canvas;
-
             // Start by creating layers
-            let background = new Layer(-1, new Colour(242, 242, 242, 1), "Background", divaCanvas, 1),
-                layer1 = new Layer(0, new Colour(51, 102, 255, 1), "Layer 1", divaCanvas, 0.5),
-                layer2 = new Layer(1, new Colour(255, 51, 102, 1), "Layer 2", divaCanvas, 0.5),
-                layer3 = new Layer(2, new Colour(255, 255, 10, 1), "Layer 3", divaCanvas, 0.5);
+            let background = new Layer(-1, new Colour(242, 242, 242, 1), "Background", this, 1),
+                layer1 = new Layer(0, new Colour(51, 102, 255, 1), "Layer 1", this, 0.5),
+                layer2 = new Layer(1, new Colour(255, 51, 102, 1), "Layer 2", this, 0.5),
+                layer3 = new Layer(2, new Colour(255, 255, 10, 1), "Layer 3", this, 0.5);
 
             layer1.addShapeToLayer(new Rectangle(new Point(23, 42, 0), 24, 24, "add"));
             layer2.addShapeToLayer(new Rectangle(new Point(48, 50, 0), 57, 5, "add"));
@@ -107,9 +105,10 @@ export default class PixelPlugin
         this.zoomEventHandle = this.subscribeToZoomLevelWillChangeEvent();
 
         this.disableDragScrollable();
+        this.subscribeToWindowResizeEvent();
         this.subscribeToMouseEvents();
         this.subscribeToKeyboardEvents();
-        this.repaint();  // Repaint the tiles to retrigger VisibleTilesDidLoad
+        this.redrawAllLayers();  // Repaint the tiles to retrigger VisibleTilesDidLoad
 
         this.activated = true;
     }
@@ -121,8 +120,7 @@ export default class PixelPlugin
 
         this.unsubscribeFromMouseEvents();
         this.unsubscribeFromKeyboardEvents();
-        this.unsubscribeFromKeyboardPress();
-        this.repaint(); // Repaint the tiles to make the highlights disappear off the page
+        this.redrawAllLayers(); // Repaint the tiles to make the highlights disappear off the page
 
         this.uiManager.destroyPluginElements(this.layers, this.background);
 
@@ -179,11 +177,25 @@ export default class PixelPlugin
      * ===============================================
      **/
 
+    subscribeToWindowResizeEvent ()
+    {
+        window.addEventListener("resize", () =>
+        {
+            this.layers.forEach((layer) =>
+            {
+                layer.placeLayerCanvasOnTopOfEditingPage();
+            });
+        });
+    }
+
     subscribeToZoomLevelWillChangeEvent ()
     {
         let handle = global.Diva.Events.subscribe('ZoomLevelWillChange', (zoomLevel) =>
         {
-            this.drawHighlights(zoomLevel);
+            this.layers.forEach((layer) =>
+            {
+                layer.resizeLayerCanvasToZoomLevel(zoomLevel);
+            });
         });
 
         return handle;
@@ -193,7 +205,10 @@ export default class PixelPlugin
     {
         let handle = global.Diva.Events.subscribe('ViewerDidScroll', () =>
         {
-            this.drawHighlights(this.core.getSettings().zoomLevel);
+            this.layers.forEach((layer) =>
+            {
+                layer.placeLayerCanvasOnTopOfEditingPage();
+            });
         });
 
         return handle;
@@ -251,14 +266,9 @@ export default class PixelPlugin
         document.removeEventListener("keydown", this.keyboardHandles.keydown);
     }
 
-    unsubscribeFromKeyboardPress ()
-    {
-        document.removeEventListener("keydown", this.keyboardHandles);
-    }
-
     /**
      * ===============================================
-     *       Handling Keyboard and Mouse Events
+     *        Handling Keyboard and Mouse Events
      * ===============================================
      *         Layer reordering (Drag and Drop)
      * -----------------------------------------------
@@ -303,15 +313,15 @@ export default class PixelPlugin
             }
             this.layers[destinationLayerIndex] = tempLayerStorage;
         }
+
+        this.selectedLayerIndex = destinationLayerIndex;
         this.uiManager.destroyPluginElements(this.layers, this.background);
         this.uiManager.createPluginElements(this.layers);
-        this.selectedLayerIndex = destinationLayerIndex;
-        this.highlightLayerSelector(this.layers[this.selectedLayerIndex].layerId); // Layer Type and not index
-        // TODO: Optimization: Instead of destroying all of the canvases only destroy and reorder the ones of interest
-        this.uiManager.destroyPixelCanvases(this.layers);
+        this.uiManager.destroyPixelCanvases(this.layers);   // TODO: Optimization: Instead of destroying all of the canvases only destroy and reorder the ones of interest
         this.uiManager.placeLayerCanvasesInDiva(this.layers);
         this.uiManager.placeLayerCanvasesInDiva(this.background);
-        this.repaint();
+        this.highlightLayerSelector(this.layers[this.selectedLayerIndex].layerId);
+        this.redrawAllLayers();
     }
 
     /**
@@ -330,6 +340,7 @@ export default class PixelPlugin
             numberOfLayers = this.layers.length,
             key = e.keyCode ? e.keyCode : e.which;
 
+        // Selecting Layer
         if (key >= KEY_1 && key < KEY_1 + numberOfLayers && key <= KEY_9)
         {
             this.highlightLayerSelector(key - KEY_1);
@@ -337,47 +348,38 @@ export default class PixelPlugin
             if (lastLayer !== this.selectedLayerIndex && this.mousePressed)
                 this.layerChangedMidDraw = true;
         }
+
         if (key === SHIFT_KEY)
             this.shiftDown = false;
     }
 
     onKeyDown (e)
     {
-        // Cmd + Z
-        if (e.code === "KeyZ" && e.shiftKey === false)
+        switch (e.key)
         {
-            this.undoAction();
-        }
-        // Cmd + Shift + Z
-        else if (e.code === "KeyZ" && e.shiftKey === true)
-        {
-            this.redoAction();
-        }
-        else if (e.key === "Shift")
-        {
-            this.shiftDown = true;
-        }
-        else if (e.key === "b")
-        {
-            this.tools.setCurrentTool(this.tools.type.brush);
-        }
-        else if (e.key === "r")
-        {
-            this.tools.setCurrentTool(this.tools.type.rectangle);
-        }
-        else if (e.key === "g")
-        {
-            this.tools.setCurrentTool(this.tools.type.grab);
-        }
-        else if (e.key === "e")
-        {
-            this.tools.setCurrentTool(this.tools.type.eraser);
-        }
-        else if (e.key === "s")
-        {
-            this.disableDragScrollable();
-            this.currentTool =  "select";
-            document.getElementById(this.currentTool).checked = true;
+            case "z":
+                if (e.ctrlKey || e.metaKey)                // Cmd + Z
+                    this.undoAction();
+                break;
+            case "Z":
+                if (e.ctrlKey || e.metaKey)                 // Cmd + Shift + Z
+                    this.redoAction();
+                break;
+            case "Shift":
+                this.shiftDown = true;
+                break;
+            case "b":
+                this.tools.setCurrentTool(this.tools.type.brush);
+                break;
+            case "r":
+                this.tools.setCurrentTool(this.tools.type.rectangle);
+                break;
+            case "g":
+                this.tools.setCurrentTool(this.tools.type.grab);
+                break;
+            case "e":
+                this.tools.setCurrentTool(this.tools.type.eraser);
+                break;
         }
     }
 
@@ -414,7 +416,8 @@ export default class PixelPlugin
 
     onMouseDown (evt)
     {
-        let canvas = document.getElementById("diva-1-outer");
+        let mouseClickDiv = document.getElementById("diva-1-outer"),
+            mousePos = this.getMousePos(mouseClickDiv, evt);
         if (evt.which === 1)
         {
             this.rightMousePressed = false;
@@ -422,22 +425,22 @@ export default class PixelPlugin
             {
                 case this.tools.type.brush:
                     this.mousePressed = true;
-                    this.initializeNewPathInCurrentLayer(canvas, evt);
+                    this.initializeNewPathInCurrentLayer(mousePos);
                     break;
                 case this.tools.type.rectangle:
                     this.mousePressed = true;
-                    this.initializeRectanglePreview(canvas, evt);
+                    this.initializeRectanglePreview(mousePos);
                     break;
                 case this.tools.type.grab:
                     this.mousePressed = true;
                     break;
                 case this.tools.type.eraser:
                     this.mousePressed = true;
-                    this.initializeNewPathInCurrentLayer(canvas, evt);
+                    this.initializeNewPathInCurrentLayer(mousePos);
                     break;
                 case this.tools.type.select:
                     this.mousePressed = true;
-                    this.initializeRectanglePreview(canvas, evt);
+                    this.initializeRectanglePreview(mousePos);
                     break;
                 default:
                     this.mousePressed = true;
@@ -448,14 +451,17 @@ export default class PixelPlugin
             this.rightMousePressed = true;
             switch (this.tools.getCurrentTool())
             {
+                case this.tools.type.brush:
+                    this.mousePressed = false;
+                    //TODO: brush size change on mouse drag here!
+                    break;
                 case this.tools.type.rectangle:
                     this.mousePressed = true;
-                    this.initializeRectanglePreview(canvas, evt);
+                    this.initializeRectanglePreview(mousePos);
                     break;
                 default:
                     this.mousePressed = true;
             }
-
         }
 
         // FIXME: At deactivation mouse is down so it clears the actions to redo
@@ -464,20 +470,22 @@ export default class PixelPlugin
 
     onMouseMove (evt)
     {
-        let canvas = document.getElementById("diva-1-outer");
+        let mouseClickDiv = document.getElementById("diva-1-outer"),
+            mousePos = this.getMousePos(mouseClickDiv, evt);
+
         switch (this.tools.getCurrentTool())
         {
             case this.tools.type.brush:
-                this.addPointToCurrentPath(canvas, evt);
+                this.addPointToCurrentPath(mousePos);
                 break;
             case this.tools.type.rectangle:
-                this.rectanglePreview(canvas,evt);
+                this.rectanglePreview(mousePos);
                 break;
             case this.tools.type.eraser:
-                this.addPointToCurrentPath(canvas, evt);
+                this.addPointToCurrentPath(mousePos);
                 break;
             case "select":
-                this.rectanglePreview(canvas, evt);
+                this.rectanglePreview(mousePos);
                 break;
             default:
         }
@@ -539,7 +547,7 @@ export default class PixelPlugin
         {
             layerActivationDiv.classList.remove("layer-deactivated");
             layerActivationDiv.classList.add("layer-activated");
-            layer.getCanvas().setAttribute("style", layer.getLayerOpacityCSSString());
+            layer.getCanvas().style.opacity = layer.getLayerOpacity();
 
             if (layer.layerId === -1)      // Background
             {
@@ -548,7 +556,7 @@ export default class PixelPlugin
             else
             {
                 layer.activateLayer();
-                this.repaintLayer(layer);
+                this.redrawLayer(layer);
             }
         }
         else    // Deactivating
@@ -558,8 +566,7 @@ export default class PixelPlugin
 
             if (layer.layerId === -1)      // Background
             {
-                let opacityStr = "opacity : 0;";
-                layer.getCanvas().setAttribute("style", opacityStr);
+                layer.getCanvas().style.opacity = 0;
                 layer.activated = false;
             }
             else
@@ -597,7 +604,7 @@ export default class PixelPlugin
                 this.actions.push(actionToRedo);
                 this.undoneActions.splice(this.undoneActions.length - 1,1);
             }
-            this.repaintLayer(actionToRedo.layer);
+            this.redrawLayer(actionToRedo.layer);
         }
     }
 
@@ -630,7 +637,7 @@ export default class PixelPlugin
                 actionToRemove.layer.removeShapeFromLayer(actionToRemove.action);
                 this.actions.splice(index, 1);
             }
-            this.repaintLayer(actionToRemove.layer);
+            this.redrawLayer(actionToRemove.layer);
         }
     }
 
@@ -665,14 +672,13 @@ export default class PixelPlugin
         });
     }
 
-    initializeNewPathInCurrentLayer (canvas, evt)
+    initializeNewPathInCurrentLayer (mousePos)
     {
         if (!this.layers[this.selectedLayerIndex].isActivated())
             return;
 
         let pageIndex = this.core.getSettings().currentPageIndex,
-            zoomLevel = this.core.getSettings().zoomLevel,
-            mousePos = this.getMousePos(canvas, evt),
+            zoomLevel = this.core.getSettings().maxZoomLevel,
             relativeCoords = this.getRelativeCoordinatesFromPadded(mousePos.x, mousePos.y);
 
         // Make sure user is not drawing outside of a diva page
@@ -680,7 +686,7 @@ export default class PixelPlugin
         {
             let selectedLayer = this.layers[this.selectedLayerIndex],
                 point = new Point(relativeCoords.x, relativeCoords.y, pageIndex),
-                brushSize = document.getElementById("brush-size-selector").value / 10;
+                brushSize = this.uiManager.getBrushSizeSelectorValue();
 
             this.lastRelCoordX = relativeCoords.x;
             this.lastRelCoordY = relativeCoords.y;
@@ -699,7 +705,7 @@ export default class PixelPlugin
 
             // Add path to list of actions (used for undo/redo)
             this.actions.push(new Action(selectedLayer.getCurrentPath(), selectedLayer));
-            selectedLayer.getCurrentPath().connectPoint(selectedLayer, point, pageIndex, zoomLevel, false, this.core.getSettings().renderer, selectedLayer.getCanvas(), "viewport");
+            selectedLayer.getCurrentPath().connectPoint(selectedLayer, point, pageIndex, zoomLevel, false, this.core.getSettings().renderer, selectedLayer.getCanvas(), "page");
         }
         else
         {
@@ -707,14 +713,13 @@ export default class PixelPlugin
         }
     }
 
-    addPointToCurrentPath (canvas, evt)
+    addPointToCurrentPath (mousePos)
     {
         if (!this.layers[this.selectedLayerIndex].isActivated())
             return;
 
         let point,
             horizontalMove = false,
-            mousePos = this.getMousePos(canvas, evt),
             relativeCoords = this.getRelativeCoordinatesFromPadded(mousePos.x, mousePos.y);
 
         // FIXME: direction of line drawing should be calculated only after the first shift button press
@@ -731,7 +736,7 @@ export default class PixelPlugin
         if (!this.layerChangedMidDraw)
         {
             let pageIndex = this.core.getSettings().currentPageIndex,
-                zoomLevel = this.core.getSettings().zoomLevel;
+                zoomLevel = this.core.getSettings().maxZoomLevel;
 
             if (this.mousePressed && this.shiftDown)
             {
@@ -759,23 +764,22 @@ export default class PixelPlugin
             }
 
             let layer = this.layers[this.selectedLayerIndex];
-            layer.getCurrentPath().connectPoint(layer, point, pageIndex, zoomLevel, true, this.core.getSettings().renderer, layer.getCanvas(), "viewport");
+            layer.getCurrentPath().connectPoint(layer, point, pageIndex, zoomLevel, true, this.core.getSettings().renderer, layer.getCanvas(), "page");
 
             return;
         }
 
         // If layer changed mid drawing then create a new path on selected layer
-        this.initializeNewPathInCurrentLayer(canvas, evt);
+        this.initializeNewPathInCurrentLayer(mousePos);
         this.layerChangedMidDraw = false;
     }
 
-    initializeRectanglePreview (canvas, evt)
+    initializeRectanglePreview (mousePos)
     {
         if (!this.layers[this.selectedLayerIndex].isActivated())
             return;
 
         let pageIndex = this.core.getSettings().currentPageIndex,
-            mousePos = this.getMousePos(canvas, evt),
             relativeCoords = this.getRelativeCoordinatesFromPadded(mousePos.x, mousePos.y);
 
         if (this.isInPageBounds(relativeCoords.x, relativeCoords.y))
@@ -792,11 +796,11 @@ export default class PixelPlugin
 
 
             this.actions.push(new Action(selectedLayer.getCurrentShape(), selectedLayer));
-            this.repaintLayer(selectedLayer);
+            this.redrawLayer(selectedLayer);
         }
     }
 
-    rectanglePreview (canvas, evt)
+    rectanglePreview (mousePos)
     {
         if (!this.layers[this.selectedLayerIndex].isActivated())
             return;
@@ -805,8 +809,7 @@ export default class PixelPlugin
         {
             if (this.mousePressed)
             {
-                let mousePos = this.getMousePos(canvas, evt),
-                    relativeCoords = this.getRelativeCoordinatesFromPadded(mousePos.x, mousePos.y),
+                let relativeCoords = this.getRelativeCoordinatesFromPadded(mousePos.x, mousePos.y),
                     lastShape = this.layers[this.selectedLayerIndex].getCurrentShape();
 
                 if (!this.isInPageBounds(relativeCoords.x, relativeCoords.y))
@@ -850,14 +853,14 @@ export default class PixelPlugin
                     else
                         lastShape.relativeRectHeight = relativeCoords.y - lastShape.origin.relativeOriginY;
                 }
-                this.repaintLayer(this.layers[this.selectedLayerIndex]);
+                this.redrawLayer(this.layers[this.selectedLayerIndex]);
             }
         }
         else
         {
             // Create a new rectangle to which the change will be
             this.layerChangedMidDraw = false;
-            this.initializeRectanglePreview(canvas, evt);
+            this.initializeRectanglePreview(mousePos);
         }
     }
 
@@ -872,14 +875,17 @@ export default class PixelPlugin
         return false;
     }
 
-    repaintLayer (layer)
+    redrawLayer (layer)
     {
-        this.drawLayer(this.core.getSettings().zoomLevel, layer, layer.getCanvas());
+        layer.drawLayer(this.core.getSettings().maxZoomLevel, layer.getCanvas());
     }
 
-    repaint ()
+    redrawAllLayers ()
     {
-        this.drawHighlights(this.core.getSettings().zoomLevel);
+        this.layers.forEach((layer) =>
+        {
+            this.redrawLayer(layer);
+        });
     }
 
     isInPageBounds (relativeX, relativeY)
@@ -889,7 +895,7 @@ export default class PixelPlugin
             renderer  = this.core.getSettings().renderer;
 
         let pageDimensions = this.core.publicInstance.getCurrentPageDimensionsAtCurrentZoomLevel(),
-            absolutePageOrigin = new Point(0,0).getAbsolutePaddedCoordinates(zoomLevel,pageIndex,renderer),
+            absolutePageOrigin = new Point(0,0).getCoordsInViewport(zoomLevel,pageIndex,renderer),
             absolutePageWidthOffset = pageDimensions.width + absolutePageOrigin.x,  //Taking into account the padding, etc...
             absolutePageHeightOffset = pageDimensions.height + absolutePageOrigin.y,
             relativeBounds = this.getRelativeCoordinatesFromPadded(absolutePageWidthOffset, absolutePageHeightOffset);
@@ -921,41 +927,6 @@ export default class PixelPlugin
         };
     }
 
-    drawLayer (zoomLevel, layer, canvas)
-    {
-        if (!layer.isActivated())
-            return;
-
-        let ctx = canvas.getContext('2d');
-        ctx.clearRect(0, 0, canvas.width, canvas.height);
-
-        let renderer = this.core.getSettings().renderer;
-
-        renderer._renderedPages.forEach((pageIndex) =>
-        {
-            layer.actions.forEach((action) =>
-            {
-                action.draw(layer, pageIndex, zoomLevel, renderer, canvas);
-            });
-        });
-    }
-
-    // Called on export
-    drawLayerOnPageCanvas (layer, zoomLevel, canvas, pageIndex)
-    {
-        layer.actions.forEach((action) =>
-        {
-            action.drawAbsolute(layer, pageIndex, zoomLevel, this.core.getSettings().renderer, canvas);
-        });
-    }
-
-    drawHighlights (zoomLevel)
-    {
-        this.layers.forEach((layer) =>
-        {
-            this.drawLayer(zoomLevel, layer, layer.getCanvas());
-        });
-    }
     /**
      * ===============================================
      *                    Export

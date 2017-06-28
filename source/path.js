@@ -15,7 +15,7 @@ export class Path
         this.points.push(point);
     }
 
-    draw (layer, pageIndex, zoomLevel, renderer, canvas)
+    drawInViewport (layer, pageIndex, zoomLevel, renderer, canvas)
     {
         let isDown = false;
         this.points.forEach((point) => {
@@ -24,7 +24,7 @@ export class Path
         });
     }
 
-    drawAbsolute (layer, pageIndex, zoomLevel, renderer, canvas)
+    drawOnPage (layer, pageIndex, zoomLevel, renderer, canvas)
     {
         let isDown = false;
         this.points.forEach((point) => {
@@ -47,13 +47,13 @@ export class Path
         switch (coordinatesSystem)
         {
             case "viewport":
-                coordinates = point.getAbsolutePaddedCoordinates(zoomLevel, pageIndex, renderer);
+                coordinates = point.getCoordsInViewport(zoomLevel, pageIndex, renderer);
                 break;
             case "page":
-                coordinates = point.getAbsoluteCoordinates(zoomLevel);
+                coordinates = point.getCoordsInPage(zoomLevel);
                 break;
             default:
-                coordinates = point.getAbsolutePaddedCoordinates(zoomLevel, pageIndex, renderer);
+                coordinates = point.getCoordsInViewport(zoomLevel, pageIndex, renderer);
         }
 
         let highlightXOffset = coordinates.x,
