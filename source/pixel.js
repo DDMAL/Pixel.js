@@ -416,7 +416,6 @@ export default class PixelPlugin
         let canvas = document.getElementById("diva-1-outer");
         if (evt.which === 1)
         {
-            console.log("Entered evt 1");
             this.rightMousePressed = false;
             switch (this.tools.getCurrentTool())
             {
@@ -445,7 +444,6 @@ export default class PixelPlugin
         }
         else if (evt.which === 3)
         {
-            console.log("entered evt 3");
             this.rightMousePressed = true;
             switch (this.tools.getCurrentTool())
             {

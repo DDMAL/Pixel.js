@@ -45,7 +45,6 @@ export class Rectangle extends Shape
                     // (to make it look like it is on top of a page in Diva)
                     let highlightXOffset = renderer._getImageOffset(pageIndex).left - renderer._viewport.left + viewportPaddingX + absoluteRectOriginX,
                         highlightYOffset = renderer._getImageOffset(pageIndex).top - renderer._viewport.top + viewportPaddingY + absoluteRectOriginY;
-
                     //Draw the selection rectangle
                     ctx.fillStyle = 'rgba(147, 192, 255, 0.3)';
                     ctx.lineWidth = 1;
