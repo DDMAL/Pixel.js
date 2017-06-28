@@ -189,7 +189,7 @@ export default class PixelPlugin
         return handle;
     }
 
-    subscribeToScrollEvent()
+    subscribeToScrollEvent ()
     {
         let handle = global.Diva.Events.subscribe('ViewerDidScroll', () =>
         {
@@ -416,6 +416,7 @@ export default class PixelPlugin
         let canvas = document.getElementById("diva-1-outer");
         if (evt.which === 1)
         {
+            console.log("Entered evt 1");
             this.rightMousePressed = false;
             switch (this.tools.getCurrentTool())
             {
@@ -442,8 +443,9 @@ export default class PixelPlugin
                     this.mousePressed = true;
             }
         }
-        else
+        else if (evt.which === 3)
         {
+            console.log("entered evt 3");
             this.rightMousePressed = true;
             switch (this.tools.getCurrentTool())
             {
@@ -469,12 +471,12 @@ export default class PixelPlugin
                 this.addPointToCurrentPath(canvas, evt);
                 break;
             case this.tools.type.rectangle:
-                this.rectanglePreview(canvas,evt);
+                this.rectanglePreview(canvas, evt);
                 break;
             case this.tools.type.eraser:
                 this.addPointToCurrentPath(canvas, evt);
                 break;
-            case "select":
+            case this.tools.type.select:
                 this.rectanglePreview(canvas, evt);
                 break;
             default:
@@ -489,13 +491,13 @@ export default class PixelPlugin
             case this.tools.type.brush:
                 this.mousePressed = false;
                 break;
-            case this.tools.type.rectangle: // TODO: Add action: resized rectangle. This is useful if a user wants to revert a rectangle resize (when implementd)
+            case this.tools.type.rectangle: // TODO: Add action: resized rectangle. This is useful if a user wants to revert a rectangle resize (when implemented)
                 this.mousePressed = false;
                 break;
             case this.tools.type.eraser:
                 this.mousePressed = false;
                 break;
-            case "select":
+            case this.tools.type.select: // TODO: remove from shapes array
                 this.mousePressed = false;
                 break;
             default:

@@ -114,7 +114,8 @@ export class Line extends Shape
         let ang = this.getAngleRad(zoomLevel,pageIndex,renderer);
 
         // find the first point on the circumference that is orthogonal
-        // to the line intersecting the two circle origos
+        // to the line intersecting the two circle origins
+        // ie tangent 1
         // These are values with padding
         var start1 = {
             absolutePaddedX: point1.x + Math.cos(ang + Math.PI / 2) * absoluteLineWidth / 2,
@@ -126,7 +127,8 @@ export class Line extends Shape
         };
 
         // find the second point on the circumference that is orthogonal
-        // to the line intersecting the two circle origos
+        // to the line intersecting the two circle origins
+        // ie tangent 2
         var start2 = {
             absolutePaddedX: point1.x + Math.cos(ang - Math.PI / 2) * absoluteLineWidth / 2,
             absolutePaddedY: point1.y + Math.sin(ang - Math.PI / 2) * absoluteLineWidth / 2
@@ -136,7 +138,7 @@ export class Line extends Shape
             absolutePaddedY: point2.y + Math.sin(ang - Math.PI / 2) * absoluteLineWidth / 2
         };
 
-        // 1. get ymax and ymin
+        // get ymax and ymin
         let ymax = Math.round(Math.max(start1.absolutePaddedY, start2.absolutePaddedY, end1.absolutePaddedY, end2.absolutePaddedY));
         let ymin = Math.round(Math.min(start1.absolutePaddedY, start2.absolutePaddedY, end1.absolutePaddedY, end2.absolutePaddedY));
         let pairOfEdges = [[start1, end1], [start2, end2], [start1, start2], [end1, end2]];
