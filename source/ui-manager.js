@@ -478,7 +478,7 @@ export class UIManager
     {
         let downloadElements = document.getElementsByClassName("export-download");
 
-        while(downloadElements[0])
+        while (downloadElements[0])
         {
             downloadElements[0].parentNode.removeChild(downloadElements[0]);
         }
@@ -518,7 +518,7 @@ export class UIManager
     getBrushSizeSelectorValue ()
     {
         // Brush size relative to scaleRatio to allow for more precise manipulations on higher zoom levels
-        let brushSizeSlider = document.getElementById("brush-size-selector")
+        let brushSizeSlider = document.getElementById("brush-size-selector");
         let brushSizeValue = (brushSizeSlider.value / brushSizeSlider.max) * 10;
         return 0.05 + Math.exp(brushSizeValue - 6); // 0.05 + e ^ (x - 6) was the most intuitive function we found in terms of brush size range
     }

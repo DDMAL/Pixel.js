@@ -458,6 +458,8 @@ export default class PixelPlugin
             {
                 case this.tools.type.brush:
                     this.mousePressed = false;
+                    let brushSizeSlider = document.getElementById("brush-size-selector");
+                    let brushSizeValue = (brushSizeSlider.value / brushSizeSlider.max) * 10;
                     //TODO: brush size change on mouse drag here!
                     break;
                 case this.tools.type.rectangle:
@@ -481,7 +483,15 @@ export default class PixelPlugin
         switch (this.tools.getCurrentTool())
         {
             case this.tools.type.brush:
-                this.addPointToCurrentPath(mousePos);
+                if (this.rightMousePressed)
+                {
+                    //UNFINISHED
+                    //this.changeBrushSize(mousePos);
+                }
+                else
+                {
+                    this.addPointToCurrentPath(mousePos);
+                }
                 break;
             case this.tools.type.rectangle:
                 this.rectanglePreview(mousePos);
@@ -489,11 +499,11 @@ export default class PixelPlugin
             case this.tools.type.eraser:
                 this.addPointToCurrentPath(mousePos);
                 break;
-            case "select":
+            case this.tools.type.select:
                 this.rectanglePreview(mousePos);
                 break;
             case this.tools.type.select:
-                this.rectanglePreview(canvas, evt);
+                this.rectanglePreview(mousePos);
                 break;
             default:
         }
@@ -506,18 +516,23 @@ export default class PixelPlugin
         {
             case this.tools.type.brush:
                 this.mousePressed = false;
+                this.rightMousePressed = false;
                 break;
             case this.tools.type.rectangle: // TODO: Add action: resized rectangle. This is useful if a user wants to revert a rectangle resize (when implemented)
                 this.mousePressed = false;
+                this.rightMousePressed = false;
                 break;
             case this.tools.type.eraser:
                 this.mousePressed = false;
+                this.rightMousePressed = false;
                 break;
             case this.tools.type.select: // TODO: remove from shapes array
                 this.mousePressed = false;
+                this.rightMousePressed = false;
                 break;
             default:
                 this.mousePressed = false;
+                this.rightMousePressed = false;
         }
     }
 
