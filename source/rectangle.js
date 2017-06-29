@@ -34,25 +34,28 @@ export class Rectangle extends Shape
             absoluteRectHeight = this.relativeRectHeight * scaleRatio;
 
         //Selection tool
-            if (this.blendMode === "select")
+        if (this.blendMode === "select")
+        {
+            console.log("select");
+
+            //TODO: SELECTION CODE HERE
+            if (pageIndex === this.origin.pageIndex)
             {
-                console.log("select");
+                // Calculates where the highlights should be drawn as a function of the whole webpage coordinates
+                // (to make it look like it is on top of a page in Diva)
+                let highlightXOffset = renderer._getImageOffset(pageIndex).left - renderer._viewport.left + viewportPaddingX + absoluteRectOriginX,
+                    highlightYOffset = renderer._getImageOffset(pageIndex).top - renderer._viewport.top + viewportPaddingY + absoluteRectOriginY;
 
-                //TODO: SELECTION CODE HERE
-                if (pageIndex === this.origin.pageIndex)
-                {
-                    // Calculates where the highlights should be drawn as a function of the whole webpage coordinates
-                    // (to make it look like it is on top of a page in Diva)
-                    let highlightXOffset = renderer._getImageOffset(pageIndex).left - renderer._viewport.left + viewportPaddingX + absoluteRectOriginX,
-                        highlightYOffset = renderer._getImageOffset(pageIndex).top - renderer._viewport.top + viewportPaddingY + absoluteRectOriginY;
+                //Draw the selection rectangle
+                ctx.fillStyle = 'rgba(147, 192, 255, 0.3)';
+                ctx.lineWidth = 1;
+                ctx.strokeStyle = 'rgba(25, 25, 25, 1)';
+                ctx.fillRect(highlightXOffset, highlightYOffset, absoluteRectWidth, absoluteRectHeight);
+                ctx.strokeRect(highlightXOffset, highlightYOffset, absoluteRectWidth, absoluteRectHeight);
 
-                    //Draw the rectangle
-                    ctx.fillStyle = 'rgba(255, 0, 0, 1)';
-                    ctx.fillRect(highlightXOffset, highlightYOffset, absoluteRectWidth, absoluteRectHeight);
-                    // ctx.border()
-                }
-                return;
             }
+            return;
+        }
 
 
         //Rectangle tool

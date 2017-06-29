@@ -30,6 +30,7 @@ export default class PixelPlugin
         this.background = null;
         this.layers = null;
         this.mousePressed = false;
+        this.rightMousePressed = false;
         this.selectedLayerIndex = 0;
         this.layerChangedMidDraw = false;
         this.actions = [];
@@ -57,7 +58,7 @@ export default class PixelPlugin
 
     activatePlugin ()
     {
-        this.tutorial();
+        //this.tutorial();
 
         if (this.layers === null)
         {
@@ -356,6 +357,8 @@ export default class PixelPlugin
             case "e":
                 this.tools.setCurrentTool(this.tools.type.eraser);
                 break;
+            case "s":
+                this.tools.setCurrentTool(this.tools.type.select);
         }
     }
 
@@ -365,6 +368,7 @@ export default class PixelPlugin
 
         // TODO: Listen for changes when clicked outside of LayerName
         // TODO: Unsubscribe from other keyboard listeners
+        // TODO: Disable drag for layers
         let key = e.which || e.keyCode;
         if (key === RETURN_KEY)
         {
@@ -395,29 +399,51 @@ export default class PixelPlugin
         let mouseClickDiv = document.getElementById("diva-1-outer"),
             mousePos = this.getMousePos(mouseClickDiv, evt);
 
-        switch (this.tools.getCurrentTool())
+        if (evt.which === 1)
         {
-            case this.tools.type.brush:
-                this.mousePressed = true;
-                this.initializeNewPathInCurrentLayer(mousePos);
-                break;
-            case this.tools.type.rectangle:
-                this.mousePressed = true;
-                this.initializeRectanglePreview(mousePos);
-                break;
-            case this.tools.type.grab:
-                this.mousePressed = true;
-                break;
-            case this.tools.type.eraser:
-                this.mousePressed = true;
-                this.initializeNewPathInCurrentLayer(mousePos);
-                break;
-            case this.tools.type.select:
-                this.mousePressed = true;
-                this.initializeRectanglePreview(mousePos);
-                break;
-            default:
-                this.mousePressed = true;
+            this.rightMousePressed = false;
+            switch (this.tools.getCurrentTool())
+            {
+                case this.tools.type.brush:
+                    this.mousePressed = true;
+                    this.initializeNewPathInCurrentLayer(mousePos);
+                    break;
+                case this.tools.type.rectangle:
+                    this.mousePressed = true;
+                    this.initializeRectanglePreview(mousePos);
+                    break;
+                case this.tools.type.grab:
+                    this.mousePressed = true;
+                    break;
+                case this.tools.type.eraser:
+                    this.mousePressed = true;
+                    this.initializeNewPathInCurrentLayer(mousePos);
+                    break;
+                case this.tools.type.select:
+                    this.mousePressed = true;
+                    this.initializeRectanglePreview(mousePos);
+                    break;
+                default:
+                    this.mousePressed = true;
+            }
+        }
+
+        else if (evt.which === 3)
+        {
+            this.rightMousePressed = true;
+            switch (this.tools.getCurrentTool())
+            {
+                case this.tools.type.brush:
+                    this.mousePressed = true;
+                    this.initializeBrushChange(mousePos);
+                    break;
+                case this.tools.type.rectangle:
+                    this.mousePressed = true;
+                    this.initializeRectanglePreview(mousePos);
+                    break;
+                default:
+                    this.mousePressed = true;
+            }
         }
 
         // FIXME: At deactivation mouse is down so it clears the actions to redo
@@ -432,7 +458,14 @@ export default class PixelPlugin
         switch (this.tools.getCurrentTool())
         {
             case this.tools.type.brush:
-                this.addPointToCurrentPath(mousePos);
+                if (this.rightMousePressed)
+                {
+                    this.changeBrushSize(mousePos);
+                }
+                else
+                {
+                    this.addPointToCurrentPath(mousePos);
+                }
                 break;
             case this.tools.type.rectangle:
                 this.rectanglePreview(mousePos);
@@ -440,7 +473,7 @@ export default class PixelPlugin
             case this.tools.type.eraser:
                 this.addPointToCurrentPath(mousePos);
                 break;
-            case "select":
+            case this.tools.type.select:
                 this.rectanglePreview(mousePos);
                 break;
             default:
@@ -454,18 +487,23 @@ export default class PixelPlugin
         {
             case this.tools.type.brush:
                 this.mousePressed = false;
+                this.rightMousePressed = false;
                 break;
             case this.tools.type.rectangle: // TODO: Add action: resized rectangle. This is useful if a user wants to revert a rectangle resize (when implemented)
                 this.mousePressed = false;
+                this.rightMousePressed = false;
                 break;
             case this.tools.type.eraser:
                 this.mousePressed = false;
+                this.rightMousePressed = false;
                 break;
-            case "select":
+            case this.tools.type.select: // TODO: remove from shapes array
                 this.mousePressed = false;
+                this.rightMousePressed = false;
                 break;
             default:
                 this.mousePressed = false;
+                this.rightMousePressed = false;
         }
     }
 
@@ -743,6 +781,11 @@ export default class PixelPlugin
             let selectedLayer = this.layers[this.selectedLayerIndex];
             if (this.tools.getCurrentTool() === this.tools.type.select)
                 selectedLayer.addShapeToLayer(new Rectangle(new Point(relativeCoords.x,relativeCoords.y,pageIndex), 0, 0, "select", this.tools.getCurrentTool()));
+
+            //next 2 condition checks assume the selected tool is rectangle
+            else if (this.rightMousePressed)
+                selectedLayer.addShapeToLayer(new Rectangle(new Point(relativeCoords.x,relativeCoords.y,pageIndex), 0, 0, "subtract", this.tools.getCurrentTool()));
+
             else
                 selectedLayer.addShapeToLayer(new Rectangle(new Point(relativeCoords.x,relativeCoords.y,pageIndex), 0, 0, "add", this.tools.getCurrentTool()));
 
@@ -814,6 +857,21 @@ export default class PixelPlugin
             this.layerChangedMidDraw = false;
             this.initializeRectanglePreview(mousePos);
         }
+    }
+
+    initializeBrushChange (mousePos)
+    {
+        let brushSizeSlider = document.getElementById("brush-size-selector");
+        this.prevMouseX = mousePos.x;
+        this.prevSize = brushSizeSlider.value;
+    }
+
+    changeBrushSize (mousePos)
+    {
+        let brushSizeSlider = document.getElementById("brush-size-selector"),
+            mouseXVariation = 0.1 * (parseFloat(mousePos.x) - parseFloat(this.prevMouseX));
+        //Start at the current brush size when varying
+        brushSizeSlider.value = parseFloat(this.prevSize) + mouseXVariation;
     }
 
     // TODO: Generalize so that function returns any general relative position using enums
