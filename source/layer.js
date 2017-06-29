@@ -55,6 +55,9 @@ export class Layer
         this.canvas.style.height = height + "px";
 
         this.placeLayerCanvasOnTopOfEditingPage();
+
+        if (this.pixelInstance.uiManager !== null)
+            this.pixelInstance.uiManager.resizeBrushCursor();
     }
 
     placeLayerCanvasOnTopOfEditingPage ()

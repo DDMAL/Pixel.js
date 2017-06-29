@@ -87,6 +87,9 @@ export default class PixelPlugin
         this.subscribeToKeyboardEvents();
         this.redrawAllLayers();  // Repaint the tiles to retrigger VisibleTilesDidLoad
 
+        if (this.tools.getCurrentTool() === this.tools.type.brush || this.tools.getCurrentTool() === this.tools.type.eraser)
+            document.getElementById("diva-1-outer").style.cursor = "none";  // hacky way to set the cursor to the circle on startup (when brush is selected)
+
         this.activated = true;
     }
 
@@ -194,6 +197,7 @@ export default class PixelPlugin
     subscribeToMouseEvents ()
     {
         let canvas = document.getElementById("diva-1-outer");
+        this.uiManager.createBrushCursor();
 
         this.mouseDown = (evt) => { this.onMouseDown(evt); };
         this.mouseUp = (evt) => { this.onMouseUp(evt); };
@@ -414,6 +418,7 @@ export default class PixelPlugin
                     break;
                 case this.tools.type.grab:
                     this.mousePressed = true;
+                    mouseClickDiv.style.cursor = "-webkit-grabbing";
                     break;
                 case this.tools.type.eraser:
                     this.mousePressed = true;
@@ -441,6 +446,10 @@ export default class PixelPlugin
                     this.mousePressed = true;
                     this.initializeRectanglePreview(mousePos);
                     break;
+                case this.tools.type.eraser:
+                    this.mousePressed = true;
+                    this.initializeBrushChange(mousePos);
+                    break;
                 default:
                     this.mousePressed = true;
             }
@@ -459,19 +468,20 @@ export default class PixelPlugin
         {
             case this.tools.type.brush:
                 if (this.rightMousePressed)
-                {
                     this.changeBrushSize(mousePos);
-                }
                 else
-                {
                     this.addPointToCurrentPath(mousePos);
-                }
+                this.uiManager.moveBrushCursor(mousePos);
                 break;
             case this.tools.type.rectangle:
                 this.rectanglePreview(mousePos);
                 break;
             case this.tools.type.eraser:
-                this.addPointToCurrentPath(mousePos);
+                if (this.rightMousePressed)
+                    this.changeBrushSize(mousePos);
+                else
+                    this.addPointToCurrentPath(mousePos);
+                this.uiManager.moveBrushCursor(mousePos);
                 break;
             case this.tools.type.select:
                 this.rectanglePreview(mousePos);
@@ -482,7 +492,8 @@ export default class PixelPlugin
 
     onMouseUp ()    // can take an event as an argument
     {
-        // let canvas = document.getElementById("diva-1-outer");
+        let mouseClickDiv = document.getElementById("diva-1-outer");
+
         switch (this.tools.getCurrentTool())
         {
             case this.tools.type.brush:
@@ -497,7 +508,11 @@ export default class PixelPlugin
                 this.mousePressed = false;
                 this.rightMousePressed = false;
                 break;
-            case this.tools.type.select: // TODO: remove from shapes array
+            case this.tools.type.grab:
+                this.mousePressed = false;
+                mouseClickDiv.style.cursor = "-webkit-grab";
+                break;
+            case this.tools.type.select:
                 this.mousePressed = false;
                 this.rightMousePressed = false;
                 break;
@@ -872,6 +887,8 @@ export default class PixelPlugin
             mouseXVariation = 0.1 * (parseFloat(mousePos.x) - parseFloat(this.prevMouseX));
         //Start at the current brush size when varying
         brushSizeSlider.value = parseFloat(this.prevSize) + mouseXVariation;
+
+        this.uiManager.resizeBrushCursor();
     }
 
     // TODO: Generalize so that function returns any general relative position using enums

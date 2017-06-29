@@ -23,19 +23,52 @@ export class Tools
         {
             allTools.push(type);
         }
-
         return allTools;
     }
 
     setCurrentTool (tool)
     {
+        // Remove actions that were specific to the previous tool
+        switch (this.currentTool)
+        {
+            case this.type.grab:
+                this.pixelInstance.disableDragScrollable();
+                break;
+            case this.type.brush:
+                this.pixelInstance.uiManager.destroyBrushCursor();
+                break;
+            case this.type.eraser:
+                this.pixelInstance.uiManager.destroyBrushCursor();
+                break;
+            default:
+                break;
+        }
+
         this.currentTool = tool;
         this.pixelInstance.uiManager.markToolSelected(tool);
+        let mouseClickDiv = document.getElementById("diva-1-outer");
 
-        if (tool === this.type.grab)
-            this.pixelInstance.enableDragScrollable();
-        else
-            this.pixelInstance.disableDragScrollable();
+        // Add actions that are specific to the current tool
+        switch (tool)
+        {
+            case this.type.grab:
+                this.pixelInstance.enableDragScrollable();
+                mouseClickDiv.style.cursor = "-webkit-grab";
+                break;
+            case this.type.rectangle:
+                mouseClickDiv.style.cursor = "crosshair";
+                break;
+            case this.type.brush:
+                this.pixelInstance.uiManager.createBrushCursor();
+                mouseClickDiv.style.cursor = "none";
+                break;
+            case this.type.eraser:
+                this.pixelInstance.uiManager.createBrushCursor();
+                mouseClickDiv.style.cursor = "none";
+                break;
+            default:
+                mouseClickDiv.style.cursor = "default";
+        }
     }
 
     getCurrentTool ()

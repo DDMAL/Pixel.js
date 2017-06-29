@@ -372,3 +372,28 @@ kbd {
 li:not(:last-child) {
   margin-bottom: 5px;
 }
+
+#brush-cursor-div {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  border: 1px solid #666666;
+  border-radius: 50%;
+  -ms-filter: "progid:DXImageTransform.Microsoft.Alpha(Opacity=60)";
+  filter: alpha(opacity=60);
+  opacity: 0.6;
+
+  width: 8px;
+  height: 8px;
+  z-index: 86;
+
+  -webkit-transition: background-color .5s ease-in-out;
+  -moz-transition: background-color .5s ease-in-out;
+  -o-transition: background-color .5s ease-in-out;
+  -ms-transition: background-color .5s ease-in-out;
+  transition: background-color .5s ease-in-out;
+}
+
+#brush-cursor-div.filled {
+  background-color: #666666;
+}

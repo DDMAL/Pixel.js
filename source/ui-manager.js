@@ -40,12 +40,6 @@ export class UIManager
             radio.addEventListener("click", () =>
             {
                 this.pixelInstance.tools.setCurrentTool(radio.value);
-
-                if (radio.value === "grab")
-                    this.pixelInstance.enableDragScrollable();
-
-                else
-                    this.pixelInstance.disableDragScrollable();
             });
         };
 
@@ -313,6 +307,11 @@ export class UIManager
         brushSizeSelector.setAttribute('min', 1);
         brushSizeSelector.setAttribute('value', 25);
 
+        brushSizeSelector.addEventListener("input", () =>
+        {
+            this.createBrushCursor();
+        });
+
         brushSizeDiv.appendChild(text);
         brushSizeDiv.appendChild(brushSizeSelector);
         document.body.appendChild(brushSizeDiv);
@@ -520,6 +519,53 @@ export class UIManager
         // Brush size relative to scaleRatio to allow for more precise manipulations on higher zoom levels
         let brushSizeSlider = document.getElementById("brush-size-selector");
         let brushSizeValue = (brushSizeSlider.value / brushSizeSlider.max) * 10;
-        return 0.05 + Math.exp(brushSizeValue - 6); // 0.05 + e ^ (x - 6) was the most intuitive function we found in terms of brush size range
+
+        return 0.05 + Math.exp(brushSizeValue - 6);   // 0.05 + e ^ (x - 6) was the most intuitive function we found in terms of brush size range
+    }
+
+    createBrushCursor ()
+    {
+        let cursorDiv = document.getElementById("brush-cursor-div");
+        let divaOuter = document.getElementById("diva-1-outer");
+
+        if (cursorDiv === null)
+        {
+            cursorDiv = document.createElement('div');
+            cursorDiv.setAttribute("id", "brush-cursor-div");
+            divaOuter.appendChild(cursorDiv);
+        }
+
+        cursorDiv.setAttribute("oncontextmenu", "return false");
+        this.resizeBrushCursor();
+    }
+
+    resizeBrushCursor ()
+    {
+        let cursorDiv = document.getElementById("brush-cursor-div");
+
+        if (cursorDiv === null)
+            return;
+
+        let scaleRatio = Math.pow(2, this.pixelInstance.core.getSettings().zoomLevel);
+        let brushSizeSelectorValue = this.getBrushSizeSelectorValue() * scaleRatio;
+
+        cursorDiv.style.width = brushSizeSelectorValue + "px";
+        cursorDiv.style.height = brushSizeSelectorValue + "px";
+    }
+
+    destroyBrushCursor ()
+    {
+        let cursorDiv = document.getElementById("brush-cursor-div");
+        cursorDiv.parentNode.removeChild(cursorDiv);
+    }
+
+    moveBrushCursor (mousePos)
+    {
+        let cursorDiv = document.getElementById("brush-cursor-div");
+        let scaleRatio = Math.pow(2, this.pixelInstance.core.getSettings().zoomLevel);
+        let brushSize = this.getBrushSizeSelectorValue() * scaleRatio;
+
+        cursorDiv.style.left = mousePos.x - brushSize/2 - 1 + "px"; // the -1 is to account for the border width
+        cursorDiv.style.top = mousePos.y  - brushSize/2 - 1 + "px"; // the -1 is to account for the border width
     }
 }
