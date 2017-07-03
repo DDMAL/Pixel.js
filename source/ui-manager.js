@@ -232,12 +232,12 @@ export class UIManager
             };
         };
 
-
         // Backwards because layers' display should be the same as visual "z-index" priority (depth)
         for (var index = layers.length - 1; index >= 0; index--)
         {
             let layer = layers[index],
                 layerDiv = document.createElement("div"),
+                linebreak = document.createElement("br"),
                 colourDiv = document.createElement("div"),
                 layerName = document.createElement("input"),
                 layerOptionsDiv = document.createElement("div"),
@@ -280,6 +280,7 @@ export class UIManager
             layerDiv.appendChild(colourDiv);
             layerDiv.appendChild(layerActivationDiv);
             layersViewDiv.appendChild(layerDiv);
+            layersViewDiv.appendChild(linebreak);
         }
         document.body.appendChild(layersViewDiv);
 

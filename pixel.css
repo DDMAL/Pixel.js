@@ -1,5 +1,6 @@
 /*Stylizing Pixel*/
 .layer-div {
+  display: inline-block;
   position: relative;
 }
 
