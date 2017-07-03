@@ -213,7 +213,7 @@ export class UIManager
         {
             colourDiv.addEventListener("click", () => { this.pixelInstance.displayColourOptions(); });
             layerActivationDiv.addEventListener("click", () => { this.pixelInstance.toggleLayerActivation(layer, layerActivationDiv); });
-            layerName.addEventListener('keypress', (e) => { this.pixelInstance.editLayerName(e, layerName); });
+            layerName.addEventListener('keypress', (e) => { this.pixelInstance.editLayerName(e, layerName, layerDiv); });
             layerOptionsDiv.onclick = () => { this.pixelInstance.displayLayerOptions(layer, layerOptionsDiv); };
 
             layerDiv.ondrag = (evt) => { this.pixelInstance.dragging(evt); };
