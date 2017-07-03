@@ -24,7 +24,7 @@ export class UIManager
         this.destroyRedoButton();
         this.destroyExportButtons();
         this.destroyPixelCanvases(layers);
-        this.destroyToolsView(["brush", "rectangle", "grab", "eraser"]);
+        this.destroyToolsView(this.pixelInstance.tools.getAllTools());
         this.destroyLockedLayerSelectors(background);
         this.destroyDownloadLinks();
     }
@@ -126,7 +126,7 @@ export class UIManager
         opacitySlider.addEventListener("input", () =>
         {
             layer.setLayerOpacity(opacitySlider.value / 50);
-            if (layer.isActivated())    // Respecify opacity only when the layer is activated
+            if (layer.isActivated())    // Re-specify opacity only when the layer is activated
                 layer.getCanvas().style.opacity = layer.getLayerOpacity();
         });
 

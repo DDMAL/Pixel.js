@@ -371,15 +371,14 @@ export default class PixelPlugin
         const RETURN_KEY = 13;
 
         // TODO: Listen for changes when clicked outside of LayerName
-        // TODO: Unsubscribe from other keyboard listeners
-        // TODO: Disable drag for layers
+        // TODO: Disable drag for layers (recreate layers view?)
+        // COME BACK!
         this.unsubscribeFromKeyboardEvents();
         layerDiv.setAttribute("draggable", "false");
 
         let key = e.which || e.keyCode;
         if (key === RETURN_KEY)
         {
-            // TODO: Subscribe to other keyboard listeners
             this.subscribeToKeyboardEvents();
             this.layers[this.selectedLayerIndex].updateLayerName(layerName.value);
             layerName.setAttribute("readonly", "true");
