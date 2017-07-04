@@ -24,7 +24,7 @@ export class UIManager
         this.destroyRedoButton();
         this.destroyExportButtons();
         this.destroyPixelCanvases(layers);
-        this.destroyToolsView(["brush", "rectangle", "grab", "eraser"]);
+        this.destroyToolsView();
         this.destroyLockedLayerSelectors(background);
         this.destroyDownloadLinks();
         this.destroyBrushCursor();
@@ -59,14 +59,14 @@ export class UIManager
             radio.setAttribute("name", "tool-selector");
             handleClick(radio);
 
-            if (tool === this.pixelInstance.tools.getCurrentTool())
-                radio.checked = true;
-
             form.appendChild(radio);
             form.appendChild(content);
             form.appendChild(br);
         }
         document.body.appendChild(form);
+
+        // Set tool cursor after tools view creation
+        this.pixelInstance.tools.setCurrentTool(this.pixelInstance.tools.getCurrentTool());
     }
 
     destroyToolsView ()
