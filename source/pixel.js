@@ -1020,7 +1020,7 @@ export default class PixelPlugin
      **/
     importPNGToLayer (e)
     {
-        new Import(this, this.layers, this.core.getSettings().currentPageIndex, this.core.getSettings().zoomLevel, this.uiManager).uploadLayerPNGToCanvas(this.layers[0], e);
+        new Import(this, this.layers, this.core.getSettings().currentPageIndex, this.core.getSettings().zoomLevel, this.uiManager).uploadLayerPNGToCanvas(this.layers[this.selectedLayerIndex], e);
     }
 
     /**
