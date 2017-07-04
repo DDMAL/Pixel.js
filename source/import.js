@@ -18,10 +18,12 @@ export class Import {
      */
     uploadLayerPNGToCanvas(layer, e)
     {
-        // 1. Upload the image to a new canvas
-        let ctx = layer.getCanvas().getContext("2d");
+        let imageCanvas = document.createElement("canvas");
+        imageCanvas.width = layer.getCanvas().width;
+        imageCanvas.height = layer.getCanvas().height;
 
-        let reader = new FileReader();
+        let ctx = imageCanvas.getContext("2d"),
+            reader = new FileReader();
 
         reader.onload = (event) =>
         {
@@ -30,20 +32,20 @@ export class Import {
             {
                 ctx.drawImage(img,0,0);
 
-                let imageData = ctx.getImageData(0, 0, layer.getCanvas().width, layer.getCanvas().height);
-                let data = imageData.data;
+                let imageData = ctx.getImageData(0, 0, layer.getCanvas().width, layer.getCanvas().height),
+                    data = imageData.data;
 
                 for(let i = 0; i < data.length; i += 4)
                 {
-                    // red
-                    data[i] = layer.colour.red;
-                    // green
-                    data[i + 1] = layer.colour.green;
-                    // blue
-                    data[i + 2] = layer.colour.blue;
+                    data[i] = layer.colour.red;             // red
+                    data[i + 1] = layer.colour.green;       // green
+                    data[i + 2] = layer.colour.blue;        // blue
                 }
                 // overwrite original image
                 ctx.putImageData(imageData, 0, 0);
+
+                layer.setPreBinarizedImageCanvas(imageCanvas);
+                layer.drawLayer(this.pixelInstance.core.getSettings().maxZoomLevel, layer.getCanvas());
             };
             img.src = event.target.result;
         };
