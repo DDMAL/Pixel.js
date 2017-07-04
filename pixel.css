@@ -386,7 +386,7 @@ li:not(:last-child) {
 
   width: 8px;
   height: 8px;
-  z-index: 86;
+  z-index: 2;
 
   -webkit-transition: background-color .5s ease-in-out;
   -moz-transition: background-color .5s ease-in-out;
