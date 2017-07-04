@@ -24,6 +24,7 @@ export class UIManager
         this.destroyUndoButton();
         this.destroyRedoButton();
         this.destroyExportButtons();
+        this.destroImportButtons();
         this.destroyPixelCanvases(layers);
         this.destroyToolsView();
         this.destroyLockedLayerSelectors(background);
@@ -420,6 +421,12 @@ export class UIManager
         imageLoader.addEventListener('change', this.import, false);
 
         document.body.appendChild(imageLoader);
+    }
+
+    destroImportButtons ()
+    {
+        let imageLoader = document.getElementById("imageLoader");
+        imageLoader.parentNode.removeChild(imageLoader);
     }
 
     updateProgress (percentage) {
