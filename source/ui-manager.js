@@ -14,6 +14,7 @@ export class UIManager
         this.createBrushSizeSelector();
         this.createToolsView(this.pixelInstance.tools.getAllTools());
         this.createExportButtons();
+        this.createImportButtons();
     }
 
     destroyPluginElements (layers, background)
@@ -405,6 +406,20 @@ export class UIManager
         csvexportButton.parentNode.removeChild(csvexportButton);
         pngexportButton.parentNode.removeChild(pngexportButton);
         pngexportDataButton.parentNode.removeChild(pngexportDataButton);
+    }
+
+    createImportButtons ()
+    {
+        let imageLoader = document.createElement("input");
+        imageLoader.setAttribute("type", "file");
+        imageLoader.setAttribute("id", "imageLoader");
+        imageLoader.setAttribute("name", "imageLoader");
+
+        this.import = (e) => { this.pixelInstance.importPNGToLayer(e); };
+
+        imageLoader.addEventListener('change', this.import, false);
+
+        document.body.appendChild(imageLoader);
     }
 
     updateProgress (percentage) {

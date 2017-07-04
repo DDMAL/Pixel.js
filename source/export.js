@@ -80,22 +80,9 @@ export class Export {
      * Creates a PNG for each layer where the pixels spanned by the layers are replaced by the layer colour
      */
     exportLayersAsHighlights() {
-        let core = this.pixelInstance.core,
-            height = core.publicInstance.getPageDimensionsAtZoomLevel(this.pageIndex, this.zoomLevel).height,
-            width = core.publicInstance.getPageDimensionsAtZoomLevel(this.pageIndex, this.zoomLevel).width;
-
         // The idea here is to draw each layer on a canvas and scan the pixels of that canvas to fill the matrix
         this.layers.forEach((layer) => {
-            let layerCanvas = document.createElement('canvas');
-            layerCanvas.setAttribute("class", "export-page-canvas");
-            layerCanvas.setAttribute("id", "layer-" + layer.layerId + "-export-canvas");
-            layerCanvas.setAttribute("style", "position: absolute; top: 0; left: 0;");
-            layerCanvas.width = width;
-            layerCanvas.height = height;
-
-            layer.drawLayerInPageCoords(this.zoomLevel, layerCanvas, this.pageIndex);
-
-            let png = layerCanvas.toDataURL('image/png');
+            let png = layer.getCanvas().toDataURL('image/png');
 
             let text = document.createTextNode("Download " + layer.layerName + " PNG ");
             let link = document.getElementById(layer.layerName + "-png-download");
@@ -110,7 +97,6 @@ export class Export {
             link.setAttribute("id", layer.layerName + "-png-download");
             link.setAttribute("href", png);
             link.setAttribute("download", layer.layerName);
-
         });
     }
 
@@ -281,10 +267,13 @@ export class Export {
                 if (row >= canvasToScan.height)
                     break;
 
-                if (col < canvasToScan.width) {
+                if (col < canvasToScan.width)
+                {
                     let data = canvasToScan.getContext('2d').getImageData(col, row, 1, 1).data;
                     let colour = new Colour(data[0], data[1], data[2], data[3]);
 
+                    console.log(colour.alpha);
+                    
                     if (colour.alpha !== 0) {
                         matrix[row][col] = layer.layerId;
 

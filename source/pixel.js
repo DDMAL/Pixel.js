@@ -15,6 +15,7 @@ import {Colour} from './colour';
 import {Export} from './export';
 import {UIManager} from './ui-manager';
 import {Tools} from './tools';
+import {Import} from './import';
 
 export default class PixelPlugin
 {
@@ -1010,6 +1011,16 @@ export default class PixelPlugin
             zoomLevel = this.core.getSettings().zoomLevel;
 
         new Export(this, this.layers, pageIndex, zoomLevel, this.uiManager).exportLayersAsCSV();
+    }
+
+    /**
+     * ===============================================
+     *                    Import
+     * ===============================================
+     **/
+    importPNGToLayer (e)
+    {
+        new Import(this, this.layers, this.core.getSettings().currentPageIndex, this.core.getSettings().zoomLevel, this.uiManager).uploadLayerPNGToCanvas(this.layers[0], e);
     }
 
     /**
