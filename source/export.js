@@ -254,48 +254,45 @@ export class Export {
     fillMatrix(layer, matrix, canvasToScan, progressCanvas) {
         let chunkSize = canvasToScan.width,
             chunkNum = 0,
-            row = 0,
-            col = 0,
+            index = 3,      // 0: red, 1: green, 2: blue, 3: alpha
             progressCtx = progressCanvas.getContext('2d');
+
+        let imageData = canvasToScan.getContext('2d').getImageData(0, 0, canvasToScan.width, canvasToScan.height),
+            data = imageData.data;
 
         // Necessary for doing computation without blocking the UI
         let doChunk = () => {
             let cnt = chunkSize;
             chunkNum++;
 
-            while (cnt--) {
-                if (row >= canvasToScan.height)
+            while (cnt--)
+            {
+                if (index > data.length)
                     break;
 
-                if (col < canvasToScan.width)
+                if (data[index] !== 0)
                 {
-                    let data = canvasToScan.getContext('2d').getImageData(col, row, 1, 1).data;
-                    let colour = new Colour(data[0], data[1], data[2], data[3]);
+                    let pixelNum = Math.floor(index/4);
 
-                    console.log(colour.alpha);
-                    
-                    if (colour.alpha !== 0) {
-                        matrix[row][col] = layer.layerId;
+                    let row = parseInt (pixelNum / canvasToScan.height),
+                        col = parseInt (pixelNum % canvasToScan.width);
 
-                        progressCtx.fillStyle = layer.colour.toHTMLColour();
-                        progressCtx.fillRect(col, row, 1, 1);
-                    }
-                    col++;
+                    matrix[row][col] = layer.layerId;
+
+                    progressCtx.fillStyle = layer.colour.toHTMLColour();
+                    progressCtx.fillRect(col, row, 1, 1);
                 }
-                else    // New row
-                {
-                    row++;
-                    col = 0;
-                }
+                index += 4;
             }
 
             // Finished exporting a layer
-            if (row === canvasToScan.height || this.exportInterrupted)
+            if (index >= data.length || this.exportInterrupted)
                 this.exportLayersCount -= 1;
 
             // still didn't finish processing. Update progress and call function again
-            if (row < canvasToScan.height && !this.exportInterrupted) {
-                let percentage = (chunkNum * chunkSize) * 100 / (canvasToScan.height * canvasToScan.width),
+            else
+            {
+                let percentage = (index / data.length) * 100,
                     roundedPercentage = (percentage > 100) ? 100 : Math.round(percentage * 10) / 10;
                 this.pixelInstance.uiManager.updateProgress(roundedPercentage);
 
