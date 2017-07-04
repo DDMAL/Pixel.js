@@ -692,7 +692,12 @@ export default class PixelPlugin
 
     initializeNewPathInCurrentLayer (mousePos)
     {
+        // Layer is inactive
         if (!this.layers[this.selectedLayerIndex].isActivated())
+            return;
+
+        // Drawing on another page
+        if (this.core.getSettings().currentPageIndex !== this.layers[0].pageIndex)
             return;
 
         let pageIndex = this.core.getSettings().currentPageIndex,
@@ -734,6 +739,10 @@ export default class PixelPlugin
     addPointToCurrentPath (mousePos)
     {
         if (!this.layers[this.selectedLayerIndex].isActivated())
+            return;
+
+        // Drawing on another page
+        if (this.core.getSettings().currentPageIndex !== this.layers[0].pageIndex)
             return;
 
         let point,
@@ -797,6 +806,10 @@ export default class PixelPlugin
         if (!this.layers[this.selectedLayerIndex].isActivated())
             return;
 
+        // Drawing on another page
+        if (this.core.getSettings().currentPageIndex !== this.layers[0].pageIndex)
+            return;
+
         let pageIndex = this.core.getSettings().currentPageIndex,
             relativeCoords = this.getRelativeCoordinatesFromPadded(mousePos.x, mousePos.y);
 
@@ -822,6 +835,10 @@ export default class PixelPlugin
     rectanglePreview (mousePos)
     {
         if (!this.layers[this.selectedLayerIndex].isActivated())
+            return;
+
+        // Drawing on another page
+        if (this.core.getSettings().currentPageIndex !== this.layers[0].pageIndex)
             return;
 
         if (!this.layerChangedMidDraw)
