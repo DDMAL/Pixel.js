@@ -231,7 +231,7 @@ export class Layer
             ctx.drawImage(this.preBinarizedImageCanvas, 0, 0);
 
         // Redraw all actions
-        this.actions.forEach((action) =>
+        this.actions.forEach ((action) =>
         {
             action.drawOnPage(this, pageIndex, zoomLevel, this.pixelInstance.core.getSettings().renderer, canvas);
         });

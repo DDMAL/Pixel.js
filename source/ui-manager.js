@@ -435,8 +435,9 @@ export class UIManager
 
     updateProgress (percentage)
     {
-        let percentageStr = percentage + "%";
-        let widthStr = "width: " + percentageStr;
+        let percentageStr = percentage + "%",
+            widthStr = "width: " + percentageStr;
+
         document.getElementById("pbar-inner-div").setAttribute("style", widthStr);
         document.getElementById("pbar-inner-text").innerHTML = percentageStr;
     }
@@ -555,9 +556,9 @@ export class UIManager
 
     createBrushCursor ()
     {
-        let cursorDiv = document.getElementById("brush-cursor-div");
-        let divaViewport = document.getElementById("diva-1-viewport");
-        let divaOuter = document.getElementById("diva-1-outer");
+        let cursorDiv = document.getElementById("brush-cursor-div"),
+            divaViewport = document.getElementById("diva-1-viewport"),
+            divaOuter = document.getElementById("diva-1-outer");
 
         if (cursorDiv === null)
         {
