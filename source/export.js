@@ -82,21 +82,29 @@ export class Export {
     exportLayersAsHighlights() {
         // The idea here is to draw each layer on a canvas and scan the pixels of that canvas to fill the matrix
         this.layers.forEach((layer) => {
-            let png = layer.getCanvas().toDataURL('image/png');
-
-            let text = document.createTextNode("Download " + layer.layerName + " PNG ");
-            let link = document.getElementById(layer.layerName + "-png-download");
-            if (link === null)
+            layer.getCanvas().toBlob((blob) =>
             {
-                link = document.createElement("a");
-                link.appendChild(text);
-                document.body.appendChild(link);
-            }
-            // Browsers that support HTML5 download attribute
-            link.setAttribute("class", "export-download");
-            link.setAttribute("id", layer.layerName + "-png-download");
-            link.setAttribute("href", png);
-            link.setAttribute("download", layer.layerName);
+                let text = document.createTextNode("Download " + layer.layerName + " PNG ");
+                let link = document.getElementById(layer.layerName + "-png-download");
+                if (link === null)
+                {
+                    let newImg = document.createElement('img'),
+                        url = URL.createObjectURL(blob);
+
+                    newImg.src = url;
+
+                    link = document.createElement("a");
+                    link.appendChild(text);
+                    document.body.appendChild(link);
+                }
+
+                // Browsers that support HTML5 download attribute
+                let url = URL.createObjectURL(blob);
+                link.setAttribute("class", "export-download");
+                link.setAttribute("id", layer.layerName + "-png-download");
+                link.setAttribute("href", url);
+                link.setAttribute("download", layer.layerName);
+            });
         });
     }
 

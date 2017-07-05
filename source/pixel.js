@@ -991,6 +991,7 @@ export default class PixelPlugin
     // on the highlighted regions
     exportAsImageData ()
     {
+        //FIXME: Force Diva to highest zoom level to be able to get the pixel data
         let pageIndex = this.core.getSettings().currentPageIndex,
             zoomLevel = this.core.getSettings().zoomLevel;
 
@@ -1008,7 +1009,7 @@ export default class PixelPlugin
     exportAsCSV ()
     {
         let pageIndex = this.core.getSettings().currentPageIndex,
-            zoomLevel = this.core.getSettings().zoomLevel;
+            zoomLevel = this.core.getSettings().maxZoomLevel;
 
         new Export(this, this.layers, pageIndex, zoomLevel, this.uiManager).exportLayersAsCSV();
     }
