@@ -24,7 +24,7 @@ export class UIManager
         this.destroyRedoButton();
         this.destroyExportButtons();
         this.destroyPixelCanvases(layers);
-        this.destroyToolsView();
+        this.destroyToolsView(this.pixelInstance.tools.getAllTools());
         this.destroyLockedLayerSelectors(background);
         this.destroyDownloadLinks();
         this.destroyBrushCursor();
@@ -128,7 +128,7 @@ export class UIManager
         opacitySlider.addEventListener("input", () =>
         {
             layer.setLayerOpacity(opacitySlider.value / 50);
-            if (layer.isActivated())    // Respecify opacity only when the layer is activated
+            if (layer.isActivated())    // Re-specify opacity only when the layer is activated
                 layer.getCanvas().style.opacity = layer.getLayerOpacity();
         });
 
@@ -183,7 +183,7 @@ export class UIManager
 
         colourDiv.addEventListener("click", () => { this.pixelInstance.displayColourOptions(); });
         layerActivationDiv.addEventListener("click", () => { this.pixelInstance.toggleLayerActivation(layer, layerActivationDiv); });
-        layerName.addEventListener('keypress', (e) => { this.pixelInstance.editLayerName(e, layerName); });
+        layerName.addEventListener('keypress', (e) => { this.pixelInstance.editLayerName(e, layerName, layerDiv); });
         layerOptionsDiv.onclick = () => { this.pixelInstance.displayLayerOptions(layer, layerOptionsDiv); };
 
         layerDiv.appendChild(layerName);
@@ -255,6 +255,9 @@ export class UIManager
             layerName.setAttribute("readonly", "true");
             layerName.setAttribute("value", layer.layerName);
             layerName.setAttribute("ondblclick", "this.readOnly='';");
+
+            //sets draggable attribute to false on double click
+            layerName.addEventListener('dblclick', (e) => {this.pixelInstance.editLayerName(e, layerName, layerDiv);});
 
             colourDiv.setAttribute("class", "color-box");
             colourDiv.setAttribute("style", "background-color: " + layer.colour.toHexString() + ";");
