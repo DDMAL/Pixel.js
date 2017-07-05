@@ -223,11 +223,14 @@ export class Layer
     drawLayerInPageCoords (zoomLevel, canvas, pageIndex)
     {
         let ctx = canvas.getContext('2d');
+        // Clear canvas
         ctx.clearRect(0, 0, canvas.width, canvas.height);
 
+        // Redraw PreBinarized Image on layer canvas
         if (this.preBinarizedImageCanvas !== null)
             ctx.drawImage(this.preBinarizedImageCanvas, 0, 0);
 
+        // Redraw all actions
         this.actions.forEach((action) =>
         {
             action.drawOnPage(this, pageIndex, zoomLevel, this.pixelInstance.core.getSettings().renderer, canvas);

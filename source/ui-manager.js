@@ -551,13 +551,14 @@ export class UIManager
     createBrushCursor ()
     {
         let cursorDiv = document.getElementById("brush-cursor-div");
+        let divaViewport = document.getElementById("diva-1-viewport");
         let divaOuter = document.getElementById("diva-1-outer");
 
         if (cursorDiv === null)
         {
             cursorDiv = document.createElement('div');
             cursorDiv.setAttribute("id", "brush-cursor-div");
-            divaOuter.appendChild(cursorDiv);
+            divaOuter.insertBefore(cursorDiv, divaViewport);
         }
 
         cursorDiv.setAttribute("oncontextmenu", "return false");
