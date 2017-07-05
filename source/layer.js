@@ -17,6 +17,7 @@ export class Layer
         this.layerOpacity = layerOpacity;
         this.pixelInstance = pixelInstance;
         this.pageIndex = this.pixelInstance.core.getSettings().currentPageIndex;
+        this.preBinarizedImageCanvas = null;
         this.cloneCanvas();
     }
 
@@ -216,26 +217,28 @@ export class Layer
         if (!this.isActivated())
             return;
 
-        let ctx = canvas.getContext('2d');
-        ctx.clearRect(0, 0, canvas.width, canvas.height);
-
-        let renderer = this.pixelInstance.core.getSettings().renderer;
-
-        renderer._renderedPages.forEach((pageIndex) =>
-        {
-            this.actions.forEach((action) =>
-            {
-                action.drawOnPage(this, pageIndex, zoomLevel, renderer, canvas);
-            });
-        });
+        this.drawLayerInPageCoords(zoomLevel, canvas, this.pageIndex);
     }
 
-    // Called on export
     drawLayerInPageCoords (zoomLevel, canvas, pageIndex)
     {
-        this.actions.forEach ((action) =>
+        let ctx = canvas.getContext('2d');
+        // Clear canvas
+        ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+        // Redraw PreBinarized Image on layer canvas
+        if (this.preBinarizedImageCanvas !== null)
+            ctx.drawImage(this.preBinarizedImageCanvas, 0, 0);
+
+        // Redraw all actions
+        this.actions.forEach((action) =>
         {
             action.drawOnPage(this, pageIndex, zoomLevel, this.pixelInstance.core.getSettings().renderer, canvas);
         });
+    }
+
+    setPreBinarizedImageCanvas (img)
+    {
+        this.preBinarizedImageCanvas = img;
     }
 }

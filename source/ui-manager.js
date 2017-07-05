@@ -14,6 +14,7 @@ export class UIManager
         this.createBrushSizeSelector();
         this.createToolsView(this.pixelInstance.tools.getAllTools());
         this.createExportButtons();
+        this.createImportButtons();
     }
 
     destroyPluginElements (layers, background)
@@ -23,6 +24,7 @@ export class UIManager
         this.destroyUndoButton();
         this.destroyRedoButton();
         this.destroyExportButtons();
+        this.destroImportButtons();
         this.destroyPixelCanvases(layers);
         this.destroyToolsView(this.pixelInstance.tools.getAllTools());
         this.destroyLockedLayerSelectors(background);
@@ -410,6 +412,27 @@ export class UIManager
         pngexportDataButton.parentNode.removeChild(pngexportDataButton);
     }
 
+
+    createImportButtons ()
+    {
+        let imageLoader = document.createElement("input");
+        imageLoader.setAttribute("type", "file");
+        imageLoader.setAttribute("id", "imageLoader");
+        imageLoader.setAttribute("name", "imageLoader");
+
+        this.import = (e) => { this.pixelInstance.importPNGToLayer(e); };
+
+        imageLoader.addEventListener('change', this.import, false);
+
+        document.body.appendChild(imageLoader);
+    }
+
+    destroImportButtons ()
+    {
+        let imageLoader = document.getElementById("imageLoader");
+        imageLoader.parentNode.removeChild(imageLoader);
+    }
+
     updateProgress (percentage)
     {
         let percentageStr = percentage + "%";
@@ -532,14 +555,15 @@ export class UIManager
 
     createBrushCursor ()
     {
-        let cursorDiv = document.getElementById("brush-cursor-div"),
-            divaOuter = document.getElementById("diva-1-outer");
+        let cursorDiv = document.getElementById("brush-cursor-div");
+        let divaViewport = document.getElementById("diva-1-viewport");
+        let divaOuter = document.getElementById("diva-1-outer");
 
         if (cursorDiv === null)
         {
             cursorDiv = document.createElement('div');
             cursorDiv.setAttribute("id", "brush-cursor-div");
-            divaOuter.appendChild(cursorDiv);
+            divaOuter.insertBefore(cursorDiv, divaViewport);
         }
 
         cursorDiv.setAttribute("oncontextmenu", "return false");

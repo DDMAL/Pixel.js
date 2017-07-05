@@ -15,6 +15,7 @@ import {Colour} from './colour';
 import {Export} from './export';
 import {UIManager} from './ui-manager';
 import {Tools} from './tools';
+import {Import} from './import';
 
 export default class PixelPlugin
 {
@@ -988,6 +989,7 @@ export default class PixelPlugin
     // on the highlighted regions
     exportAsImageData ()
     {
+        //FIXME: Force Diva to highest zoom level to be able to get the pixel data
         let pageIndex = this.core.getSettings().currentPageIndex,
             zoomLevel = this.core.getSettings().zoomLevel;
 
@@ -1005,9 +1007,19 @@ export default class PixelPlugin
     exportAsCSV ()
     {
         let pageIndex = this.core.getSettings().currentPageIndex,
-            zoomLevel = this.core.getSettings().zoomLevel;
+            zoomLevel = this.core.getSettings().maxZoomLevel;
 
         new Export(this, this.layers, pageIndex, zoomLevel, this.uiManager).exportLayersAsCSV();
+    }
+
+    /**
+     * ===============================================
+     *                    Import
+     * ===============================================
+     **/
+    importPNGToLayer (e)
+    {
+        new Import(this, this.layers, this.core.getSettings().currentPageIndex, this.core.getSettings().zoomLevel, this.uiManager).uploadLayerPNGToCanvas(this.layers[this.selectedLayerIndex], e);
     }
 
     /**

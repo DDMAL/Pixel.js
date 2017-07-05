@@ -81,40 +81,34 @@ export class Export {
     /**
      * Creates a PNG for each layer where the pixels spanned by the layers are replaced by the layer colour
      */
+
     exportLayersAsHighlights ()
     {
-        let core = this.pixelInstance.core,
-            height = core.publicInstance.getPageDimensionsAtZoomLevel(this.pageIndex, this.zoomLevel).height,
-            width = core.publicInstance.getPageDimensionsAtZoomLevel(this.pageIndex, this.zoomLevel).width;
-
         // The idea here is to draw each layer on a canvas and scan the pixels of that canvas to fill the matrix
-        this.layers.forEach ((layer) => {
-            let layerCanvas = document.createElement('canvas');
-
-            layerCanvas.setAttribute("class", "export-page-canvas");
-            layerCanvas.setAttribute("id", "layer-" + layer.layerId + "-export-canvas");
-            layerCanvas.setAttribute("style", "position: absolute; top: 0; left: 0;");
-            layerCanvas.width = width;
-            layerCanvas.height = height;
-
-            layer.drawLayerInPageCoords(this.zoomLevel, layerCanvas, this.pageIndex);
-
-            let png = layerCanvas.toDataURL('image/png');
-
-            let text = document.createTextNode("Download " + layer.layerName + " PNG ");
-            let link = document.getElementById(layer.layerName + "-png-download");
-            if (link === null)
+        this.layers.forEach((layer) => {
+            layer.getCanvas().toBlob((blob) =>
             {
-                link = document.createElement("a");
-                link.appendChild(text);
-                document.body.appendChild(link);
-            }
-            // Browsers that support HTML5 download attribute
-            link.setAttribute("class", "export-download");
-            link.setAttribute("id", layer.layerName + "-png-download");
-            link.setAttribute("href", png);
-            link.setAttribute("download", layer.layerName);
+                let text = document.createTextNode("Download " + layer.layerName + " PNG ");
+                let link = document.getElementById(layer.layerName + "-png-download");
+                if (link === null)
+                {
+                    let newImg = document.createElement('img'),
+                        url = URL.createObjectURL(blob);
 
+                    newImg.src = url;
+
+                    link = document.createElement("a");
+                    link.appendChild(text);
+                    document.body.appendChild(link);
+                }
+
+                // Browsers that support HTML5 download attribute
+                let url = URL.createObjectURL(blob);
+                link.setAttribute("class", "export-download");
+                link.setAttribute("id", layer.layerName + "-png-download");
+                link.setAttribute("href", url);
+                link.setAttribute("download", layer.layerName);
+            });
         });
     }
 
@@ -279,9 +273,11 @@ export class Export {
     {
         let chunkSize = canvasToScan.width,
             chunkNum = 0,
-            row = 0,
-            col = 0,
+            index = 3,      // 0: red, 1: green, 2: blue, 3: alpha
             progressCtx = progressCanvas.getContext('2d');
+
+        let imageData = canvasToScan.getContext('2d').getImageData(0, 0, canvasToScan.width, canvasToScan.height),
+            data = imageData.data;
 
         // Necessary for doing computation without blocking the UI
         let doChunk = () => {
@@ -290,38 +286,32 @@ export class Export {
 
             while (cnt--)
             {
-                if (row >= canvasToScan.height)
+                if (index > data.length)
                     break;
 
-                if (col < canvasToScan.width)
+                if (data[index] !== 0)
                 {
-                    let data = canvasToScan.getContext('2d').getImageData(col, row, 1, 1).data,
-                        colour = new Colour(data[0], data[1], data[2], data[3]);
+                    let pixelNum = Math.floor(index/4);
 
-                    if (colour.alpha !== 0)
-                    {
-                        matrix[row][col] = layer.layerId;
+                    let row = parseInt (pixelNum / canvasToScan.height),
+                        col = parseInt (pixelNum % canvasToScan.width);
 
-                        progressCtx.fillStyle = layer.colour.toHTMLColour();
-                        progressCtx.fillRect(col, row, 1, 1);
-                    }
-                    col++;
+                    matrix[row][col] = layer.layerId;
+
+                    progressCtx.fillStyle = layer.colour.toHTMLColour();
+                    progressCtx.fillRect(col, row, 1, 1);
                 }
-                else    // New row
-                {
-                    row++;
-                    col = 0;
-                }
+                index += 4;
             }
 
             // Finished exporting a layer
-            if (row === canvasToScan.height || this.exportInterrupted)
+            if (index >= data.length || this.exportInterrupted)
                 this.exportLayersCount -= 1;
 
             // still didn't finish processing. Update progress and call function again
-            if (row < canvasToScan.height && !this.exportInterrupted)
+            else
             {
-                let percentage = (chunkNum * chunkSize) * 100 / (canvasToScan.height * canvasToScan.width),
+                let percentage = (index / data.length) * 100,
                     roundedPercentage = (percentage > 100) ? 100 : Math.round(percentage * 10) / 10;
                 this.pixelInstance.uiManager.updateProgress(roundedPercentage);
 
