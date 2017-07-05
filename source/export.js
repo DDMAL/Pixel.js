@@ -1,8 +1,10 @@
 import {Colour} from './colour';
 import {Point} from './point';
 
-export class Export {
-    constructor(pixelInstance, layers, pageIndex, zoomLevel, uiManager) {
+export class Export
+{
+    constructor(pixelInstance, layers, pageIndex, zoomLevel, uiManager)
+    {
         this.pixelInstance = pixelInstance;
         this.layers = layers;
         this.exportLayersCount = layers.length;
@@ -88,8 +90,9 @@ export class Export {
         this.layers.forEach((layer) => {
             layer.getCanvas().toBlob((blob) =>
             {
-                let text = document.createTextNode("Download " + layer.layerName + " PNG ");
-                let link = document.getElementById(layer.layerName + "-png-download");
+                let text = document.createTextNode("Download " + layer.layerName + " PNG "),
+                    link = document.getElementById(layer.layerName + "-png-download");
+
                 if (link === null)
                 {
                     let newImg = document.createElement('img'),
@@ -133,7 +136,8 @@ export class Export {
             chunkNum++;
 
             // This simulates a nested for loop that is limited by a certain number of iterations (cnt)
-            while (cnt--) {
+            while (cnt--)
+            {
                 if (row >= canvasToScan.height)
                     break;
 
