@@ -21,9 +21,9 @@ export class Colour
     {
         let hexString = "#";
 
-        let red = this.red.toString(16);
-        let green = this.green.toString(16);
-        let blue = this.blue.toString(16);
+        let red = this.red.toString(16),
+            green = this.green.toString(16),
+            blue = this.blue.toString(16);
 
         if (red.length === 1)
             hexString = hexString.concat("0");

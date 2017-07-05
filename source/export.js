@@ -18,7 +18,8 @@ export class Export {
      * Creates a PNG for each layer where the pixels spanned by the layers are replaced by the actual image data
      * of the Diva page
      */
-    exportLayersAsImageData() {
+    exportLayersAsImageData ()
+    {
         this.dataCanvases = [];
 
         let height = this.pixelInstance.core.publicInstance.getPageDimensionsAtZoomLevel(this.pageIndex, this.zoomLevel).height,
@@ -27,7 +28,7 @@ export class Export {
         let progressCanvas = this.uiManager.createExportElements(this).progressCanvas;
 
         // The idea here is to draw each layer on a canvas and scan the pixels of that canvas to fill the matrix
-        this.layers.forEach((layer) => {
+        this.layers.forEach ((layer) => {
             let layerCanvas = document.createElement('canvas');
             layerCanvas.setAttribute("class", "export-page-canvas");
             layerCanvas.setAttribute("id", "layer-" + layer.layerId + "-export-canvas");
@@ -54,7 +55,8 @@ export class Export {
      * Creates a PNG for each layer where the pixels spanned by the layers are replaced by the actual image data
      * of the Diva page
      */
-    exportLayersAsCSV() {
+    exportLayersAsCSV ()
+    {
         let core = this.pixelInstance.core,
             height = core.publicInstance.getPageDimensionsAtZoomLevel(this.pageIndex, this.zoomLevel).height,
             width = core.publicInstance.getPageDimensionsAtZoomLevel(this.pageIndex, this.zoomLevel).width;
@@ -64,7 +66,7 @@ export class Export {
         this.exportLayersCount = this.layers.length;
 
         // The idea here is to draw each layer on a canvas and scan the pixels of that canvas to fill the matrix
-        this.layers.forEach((layer) => {
+        this.layers.forEach ((layer) => {
             let layerCanvas = document.createElement('canvas');
             layerCanvas.setAttribute("class", "export-page-canvas");
             layerCanvas.setAttribute("id", "layer-" + layer.layerId + "-export-canvas");
@@ -79,14 +81,16 @@ export class Export {
     /**
      * Creates a PNG for each layer where the pixels spanned by the layers are replaced by the layer colour
      */
-    exportLayersAsHighlights() {
+    exportLayersAsHighlights ()
+    {
         let core = this.pixelInstance.core,
             height = core.publicInstance.getPageDimensionsAtZoomLevel(this.pageIndex, this.zoomLevel).height,
             width = core.publicInstance.getPageDimensionsAtZoomLevel(this.pageIndex, this.zoomLevel).width;
 
         // The idea here is to draw each layer on a canvas and scan the pixels of that canvas to fill the matrix
-        this.layers.forEach((layer) => {
+        this.layers.forEach ((layer) => {
             let layerCanvas = document.createElement('canvas');
+
             layerCanvas.setAttribute("class", "export-page-canvas");
             layerCanvas.setAttribute("id", "layer-" + layer.layerId + "-export-canvas");
             layerCanvas.setAttribute("style", "position: absolute; top: 0; left: 0;");
@@ -120,7 +124,8 @@ export class Export {
      * @param drawingCanvas
      * @param pageIndex
      */
-    replaceLayerWithImageData(divaCanvas, drawingCanvas, pageIndex, canvasToScan, progressCanvas) {
+    replaceLayerWithImageData (divaCanvas, drawingCanvas, pageIndex, canvasToScan, progressCanvas)
+    {
         let chunkSize = canvasToScan.width,
             chunkNum = 0,
             row = 0,
@@ -138,9 +143,10 @@ export class Export {
                 if (row >= canvasToScan.height)
                     break;
 
-                if (col < canvasToScan.width) {
-                    let data = pixelCtx.getImageData(col, row, 1, 1).data;
-                    let colour = new Colour(data[0], data[1], data[2], data[3]);
+                if (col < canvasToScan.width)
+                {
+                    let data = pixelCtx.getImageData(col, row, 1, 1).data,
+                        colour = new Colour(data[0], data[1], data[2], data[3]);
 
                     if (colour.alpha !== 0)
                         this.drawImageDataOnCanvas(row, col, pageIndex, renderer, divaCanvas, drawingCanvas, progressCanvas);
@@ -162,7 +168,8 @@ export class Export {
         doChunk();
     }
 
-    drawImageDataOnCanvas(row, col, pageIndex, renderer, imageCanvas, drawingCanvas, progressCanvas) {
+    drawImageDataOnCanvas (row, col, pageIndex, renderer, imageCanvas, drawingCanvas, progressCanvas)
+    {
         let drawingCtx = drawingCanvas.getContext('2d'),
             originalImageCtx = imageCanvas.getContext('2d'),
             progressCtx = progressCanvas.getContext('2d');
@@ -185,8 +192,8 @@ export class Export {
             renderer.goto(pageIndex, row, col + imageCanvas.width);
 
         // Get image data from diva page
-        let data = originalImageCtx.getImageData(paddedCoords.x, paddedCoords.y, 1, 1).data;
-        let colour = new Colour(data[0], data[1], data[2], data[3]);
+        let data = originalImageCtx.getImageData(paddedCoords.x, paddedCoords.y, 1, 1).data,
+            colour = new Colour(data[0], data[1], data[2], data[3]);
 
         drawingCtx.fillStyle = colour.toHTMLColour();
         drawingCtx.fillRect(col, row, 1, 1);
@@ -196,13 +203,15 @@ export class Export {
         progressCtx.fillRect(col, row, 1, 1);
     }
 
-    postProcessImageDataIteration(row, drawingCanvas, chunkNum, chunkSize, canvasToScan) {
+    postProcessImageDataIteration (row, drawingCanvas, chunkNum, chunkSize, canvasToScan)
+    {
         // Finished exporting a layer
         if (row === canvasToScan.height || this.exportInterrupted)
             this.exportLayersCount -= 1;
 
         // still didn't finish processing. Update progress and call function again
-        if (row < canvasToScan.height && !this.exportInterrupted) {
+        if (row < canvasToScan.height && !this.exportInterrupted)
+        {
             let percentage = (chunkNum * chunkSize) * 100 / (canvasToScan.height * canvasToScan.width),
                 roundedPercentage = (percentage > 100) ? 100 : Math.round(percentage * 10) / 10;
             this.pixelInstance.uiManager.updateProgress(roundedPercentage);
@@ -214,7 +223,8 @@ export class Export {
         }
 
         // Finished exporting a layer
-        else {
+        else
+        {
             // Last layer to be processed is cancelled
             if (this.exportInterrupted && (this.exportLayersCount === 0))
             {
@@ -265,7 +275,8 @@ export class Export {
         };
     }
 
-    fillMatrix(layer, matrix, canvasToScan, progressCanvas) {
+    fillMatrix (layer, matrix, canvasToScan, progressCanvas)
+    {
         let chunkSize = canvasToScan.width,
             chunkNum = 0,
             row = 0,
@@ -277,15 +288,18 @@ export class Export {
             let cnt = chunkSize;
             chunkNum++;
 
-            while (cnt--) {
+            while (cnt--)
+            {
                 if (row >= canvasToScan.height)
                     break;
 
-                if (col < canvasToScan.width) {
-                    let data = canvasToScan.getContext('2d').getImageData(col, row, 1, 1).data;
-                    let colour = new Colour(data[0], data[1], data[2], data[3]);
+                if (col < canvasToScan.width)
+                {
+                    let data = canvasToScan.getContext('2d').getImageData(col, row, 1, 1).data,
+                        colour = new Colour(data[0], data[1], data[2], data[3]);
 
-                    if (colour.alpha !== 0) {
+                    if (colour.alpha !== 0)
+                    {
                         matrix[row][col] = layer.layerId;
 
                         progressCtx.fillStyle = layer.colour.toHTMLColour();
@@ -305,7 +319,8 @@ export class Export {
                 this.exportLayersCount -= 1;
 
             // still didn't finish processing. Update progress and call function again
-            if (row < canvasToScan.height && !this.exportInterrupted) {
+            if (row < canvasToScan.height && !this.exportInterrupted)
+            {
                 let percentage = (chunkNum * chunkSize) * 100 / (canvasToScan.height * canvasToScan.width),
                     roundedPercentage = (percentage > 100) ? 100 : Math.round(percentage * 10) / 10;
                 this.pixelInstance.uiManager.updateProgress(roundedPercentage);
@@ -315,23 +330,26 @@ export class Export {
             }
 
             // End of Exporting
-            if (this.exportLayersCount === 0) {
+            if (this.exportLayersCount === 0)
+            {
                 this.uiManager.destroyExportElements();
-                if (this.exportInterrupted) {
+                if (this.exportInterrupted)
+                {
                     this.exportInterrupted = false;
                 }
-                else {
+                else
+                {
                     // this.pixelInstance.printMatrix();
                     this.transformMatrixToCSV();
                 }
             }
         };
-
         // First call to the doChunck function
         doChunk();
     }
 
-    initializeMatrix() {
+    initializeMatrix ()
+    {
         let core = this.pixelInstance.core;
 
         let height = core.publicInstance.getPageDimensionsAtZoomLevel(this.pageIndex, this.zoomLevel).height,
@@ -340,24 +358,30 @@ export class Export {
         this.matrix = new Array(height).fill(null).map(() => new Array(width).fill(0));
     }
 
-    transformMatrixToCSV() {
+    transformMatrixToCSV ()
+    {
         let csvContent = "",
             filename = "pixel-export";
 
-        for (var row = 0; row < this.matrix.length; row++) {
+        for (var row = 0; row < this.matrix.length; row++)
+        {
             let data = this.matrix[row].join(",");
+
             csvContent += data;
             csvContent += "\n";
         }
 
         let blob = new Blob([csvContent], {type: 'text/csv;charset=utf-8;'});
-        if (navigator.msSaveBlob) { // IE 10+
+
+        if (navigator.msSaveBlob)
+        { // IE 10+
             navigator.msSaveBlob(blob, filename);
         }
         else
         {
-            let text = document.createTextNode("Download CSV ");
-            let link = document.getElementById("csv-download");
+            let text = document.createTextNode("Download CSV "),
+                link = document.getElementById("csv-download");
+
             if (link === null)
             {
                 link = document.createElement("a");
@@ -373,24 +397,29 @@ export class Export {
         }
     }
 
-    printMatrixOnCanvas(canvas) {
+    printMatrixOnCanvas (canvas)
+    {
         // Need to implement a buffering page
         // let renderer = this.core.getSettings().renderer;
         let rowlen = this.matrix[0].length,
             ctx = canvas.getContext('2d');
 
         let handleHit = (row, col) => {
-            this.layers.forEach((layer) => {
-                if (layer.layerId === this.matrix[row][col]) {
+            this.layers.forEach ((layer) => {
+                if (layer.layerId === this.matrix[row][col])
+                {
                     ctx.fillStyle = layer.colour.toHTMLColour();
                     ctx.fillRect(col, row, 1, 1);
                 }
             });
         };
 
-        for (var row = 0; row < this.matrix.length; row++) {
-            for (var col = 0; col < rowlen; col++) {
-                if (this.matrix[row][col] !== 0) {
+        for (var row = 0; row < this.matrix.length; row++)
+        {
+            for (var col = 0; col < rowlen; col++)
+            {
+                if (this.matrix[row][col] !== 0)
+                {
                     handleHit(row, col);
                 }
             }

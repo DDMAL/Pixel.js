@@ -20,7 +20,7 @@ export class Point
      * @param zoomLevel
      * @returns {{x: number, y: number}}
      */
-    getCoordsInPage(zoomLevel)
+    getCoordsInPage (zoomLevel)
     {
         let scaleRatio = Math.pow(2,zoomLevel);
         return {
@@ -38,7 +38,7 @@ export class Point
      * @param renderer
      * @returns {{x: number, y: number}}
      */
-    getCoordsInViewport(zoomLevel, pageIndex, renderer)
+    getCoordsInViewport (zoomLevel, pageIndex, renderer)
     {
         const viewportPaddingX = Math.max(0, (renderer._viewport.width - renderer.layout.dimensions.width) / 2);
         const viewportPaddingY = Math.max(0, (renderer._viewport.height - renderer.layout.dimensions.height) / 2);
@@ -47,8 +47,8 @@ export class Point
 
         // Calculates where the highlights should be drawn as a function of the whole canvas coordinates system
         // (to make it look like it is on top of a page in Diva)
-        let offsetX = renderer._getImageOffset(pageIndex).left - renderer._viewport.left + viewportPaddingX + absoluteCoordinates.x;
-        let offsetY = renderer._getImageOffset(pageIndex).top - renderer._viewport.top + viewportPaddingY + absoluteCoordinates.y;
+        let offsetX = renderer._getImageOffset(pageIndex).left - renderer._viewport.left + viewportPaddingX + absoluteCoordinates.x,
+            offsetY = renderer._getImageOffset(pageIndex).top - renderer._viewport.top + viewportPaddingY + absoluteCoordinates.y;
 
         return {
             x: offsetX,
@@ -64,7 +64,7 @@ export class Point
      * @param paddedY
      * @returns {{x: number, y: number}}
      */
-    getAbsoluteCoordinatesFromPadded(pageIndex, renderer, paddedX, paddedY)
+    getAbsoluteCoordinatesFromPadded (pageIndex, renderer, paddedX, paddedY)
     {
         const viewportPaddingX = Math.max(0, (renderer._viewport.width - renderer.layout.dimensions.width) / 2);
         const viewportPaddingY = Math.max(0, (renderer._viewport.height - renderer.layout.dimensions.height) / 2);
@@ -75,7 +75,7 @@ export class Point
         };
     }
 
-    getPaddedCoordinatesFromAbsolute(pageIndex, renderer, absoluteX, absoluteY)
+    getPaddedCoordinatesFromAbsolute (pageIndex, renderer, absoluteX, absoluteY)
     {
         const viewportPaddingX = Math.max(0, (renderer._viewport.width - renderer.layout.dimensions.width) / 2);
         const viewportPaddingY = Math.max(0, (renderer._viewport.height - renderer.layout.dimensions.height) / 2);
@@ -87,5 +87,4 @@ export class Point
             y: renderer._getImageOffset(pageIndex).top - renderer._viewport.top + viewportPaddingY + absoluteY
         };
     }
-
 }

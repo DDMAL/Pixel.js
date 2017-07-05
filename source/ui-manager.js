@@ -97,7 +97,7 @@ export class UIManager
 
     destroyPixelCanvases (layers)
     {
-        layers.forEach((layer) =>
+        layers.forEach ((layer) =>
         {
             layer.getCanvas().parentNode.removeChild(layer.getCanvas());
         });
@@ -410,7 +410,8 @@ export class UIManager
         pngexportDataButton.parentNode.removeChild(pngexportDataButton);
     }
 
-    updateProgress (percentage) {
+    updateProgress (percentage)
+    {
         let percentageStr = percentage + "%";
         let widthStr = "width: " + percentageStr;
         document.getElementById("pbar-inner-div").setAttribute("style", widthStr);
@@ -523,16 +524,16 @@ export class UIManager
     getBrushSizeSelectorValue ()
     {
         // Brush size relative to scaleRatio to allow for more precise manipulations on higher zoom levels
-        let brushSizeSlider = document.getElementById("brush-size-selector");
-        let brushSizeValue = (brushSizeSlider.value / brushSizeSlider.max) * 10;
+        let brushSizeSlider = document.getElementById("brush-size-selector"),
+            brushSizeValue = (brushSizeSlider.value / brushSizeSlider.max) * 10;
 
         return 0.05 + Math.exp(brushSizeValue - 6);   // 0.05 + e ^ (x - 6) was the most intuitive function we found in terms of brush size range
     }
 
     createBrushCursor ()
     {
-        let cursorDiv = document.getElementById("brush-cursor-div");
-        let divaOuter = document.getElementById("diva-1-outer");
+        let cursorDiv = document.getElementById("brush-cursor-div"),
+            divaOuter = document.getElementById("diva-1-outer");
 
         if (cursorDiv === null)
         {
@@ -552,8 +553,8 @@ export class UIManager
         if (cursorDiv === null)
             return;
 
-        let scaleRatio = Math.pow(2, this.pixelInstance.core.getSettings().zoomLevel);
-        let brushSizeSelectorValue = this.getBrushSizeSelectorValue() * scaleRatio;
+        let scaleRatio = Math.pow(2, this.pixelInstance.core.getSettings().zoomLevel),
+            brushSizeSelectorValue = this.getBrushSizeSelectorValue() * scaleRatio;
 
         cursorDiv.style.width = brushSizeSelectorValue + "px";
         cursorDiv.style.height = brushSizeSelectorValue + "px";
@@ -571,9 +572,9 @@ export class UIManager
 
     moveBrushCursor (mousePos)
     {
-        let cursorDiv = document.getElementById("brush-cursor-div");
-        let scaleRatio = Math.pow(2, this.pixelInstance.core.getSettings().zoomLevel);
-        let brushSize = this.getBrushSizeSelectorValue() * scaleRatio;
+        let cursorDiv = document.getElementById("brush-cursor-div"),
+            scaleRatio = Math.pow(2, this.pixelInstance.core.getSettings().zoomLevel),
+            brushSize = this.getBrushSizeSelectorValue() * scaleRatio;
 
         cursorDiv.style.left = mousePos.x - brushSize/2 - 1 + "px"; // the -1 is to account for the border width
         cursorDiv.style.top = mousePos.y  - brushSize/2 - 1 + "px"; // the -1 is to account for the border width

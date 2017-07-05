@@ -19,7 +19,7 @@ export class Tools
     {
         let allTools = [];
 
-        for(let type in this.type)
+        for (let type in this.type)
         {
             allTools.push(type);
         }
