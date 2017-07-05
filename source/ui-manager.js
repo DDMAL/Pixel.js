@@ -27,6 +27,8 @@ export class UIManager
         this.destroyToolsView(this.pixelInstance.tools.getAllTools());
         this.destroyLockedLayerSelectors(background);
         this.destroyDownloadLinks();
+        this.destroyBrushCursor();
+        this.restoreDefaultCursor();
     }
 
     // Tools are strings or enums
@@ -57,14 +59,14 @@ export class UIManager
             radio.setAttribute("name", "tool-selector");
             handleClick(radio);
 
-            if (tool === this.pixelInstance.tools.getCurrentTool())
-                radio.checked = true;
-
             form.appendChild(radio);
             form.appendChild(content);
             form.appendChild(br);
         }
         document.body.appendChild(form);
+
+        // Set tool cursor after tools view creation
+        this.pixelInstance.tools.setCurrentTool(this.pixelInstance.tools.getCurrentTool());
     }
 
     destroyToolsView ()
@@ -560,7 +562,11 @@ export class UIManager
     destroyBrushCursor ()
     {
         let cursorDiv = document.getElementById("brush-cursor-div");
-        cursorDiv.parentNode.removeChild(cursorDiv);
+
+        if (cursorDiv !== null)
+        {
+            cursorDiv.parentNode.removeChild(cursorDiv);
+        }
     }
 
     moveBrushCursor (mousePos)
@@ -571,5 +577,11 @@ export class UIManager
 
         cursorDiv.style.left = mousePos.x - brushSize/2 - 1 + "px"; // the -1 is to account for the border width
         cursorDiv.style.top = mousePos.y  - brushSize/2 - 1 + "px"; // the -1 is to account for the border width
+    }
+
+    restoreDefaultCursor ()
+    {
+        let mouseClickDiv = document.getElementById("diva-1-outer");
+        mouseClickDiv.style.cursor = "default";
     }
 }

@@ -75,8 +75,12 @@ export default class PixelPlugin
             this.background.canvas = this.core.getSettings().renderer._canvas;  // Link background canvas to the actual diva canvas
         }
 
-        this.uiManager = new UIManager(this);
-        this.tools = new Tools(this);
+        if (this.uiManager === null)
+            this.uiManager = new UIManager(this);
+
+        if (this.tools === null)
+            this.tools = new Tools(this);
+
         this.uiManager.createPluginElements(this.layers);
         this.scrollEventHandle = this.subscribeToScrollEvent();
         this.zoomEventHandle = this.subscribeToZoomLevelWillChangeEvent();
@@ -686,7 +690,12 @@ export default class PixelPlugin
 
     initializeNewPathInCurrentLayer (mousePos)
     {
+        // Layer is inactive
         if (!this.layers[this.selectedLayerIndex].isActivated())
+            return;
+
+        // Drawing on another page
+        if (this.core.getSettings().currentPageIndex !== this.layers[0].pageIndex)
             return;
 
         let pageIndex = this.core.getSettings().currentPageIndex,
@@ -728,6 +737,10 @@ export default class PixelPlugin
     addPointToCurrentPath (mousePos)
     {
         if (!this.layers[this.selectedLayerIndex].isActivated())
+            return;
+
+        // Drawing on another page
+        if (this.core.getSettings().currentPageIndex !== this.layers[0].pageIndex)
             return;
 
         let point,
@@ -791,6 +804,10 @@ export default class PixelPlugin
         if (!this.layers[this.selectedLayerIndex].isActivated())
             return;
 
+        // Drawing on another page
+        if (this.core.getSettings().currentPageIndex !== this.layers[0].pageIndex)
+            return;
+
         let pageIndex = this.core.getSettings().currentPageIndex,
             relativeCoords = this.getRelativeCoordinatesFromPadded(mousePos.x, mousePos.y);
 
@@ -816,6 +833,10 @@ export default class PixelPlugin
     rectanglePreview (mousePos)
     {
         if (!this.layers[this.selectedLayerIndex].isActivated())
+            return;
+
+        // Drawing on another page
+        if (this.core.getSettings().currentPageIndex !== this.layers[0].pageIndex)
             return;
 
         if (!this.layerChangedMidDraw)
