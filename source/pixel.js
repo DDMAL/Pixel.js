@@ -566,7 +566,7 @@ export default class PixelPlugin
             layerActivationDiv.classList.add("layer-activated");
             layer.getCanvas().style.opacity = layer.getLayerOpacity();
 
-            if (layer.layerId === -1)      // Background
+            if (layer.layerId === 0)      // Background
             {
                 layer.activated = true;
             }
@@ -581,7 +581,7 @@ export default class PixelPlugin
             layerActivationDiv.classList.remove("layer-activated");
             layerActivationDiv.classList.add("layer-deactivated");
 
-            if (layer.layerId === -1)      // Background
+            if (layer.layerId === 0)      // Background
             {
                 layer.getCanvas().style.opacity = 0;
                 layer.activated = false;

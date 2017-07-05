@@ -102,8 +102,8 @@ export class Rectangle extends Shape
      */
     drawOnPage (layer, pageIndex, zoomLevel, renderer, canvas)
     {
-        let scaleRatio = Math.pow(2,zoomLevel);
-        let ctx = canvas.getContext('2d');
+        let scaleRatio = Math.pow(2,zoomLevel),
+            ctx = canvas.getContext('2d');
 
         // The following absolute values are experimental values to highlight the square on the first page of Salzinnes, CDN-Hsmu M2149.L4
         // The relative values are used to scale the highlights according to the zoom level on the page itself
@@ -147,16 +147,16 @@ export class Rectangle extends Shape
     {
         // FIXME: sometimes copying and pasting scaled image data goes beyond the rectangle (compute bounds using the scaleRatio)
 
-        let scaleRatio = Math.pow(2,zoomLevel);
-        let pixelCtx = drawingCanvas.getContext('2d');
-        let divaCtx = imageCanvas.getContext('2d');
+        let scaleRatio = Math.pow(2,zoomLevel),
+            pixelCtx = drawingCanvas.getContext('2d'),
+            divaCtx = imageCanvas.getContext('2d');
 
         // The following absolute values are experimental values to highlight the square on the first page of Salzinnes, CDN-Hsmu M2149.L4
         // The relative values are used to scale the highlights according to the zoom level on the page itself
-        let absoluteRectOriginX = this.origin.relativeOriginX * scaleRatio;
-        let absoluteRectOriginY = this.origin.relativeOriginY * scaleRatio;
-        let absoluteRectWidth = this.relativeRectWidth * scaleRatio;
-        let absoluteRectHeight = this.relativeRectHeight * scaleRatio;
+        let absoluteRectOriginX = this.origin.relativeOriginX * scaleRatio,
+            absoluteRectOriginY = this.origin.relativeOriginY * scaleRatio,
+            absoluteRectWidth = this.relativeRectWidth * scaleRatio,
+            absoluteRectHeight = this.relativeRectHeight * scaleRatio;
 
         if (pageIndex === this.origin.pageIndex)
         {

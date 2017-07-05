@@ -168,7 +168,7 @@ export class UIManager
         layerName.setAttribute("type", "text");
         layerName.setAttribute("readonly", "true");
         layerName.setAttribute("value", layer.layerName);
-        layerName.setAttribute("ondblclick", "this.readOnly='';");
+        //layerName.setAttribute("ondblclick", "this.readOnly='';");
 
         colourDiv.setAttribute("class", "color-box");
         colourDiv.setAttribute("style", "background-color: " + layer.colour.toHexString() + ";");
@@ -185,7 +185,7 @@ export class UIManager
 
         colourDiv.addEventListener("click", () => { this.pixelInstance.displayColourOptions(); });
         layerActivationDiv.addEventListener("click", () => { this.pixelInstance.toggleLayerActivation(layer, layerActivationDiv); });
-        layerName.addEventListener('keypress', (e) => { this.pixelInstance.editLayerName(e, layerName, layerDiv); });
+        //layerName.addEventListener('keypress', (e) => { this.pixelInstance.editLayerName(e, layerName, layerDiv); });
         layerOptionsDiv.onclick = () => { this.pixelInstance.displayLayerOptions(layer, layerOptionsDiv); };
 
         layerDiv.appendChild(layerName);
@@ -435,8 +435,9 @@ export class UIManager
 
     updateProgress (percentage)
     {
-        let percentageStr = percentage + "%";
-        let widthStr = "width: " + percentageStr;
+        let percentageStr = percentage + "%",
+            widthStr = "width: " + percentageStr;
+
         document.getElementById("pbar-inner-div").setAttribute("style", widthStr);
         document.getElementById("pbar-inner-text").innerHTML = percentageStr;
     }
@@ -555,9 +556,9 @@ export class UIManager
 
     createBrushCursor ()
     {
-        let cursorDiv = document.getElementById("brush-cursor-div");
-        let divaViewport = document.getElementById("diva-1-viewport");
-        let divaOuter = document.getElementById("diva-1-outer");
+        let cursorDiv = document.getElementById("brush-cursor-div"),
+            divaViewport = document.getElementById("diva-1-viewport"),
+            divaOuter = document.getElementById("diva-1-outer");
 
         if (cursorDiv === null)
         {
