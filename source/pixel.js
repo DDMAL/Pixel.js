@@ -165,7 +165,7 @@ export default class PixelPlugin
     {
         window.addEventListener("resize", () =>
         {
-            this.layers.forEach((layer) =>
+            this.layers.forEach ((layer) =>
             {
                 layer.placeLayerCanvasOnTopOfEditingPage();
             });
@@ -176,7 +176,7 @@ export default class PixelPlugin
     {
         let handle = global.Diva.Events.subscribe('ZoomLevelWillChange', (zoomLevel) =>
         {
-            this.layers.forEach((layer) =>
+            this.layers.forEach ((layer) =>
             {
                 layer.resizeLayerCanvasToZoomLevel(zoomLevel);
             });
@@ -189,7 +189,7 @@ export default class PixelPlugin
     {
         let handle = global.Diva.Events.subscribe('ViewerDidScroll', () =>
         {
-            this.layers.forEach((layer) =>
+            this.layers.forEach ((layer) =>
             {
                 layer.placeLayerCanvasOnTopOfEditingPage();
             });
@@ -933,7 +933,7 @@ export default class PixelPlugin
 
     redrawAllLayers ()
     {
-        this.layers.forEach((layer) =>
+        this.layers.forEach ((layer) =>
         {
             this.redrawLayer(layer);
         });

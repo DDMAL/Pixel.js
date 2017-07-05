@@ -233,7 +233,7 @@ export class Layer
     // Called on export
     drawLayerInPageCoords (zoomLevel, canvas, pageIndex)
     {
-        this.actions.forEach((action) =>
+        this.actions.forEach ((action) =>
         {
             action.drawOnPage(this, pageIndex, zoomLevel, this.pixelInstance.core.getSettings().renderer, canvas);
         });

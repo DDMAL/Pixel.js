@@ -4,7 +4,8 @@ import {Colour} from './colour';
 
 export class Circle extends Shape
 {
-    constructor (point, relativeRadius, blendMode) {
+    constructor (point, relativeRadius, blendMode)
+    {
         super(point, blendMode);
         this.relativeRadius = relativeRadius;
     }
@@ -19,8 +20,8 @@ export class Circle extends Shape
      */
     drawInViewport (layer, pageIndex, zoomLevel, renderer, canvas)
     {
-        let scaleRatio = Math.pow(2,zoomLevel);
-        let ctx = canvas.getContext('2d');
+        let scaleRatio = Math.pow(2,zoomLevel),
+            ctx = canvas.getContext('2d');
 
         if (pageIndex === this.origin.pageIndex)
         {
@@ -46,8 +47,8 @@ export class Circle extends Shape
      */
     drawOnPage (layer, pageIndex, zoomLevel, renderer, canvas)
     {
-        let scaleRatio = Math.pow(2,zoomLevel);
-        let ctx = canvas.getContext('2d');
+        let scaleRatio = Math.pow(2,zoomLevel),
+            ctx = canvas.getContext('2d');
 
         if (pageIndex === this.origin.pageIndex)
         {
@@ -74,28 +75,29 @@ export class Circle extends Shape
      */
     getPixels (layer, pageIndex, zoomLevel, renderer, drawingCanvas, imageCanvas)
     {
-        let circleTop = new Point(this.origin.relativeOriginX, this.origin.relativeOriginY - this.relativeRadius, 0);
-        let circleBottom = new Point(this.origin.relativeOriginX, this.origin.relativeOriginY + this.relativeRadius, 0);
-        let circleLeft = new Point(this.origin.relativeOriginX - this.relativeRadius, this.origin.relativeOriginY, 0);
-        let circleRight = new Point(this.origin.relativeOriginX + this.relativeRadius, this.origin.relativeOriginY, 0);
+        let circleTop = new Point(this.origin.relativeOriginX, this.origin.relativeOriginY - this.relativeRadius, 0),
+            circleBottom = new Point(this.origin.relativeOriginX, this.origin.relativeOriginY + this.relativeRadius, 0),
+            circleLeft = new Point(this.origin.relativeOriginX - this.relativeRadius, this.origin.relativeOriginY, 0),
+            circleRight = new Point(this.origin.relativeOriginX + this.relativeRadius, this.origin.relativeOriginY, 0);
 
-        let drawingCtx = drawingCanvas.getContext('2d');
-        let imageCtx = imageCanvas.getContext('2d');
+        let drawingCtx = drawingCanvas.getContext('2d'),
+            imageCtx = imageCanvas.getContext('2d');
 
         let scaleRatio = Math.pow(2, zoomLevel);
 
-        for(var y = circleTop.getCoordsInViewport(zoomLevel, pageIndex, renderer).y;
+        for (var y = circleTop.getCoordsInViewport(zoomLevel, pageIndex, renderer).y;
             y <= circleBottom.getCoordsInViewport(zoomLevel, pageIndex, renderer).y; y++)
         {
-            for(var  x = circleLeft.getCoordsInViewport(zoomLevel, pageIndex, renderer).x;
-                x <= circleRight.getCoordsInViewport(zoomLevel, pageIndex, renderer).x; x++){
+            for (var x = circleLeft.getCoordsInViewport(zoomLevel, pageIndex, renderer).x;
+                x <= circleRight.getCoordsInViewport(zoomLevel, pageIndex, renderer).x; x++)
+            {
                 let point1highlightOffset = this.origin.getCoordsInViewport(zoomLevel, pageIndex, renderer);
 
-                let shiftedX = x - point1highlightOffset.x;
-                let shiftedY = y - point1highlightOffset.y;
+                let shiftedX = x - point1highlightOffset.x,
+                    shiftedY = y - point1highlightOffset.y;
 
                 // If it satisfies the circle equation x^2 + y^2 <= r^2
-                if(shiftedX * shiftedX + shiftedY * shiftedY <= (this.relativeRadius) * scaleRatio * (this.relativeRadius) * scaleRatio)
+                if (shiftedX * shiftedX + shiftedY * shiftedY <= (this.relativeRadius) * scaleRatio * (this.relativeRadius) * scaleRatio)
                 {
                     // Get absolute from padded
                     let absoluteCoords = new Point().getAbsoluteCoordinatesFromPadded(pageIndex,renderer,x,y);
@@ -105,9 +107,9 @@ export class Circle extends Shape
                     {
                         if (this.blendMode === "add")
                         {
-                            let paddedCoords = new Point().getPaddedCoordinatesFromAbsolute(pageIndex, renderer, absoluteCoords.x, absoluteCoords.y);
-                            let data = imageCtx.getImageData(paddedCoords.x, paddedCoords.y, 1, 1).data;
-                            let colour = new Colour(data[0], data[1], data[2], data[3]);
+                            let paddedCoords = new Point().getPaddedCoordinatesFromAbsolute(pageIndex, renderer, absoluteCoords.x, absoluteCoords.y),
+                                data = imageCtx.getImageData(paddedCoords.x, paddedCoords.y, 1, 1).data,
+                                colour = new Colour(data[0], data[1], data[2], data[3]);
 
                             drawingCtx.fillStyle = colour.toHTMLColour();
                             drawingCtx.fillRect(absoluteCoords.x, absoluteCoords.y, 1, 1);
