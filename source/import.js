@@ -37,16 +37,9 @@ export class Import {
 
                 for(let i = 0; i < data.length; i += 4)
                 {
-                    if (data[i] > 240 && data[i+1] > 240 && data[i+2] > 240)
-                    {
-                        data [i+3] = 0;     // If white then make transparent
-                    }
-                    else
-                    {
                         data[i] = layer.colour.red;             // red
                         data[i + 1] = layer.colour.green;       // green
                         data[i + 2] = layer.colour.blue;        // blue
-                    }
                 }
                 // overwrite original image
                 ctx.putImageData(imageData, 0, 0);
