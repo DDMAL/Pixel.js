@@ -250,9 +250,6 @@ export default class PixelPlugin
 
     unsubscribeFromKeyboardEvents ()
     {
-        console.log("unsub");
-        console.trace();
-
         document.removeEventListener("keyup", this.keyboardHandles.keyup);
         document.removeEventListener("keydown", this.keyboardHandles.keydown);
     }
@@ -374,7 +371,6 @@ export default class PixelPlugin
                 {
                     this.selection.pasteShapeToLayer(this.layers[this.selectedLayerIndex]);
                     this.actions.push(new Action(this.selection, this.layers[this.selectedLayerIndex]));
-                    console.log(this.actions);
                     this.selection = null;
                     this.redrawLayer(this.layers[this.selectedLayerIndex]);
                 }
@@ -402,8 +398,6 @@ export default class PixelPlugin
 
     editLayerName (e, layerName, layerDiv)
     {
-        console.log(e);
-
         const RETURN_KEY = 13;
 
         // TODO: Listen for changes when clicked outside of LayerName
@@ -445,7 +439,6 @@ export default class PixelPlugin
         // Clear Selection
         if (this.selection !== null)
         {
-            console.log("Clear selection");
             this.selection.clearSelection(this.core.getSettings().maxZoomLevel);
         }
 
@@ -496,6 +489,11 @@ export default class PixelPlugin
                 case this.tools.type.eraser:
                     this.mousePressed = true;
                     this.initializeBrushChange(mousePos);
+                    break;
+                case this.tools.type.select:
+                    this.mousePressed = true;
+                    this.selection = new Selection();
+                    this.initializeRectanglePreview(mousePos);
                     break;
                 default:
                     this.mousePressed = true;
@@ -685,16 +683,11 @@ export default class PixelPlugin
 
             this.undoneActions.push(actionToRemove);
             this.removeAction(this.actions.length - 1);
-
-
-            console.log(this.undoneActions);
         }
     }
 
     removeAction (index)
     {
-        console.log(this.actions);
-
         if (this.actions.length > 0 && this.actions.length >= index)
         {
             let actionToRemove = this.actions[index];
@@ -878,9 +871,7 @@ export default class PixelPlugin
             {
                 selectedLayer.addShapeToLayer(new Rectangle(new Point(relativeCoords.x,relativeCoords.y,pageIndex), 0, 0, "select", this.tools.getCurrentTool()));
                 this.selection.setSelectedShape(selectedLayer.getCurrentShape(), this.layers[this.selectedLayerIndex]);
-
             }
-
             //next 2 condition checks assume the selected tool is rectangle
             else if (this.rightMousePressed)
             {

@@ -37,8 +37,6 @@ export class Rectangle extends Shape
         //Selection tool
         if (this.blendMode === "select")
         {
-            console.log("select");
-
             //TODO: SELECTION CODE HERE
             if (pageIndex === this.origin.pageIndex)
             {
