@@ -250,6 +250,9 @@ export default class PixelPlugin
 
     unsubscribeFromKeyboardEvents ()
     {
+        console.log("unsub");
+        console.trace();
+
         document.removeEventListener("keyup", this.keyboardHandles.keyup);
         document.removeEventListener("keydown", this.keyboardHandles.keydown);
     }
@@ -363,12 +366,15 @@ export default class PixelPlugin
                 if (e.ctrlKey || e.metaKey)                 // Cmd + x
                 {
                     this.selection.cutShape(this.core.getSettings().maxZoomLevel);
+                    this.actions.push(new Action(this.selection.selectedShape, this.layers[this.selectedLayerIndex]));
                 }
                 break;
             case "v":
                 if (e.ctrlKey || e.metaKey)                 // Cmd + v
                 {
                     this.selection.pasteShapeToLayer(this.layers[this.selectedLayerIndex]);
+                    this.actions.push(new Action(this.selection, this.layers[this.selectedLayerIndex]));
+                    console.log(this.actions);
                     this.selection = null;
                     this.redrawLayer(this.layers[this.selectedLayerIndex]);
                 }
@@ -396,17 +402,19 @@ export default class PixelPlugin
 
     editLayerName (e, layerName, layerDiv)
     {
+        console.log(e);
+
         const RETURN_KEY = 13;
 
         // TODO: Listen for changes when clicked outside of LayerName
-        this.unsubscribeFromKeyboardEvents();
+        // TODO: Find a way to unsubscribe from keyboard events while allowing enter key to be pressed
         layerDiv.removeAttribute("draggable");
         layerDiv.setAttribute("draggable", "false");
 
         let key = e.which || e.keyCode;
         if (key === RETURN_KEY)
         {
-            this.subscribeToKeyboardEvents();
+            // TODO: Resubscribe to mouse events
             this.layers[this.selectedLayerIndex].updateLayerName(layerName.value);
             layerName.setAttribute("readonly", "true");
             layerDiv.setAttribute("draggable", "true");
@@ -539,7 +547,9 @@ export default class PixelPlugin
                 this.mousePressed = false;
                 this.rightMousePressed = false;
                 break;
-            case this.tools.type.rectangle: // TODO: Add action: resized rectangle. This is useful if a user wants to revert a rectangle resize (when implemented)
+            // TODO: Add action: resized rectangle.
+            // This is useful if a user wants to revert a rectangle resize (when implemented)
+            case this.tools.type.rectangle:
                 this.mousePressed = false;
                 this.rightMousePressed = false;
                 break;
@@ -652,6 +662,14 @@ export default class PixelPlugin
                 this.actions.push(actionToRedo);
                 this.undoneActions.splice(this.undoneActions.length - 1,1);
             }
+
+            else if (actionToRedo.action.type === "selection")
+            {
+                actionToRedo.layer.addToPastedRegions(actionToRedo.action);
+                this.actions.push(actionToRedo);
+                this.undoneActions.splice(this.undoneActions.length - 1,1);
+            }
+
             this.redrawLayer(actionToRedo.layer);
         }
     }
@@ -667,11 +685,16 @@ export default class PixelPlugin
 
             this.undoneActions.push(actionToRemove);
             this.removeAction(this.actions.length - 1);
+
+
+            console.log(this.undoneActions);
         }
     }
 
     removeAction (index)
     {
+        console.log(this.actions);
+
         if (this.actions.length > 0 && this.actions.length >= index)
         {
             let actionToRemove = this.actions[index];
@@ -683,6 +706,11 @@ export default class PixelPlugin
             else if (actionToRemove.action.type === "shape")
             {
                 actionToRemove.layer.removeShapeFromLayer(actionToRemove.action);
+                this.actions.splice(index, 1);
+            }
+            else if (actionToRemove.action.type === "selection")
+            {
+                actionToRemove.layer.removeSelectionFromLayer(actionToRemove.action);
                 this.actions.splice(index, 1);
             }
             this.redrawLayer(actionToRemove.layer);
@@ -851,18 +879,21 @@ export default class PixelPlugin
                 selectedLayer.addShapeToLayer(new Rectangle(new Point(relativeCoords.x,relativeCoords.y,pageIndex), 0, 0, "select", this.tools.getCurrentTool()));
                 this.selection.setSelectedShape(selectedLayer.getCurrentShape(), this.layers[this.selectedLayerIndex]);
 
-                console.log(this.selection);
             }
 
             //next 2 condition checks assume the selected tool is rectangle
             else if (this.rightMousePressed)
+            {
                 selectedLayer.addShapeToLayer(new Rectangle(new Point(relativeCoords.x,relativeCoords.y,pageIndex), 0, 0, "subtract", this.tools.getCurrentTool()));
+                this.actions.push(new Action(selectedLayer.getCurrentShape(), selectedLayer));
+            }
 
             else
+            {
                 selectedLayer.addShapeToLayer(new Rectangle(new Point(relativeCoords.x,relativeCoords.y,pageIndex), 0, 0, "add", this.tools.getCurrentTool()));
+                this.actions.push(new Action(selectedLayer.getCurrentShape(), selectedLayer));
+            }
 
-
-            this.actions.push(new Action(selectedLayer.getCurrentShape(), selectedLayer));
             this.redrawLayer(selectedLayer);
         }
     }

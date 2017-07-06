@@ -160,6 +160,15 @@ export class Layer
         this.actions.splice(actionIndex, 1);
     }
 
+    removeSelectionFromLayer (selection)
+    {
+        let index = this.pastedRegions.indexOf(selection);
+        this.pastedRegions.splice(index, 1);
+
+        let actionIndex = this.actions.indexOf(selection);
+        this.actions.splice(actionIndex, 1);
+    }
+
     setOpacity (opacity)
     {
         this.colour.alpha = opacity;
@@ -235,9 +244,6 @@ export class Layer
         // Redraw PreBinarized Image on layer canvas
         if (this.preBinarizedImageCanvas !== null)
             ctx.drawImage(this.preBinarizedImageCanvas, 0, 0);
-
-        // Cannot draw on top of the preBinarized Image Canvas
-
 
         // Redraw all actions
         this.actions.forEach((action) =>

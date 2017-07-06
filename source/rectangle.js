@@ -119,7 +119,7 @@ export class Rectangle extends Shape
             {
                 //Draw the selection rectangle
                 ctx.fillStyle = 'rgba(147, 192, 255, 0.5)';
-                ctx.lineWidth = 10;
+                ctx.lineWidth = 30/scaleRatio;
                 ctx.strokeStyle = 'rgba(97, 142, 205, 1)';
                 ctx.fillRect(absoluteRectOriginX, absoluteRectOriginY, absoluteRectWidth, absoluteRectHeight);
                 ctx.strokeRect(absoluteRectOriginX, absoluteRectOriginY, absoluteRectWidth, absoluteRectHeight);

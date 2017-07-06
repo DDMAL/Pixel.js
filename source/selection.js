@@ -2,15 +2,16 @@ export class Selection
 {
     constructor ()
     {
-        this.selectedLayer = null;
+        this.layer = null;
         this.selectedShape = null;
+        this.type = "selection";
         this.imageData = null;
     }
 
     copyShape (maxZoomLevel)
     {
-        this.selectedLayer.removeShapeFromLayer(this.selectedShape);
-        this.selectedLayer.drawLayer(maxZoomLevel, this.selectedLayer.getCanvas());
+        this.layer.removeShapeFromLayer(this.selectedShape);
+        this.layer.drawLayer(maxZoomLevel, this.layer.getCanvas());
 
         let scaleRatio = Math.pow(2, maxZoomLevel);
 
@@ -20,7 +21,7 @@ export class Selection
             absoluteRectWidth = this.selectedShape.relativeRectWidth * scaleRatio,
             absoluteRectHeight = this.selectedShape.relativeRectHeight * scaleRatio;
 
-        let selectedLayerCtx = this.selectedLayer.getCanvas().getContext("2d");
+        let selectedLayerCtx = this.layer.getCanvas().getContext("2d");
         let imageData = selectedLayerCtx.getImageData(absoluteRectOriginX, absoluteRectOriginY, absoluteRectWidth, absoluteRectHeight);
 
         this.imageData = imageData;
@@ -28,8 +29,8 @@ export class Selection
 
     cutShape (maxZoomLevel)
     {
-        this.selectedLayer.removeShapeFromLayer(this.selectedShape);
-        this.selectedLayer.drawLayer(maxZoomLevel, this.selectedLayer.getCanvas());
+        this.layer.removeShapeFromLayer(this.selectedShape);
+        this.layer.drawLayer(maxZoomLevel, this.layer.getCanvas());
 
         let scaleRatio = Math.pow(2, maxZoomLevel);
 
@@ -39,16 +40,14 @@ export class Selection
             absoluteRectWidth = this.selectedShape.relativeRectWidth * scaleRatio,
             absoluteRectHeight = this.selectedShape.relativeRectHeight * scaleRatio;
 
-        let selectedLayerCtx = this.selectedLayer.getCanvas().getContext("2d");
+        let selectedLayerCtx = this.layer.getCanvas().getContext("2d");
         let imageData = selectedLayerCtx.getImageData(absoluteRectOriginX, absoluteRectOriginY, absoluteRectWidth, absoluteRectHeight);
 
         this.imageData = imageData;
 
-        console.log(imageData.data);
-
         this.selectedShape.changeBlendModeTo("subtract");
-        this.selectedLayer.addShapeToLayer(this.selectedShape);
-        this.selectedLayer.drawLayer(maxZoomLevel, this.selectedLayer.getCanvas());
+        this.layer.addShapeToLayer(this.selectedShape);
+        this.layer.drawLayer(maxZoomLevel, this.layer.getCanvas());
     }
 
     /**
@@ -74,15 +73,15 @@ export class Selection
     setSelectedShape (selectedShape, selectedLayer)
     {
         this.selectedShape = selectedShape;
-        this.selectedLayer = selectedLayer;
+        this.layer = selectedLayer;
     }
 
     clearSelection (maxZoomLevel)
     {
-        if (this.selectedLayer !== null && this.selectedShape !== null)
+        if (this.layer !== null && this.selectedShape !== null)
         {
-            this.selectedLayer.removeShapeFromLayer(this.selectedShape);
-            this.selectedLayer.drawLayer(maxZoomLevel, this.selectedLayer.getCanvas());
+            this.layer.removeShapeFromLayer(this.selectedShape);
+            this.layer.drawLayer(maxZoomLevel, this.layer.getCanvas());
         }
     }
 
