@@ -16,6 +16,7 @@ import {Export} from './export';
 import {UIManager} from './ui-manager';
 import {Tools} from './tools';
 import {Import} from './import';
+import {Selection} from './selection';
 
 export default class PixelPlugin
 {
@@ -41,6 +42,7 @@ export default class PixelPlugin
         this.lastRelCoordY = null;
         this.uiManager = null;
         this.tools = null;
+        this.selection = null;
     }
 
     /**
@@ -81,6 +83,9 @@ export default class PixelPlugin
 
         if (this.tools === null)
             this.tools = new Tools(this);
+
+        if (this.selection === null)
+            this.selection = new Selection();
 
         this.uiManager.createPluginElements(this.layers);
         this.scrollEventHandle = this.subscribeToScrollEvent();
@@ -350,6 +355,14 @@ export default class PixelPlugin
             case "Z":
                 if (e.ctrlKey || e.metaKey)                 // Cmd + Shift + Z
                     this.redoAction();
+                break;
+            case "c":
+                if (e.ctrlKey || e.metaKey)                 // Cmd + c
+                    this.selection.copyShape(this.core.getSettings().maxZoomLevel);
+                break;
+            case "v":
+                if (e.ctrlKey || e.metaKey)                 // Cmd + c
+                    this.selection.pasteShapeToLayer(this.layers[this.selectedLayerIndex], this.core.getSettings().maxZoomLevel);
                 break;
             case "Shift":
                 this.shiftDown = true;
@@ -816,7 +829,12 @@ export default class PixelPlugin
         {
             let selectedLayer = this.layers[this.selectedLayerIndex];
             if (this.tools.getCurrentTool() === this.tools.type.select)
+            {
                 selectedLayer.addShapeToLayer(new Rectangle(new Point(relativeCoords.x,relativeCoords.y,pageIndex), 0, 0, "select", this.tools.getCurrentTool()));
+                this.selection.setSelectedShape(selectedLayer.getCurrentShape(), this.layers[this.selectedLayerIndex]);
+
+                console.log(this.selection);
+            }
 
             //next 2 condition checks assume the selected tool is rectangle
             else if (this.rightMousePressed)

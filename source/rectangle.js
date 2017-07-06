@@ -112,8 +112,22 @@ export class Rectangle extends Shape
             absoluteRectWidth = this.relativeRectWidth * scaleRatio,
             absoluteRectHeight = this.relativeRectHeight * scaleRatio;
 
+        if (this.blendMode === "select")
+        {
+            //TODO: SELECTION CODE HERE
+            if (pageIndex === this.origin.pageIndex)
+            {
+                //Draw the selection rectangle
+                ctx.fillStyle = 'rgba(147, 192, 255, 0.5)';
+                ctx.lineWidth = 10;
+                ctx.strokeStyle = 'rgba(97, 142, 205, 1)';
+                ctx.fillRect(absoluteRectOriginX, absoluteRectOriginY, absoluteRectWidth, absoluteRectHeight);
+                ctx.strokeRect(absoluteRectOriginX, absoluteRectOriginY, absoluteRectWidth, absoluteRectHeight);
+            }
+        }
+
         // TODO: Use padded coordinates
-        if (this.blendMode === "add")
+        else if (this.blendMode === "add")
         {
             if (pageIndex === this.origin.pageIndex)
             {

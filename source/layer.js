@@ -38,6 +38,11 @@ export class Layer
 
         this.resizeLayerCanvasToZoomLevel(this.pixelInstance.core.getSettings().zoomLevel);
         this.placeLayerCanvasOnTopOfEditingPage();
+
+
+        this.preBinarizedImageCanvas = document.createElement("canvas");
+        this.preBinarizedImageCanvas.width = this.canvas.width;
+        this.preBinarizedImageCanvas.height = this.canvas.height;
     }
 
     resizeLayerCanvasToZoomLevel (zoomLevel)
@@ -237,8 +242,8 @@ export class Layer
         });
     }
 
-    setPreBinarizedImageCanvas (img)
+    setPreBinarizedImageCanvas (canvas)
     {
-        this.preBinarizedImageCanvas = img;
+        this.preBinarizedImageCanvas = canvas;
     }
 }
