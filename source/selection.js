@@ -4,7 +4,7 @@ export class Selection
     {
         this.selectedLayer = null;
         this.selectedShape = null;
-        this.canvas = null;
+        this.imageData = null;
     }
 
     copyShape (maxZoomLevel)
@@ -23,12 +23,35 @@ export class Selection
         let selectedLayerCtx = this.selectedLayer.getCanvas().getContext("2d");
         let imageData = selectedLayerCtx.getImageData(absoluteRectOriginX, absoluteRectOriginY, absoluteRectWidth, absoluteRectHeight);
 
-        this.canvas = imageData;
+        this.imageData = imageData;
+    }
+
+    cutShape (maxZoomLevel)
+    {
+        this.selectedLayer.removeShapeFromLayer(this.selectedShape);
+        this.selectedLayer.drawLayer(maxZoomLevel, this.selectedLayer.getCanvas());
+
+        let scaleRatio = Math.pow(2, maxZoomLevel);
+
+        // Get coordinates of the selection shape (a rectangle here)
+        let absoluteRectOriginX = this.selectedShape.origin.relativeOriginX * scaleRatio,
+            absoluteRectOriginY = this.selectedShape.origin.relativeOriginY * scaleRatio,
+            absoluteRectWidth = this.selectedShape.relativeRectWidth * scaleRatio,
+            absoluteRectHeight = this.selectedShape.relativeRectHeight * scaleRatio;
+
+        let selectedLayerCtx = this.selectedLayer.getCanvas().getContext("2d");
+        let imageData = selectedLayerCtx.getImageData(absoluteRectOriginX, absoluteRectOriginY, absoluteRectWidth, absoluteRectHeight);
+
+        this.imageData = imageData;
+
+        this.selectedShape.changeBlendModeTo("subtract");
+        this.selectedLayer.addShapeToLayer(this.selectedShape);
+        this.selectedLayer.drawLayer(maxZoomLevel, this.selectedLayer.getCanvas());
     }
 
     pasteShapeToLayer (layerToPasteTo, maxZoomLevel)
     {
-        let data = this.canvas.data;
+        let data = this.imageData.data;
 
         // Change imageData colour to layer's colour
         for(let i = 0; i < data.length; i += 4)
@@ -49,7 +72,13 @@ export class Selection
         let xmin = Math.min(absoluteRectOriginX, absoluteRectOriginX + absoluteRectWidth);
         let ymin = Math.min(absoluteRectOriginY, absoluteRectOriginY + absoluteRectHeight);
 
-        layerToPasteTo.preBinarizedImageCanvas.getContext("2d").putImageData(this.canvas, xmin, ymin);
+        let pasteCanvas = document.createElement("canvas");
+        pasteCanvas.width = absoluteRectWidth;
+        pasteCanvas.height = absoluteRectHeight;
+
+        pasteCanvas.getContext("2d").putImageData(this.imageData, 0, 0);
+
+        layerToPasteTo.preBinarizedImageCanvas.getContext("2d").drawImage(pasteCanvas, xmin, ymin);
         layerToPasteTo.drawLayer(maxZoomLevel, layerToPasteTo.getCanvas());
     }
 

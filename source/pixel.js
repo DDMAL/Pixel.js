@@ -360,6 +360,10 @@ export default class PixelPlugin
                 if (e.ctrlKey || e.metaKey)                 // Cmd + c
                     this.selection.copyShape(this.core.getSettings().maxZoomLevel);
                 break;
+            case "x":
+                if (e.ctrlKey || e.metaKey)                 // Cmd + x
+                    this.selection.cutShape(this.core.getSettings().maxZoomLevel);
+                break;
             case "v":
                 if (e.ctrlKey || e.metaKey)                 // Cmd + c
                     this.selection.pasteShapeToLayer(this.layers[this.selectedLayerIndex], this.core.getSettings().maxZoomLevel);

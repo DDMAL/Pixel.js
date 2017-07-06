@@ -18,6 +18,7 @@ export class Layer
         this.pixelInstance = pixelInstance;
         this.pageIndex = this.pixelInstance.core.getSettings().currentPageIndex;
         this.preBinarizedImageCanvas = null;
+        this.pastedImageData = [];
         this.cloneCanvas();
     }
 
@@ -235,6 +236,9 @@ export class Layer
         if (this.preBinarizedImageCanvas !== null)
             ctx.drawImage(this.preBinarizedImageCanvas, 0, 0);
 
+        // Cannot draw on top of the preBinarized Image Canvas
+
+
         // Redraw all actions
         this.actions.forEach((action) =>
         {
@@ -245,5 +249,10 @@ export class Layer
     setPreBinarizedImageCanvas (canvas)
     {
         this.preBinarizedImageCanvas = canvas;
+    }
+
+    addToPastedImageData (imageData)
+    {
+        this.pastedImageData.push(imageData);
     }
 }
