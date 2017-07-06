@@ -44,12 +44,19 @@ export class Selection
 
         this.imageData = imageData;
 
+        console.log(imageData.data);
+
         this.selectedShape.changeBlendModeTo("subtract");
         this.selectedLayer.addShapeToLayer(this.selectedShape);
         this.selectedLayer.drawLayer(maxZoomLevel, this.selectedLayer.getCanvas());
     }
 
-    pasteShapeToLayer (layerToPasteTo, maxZoomLevel)
+    /**
+     * Must redraw layer after calling
+     * @param layerToPasteTo
+     * @param maxZoomLevel
+     */
+    pasteShapeToLayer (layerToPasteTo)
     {
         let data = this.imageData.data;
 
@@ -61,7 +68,27 @@ export class Selection
             data[i + 2] = layerToPasteTo.colour.blue;        // blue
         }
 
-        let scaleRatio = Math.pow(2, maxZoomLevel);
+        layerToPasteTo.addToPastedRegions(this);
+    }
+
+    setSelectedShape (selectedShape, selectedLayer)
+    {
+        this.selectedShape = selectedShape;
+        this.selectedLayer = selectedLayer;
+    }
+
+    clearSelection (maxZoomLevel)
+    {
+        if (this.selectedLayer !== null && this.selectedShape !== null)
+        {
+            this.selectedLayer.removeShapeFromLayer(this.selectedShape);
+            this.selectedLayer.drawLayer(maxZoomLevel, this.selectedLayer.getCanvas());
+        }
+    }
+
+    drawOnPage (layer, pageIndex, zoomLevel, renderer, canvas)
+    {
+        let scaleRatio = Math.pow(2, zoomLevel);
 
         // Get coordinates of the selection shape (a rectangle here)
         let absoluteRectOriginX = this.selectedShape.origin.relativeOriginX * scaleRatio,
@@ -78,13 +105,6 @@ export class Selection
 
         pasteCanvas.getContext("2d").putImageData(this.imageData, 0, 0);
 
-        layerToPasteTo.preBinarizedImageCanvas.getContext("2d").drawImage(pasteCanvas, xmin, ymin);
-        layerToPasteTo.drawLayer(maxZoomLevel, layerToPasteTo.getCanvas());
-    }
-
-    setSelectedShape (selectedShape, selectedLayer)
-    {
-        this.selectedShape = selectedShape;
-        this.selectedLayer = selectedLayer;
+        canvas.getContext("2d").drawImage(pasteCanvas, xmin, ymin);
     }
 }

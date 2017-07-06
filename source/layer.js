@@ -18,7 +18,7 @@ export class Layer
         this.pixelInstance = pixelInstance;
         this.pageIndex = this.pixelInstance.core.getSettings().currentPageIndex;
         this.preBinarizedImageCanvas = null;
-        this.pastedImageData = [];
+        this.pastedRegions = [];
         this.cloneCanvas();
     }
 
@@ -251,8 +251,9 @@ export class Layer
         this.preBinarizedImageCanvas = canvas;
     }
 
-    addToPastedImageData (imageData)
+    addToPastedRegions (selection)
     {
-        this.pastedImageData.push(imageData);
+        this.pastedRegions.push(selection);
+        this.actions.push(selection);
     }
 }

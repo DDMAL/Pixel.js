@@ -84,9 +84,6 @@ export default class PixelPlugin
         if (this.tools === null)
             this.tools = new Tools(this);
 
-        if (this.selection === null)
-            this.selection = new Selection();
-
         this.uiManager.createPluginElements(this.layers);
         this.scrollEventHandle = this.subscribeToScrollEvent();
         this.zoomEventHandle = this.subscribeToZoomLevelWillChangeEvent();
@@ -358,15 +355,23 @@ export default class PixelPlugin
                 break;
             case "c":
                 if (e.ctrlKey || e.metaKey)                 // Cmd + c
+                {
                     this.selection.copyShape(this.core.getSettings().maxZoomLevel);
+                }
                 break;
             case "x":
                 if (e.ctrlKey || e.metaKey)                 // Cmd + x
+                {
                     this.selection.cutShape(this.core.getSettings().maxZoomLevel);
+                }
                 break;
             case "v":
-                if (e.ctrlKey || e.metaKey)                 // Cmd + c
-                    this.selection.pasteShapeToLayer(this.layers[this.selectedLayerIndex], this.core.getSettings().maxZoomLevel);
+                if (e.ctrlKey || e.metaKey)                 // Cmd + v
+                {
+                    this.selection.pasteShapeToLayer(this.layers[this.selectedLayerIndex]);
+                    this.selection = null;
+                    this.redrawLayer(this.layers[this.selectedLayerIndex]);
+                }
                 break;
             case "Shift":
                 this.shiftDown = true;
@@ -385,6 +390,7 @@ export default class PixelPlugin
                 break;
             case "s":
                 this.tools.setCurrentTool(this.tools.type.select);
+                break;
         }
     }
 
@@ -428,6 +434,13 @@ export default class PixelPlugin
         let mouseClickDiv = document.getElementById("diva-1-outer"),
             mousePos = this.getMousePos(mouseClickDiv, evt);
 
+        // Clear Selection
+        if (this.selection !== null)
+        {
+            console.log("Clear selection");
+            this.selection.clearSelection(this.core.getSettings().maxZoomLevel);
+        }
+
         if (evt.which === 1)
         {
             this.rightMousePressed = false;
@@ -451,6 +464,7 @@ export default class PixelPlugin
                     break;
                 case this.tools.type.select:
                     this.mousePressed = true;
+                    this.selection = new Selection();
                     this.initializeRectanglePreview(mousePos);
                     break;
                 default:
