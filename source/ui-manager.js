@@ -38,6 +38,7 @@ export class UIManager
     {
         let form = document.createElement("form");
         form.setAttribute("id", "tool-selector");
+        form.setAttribute("class", "tool-selector");
 
         let handleClick = (radio) =>
         {
@@ -48,24 +49,32 @@ export class UIManager
         };
 
         // Create an element for each tool and
+        var br = document.createElement("br");
         for (let index = 0; index < tools.length; index++)
         {
             let tool = tools[index],
                 radio = document.createElement("input"),
-                content = document.createTextNode(tool),
-                br = document.createElement("br");
+                //content = document.createTextNode(tool),
+                content = document.createElement("label");
+
+            content.setAttribute("for", tool);
+            content.innerHTML = tool;
 
             radio.setAttribute("id", tool);
             radio.setAttribute("type", "radio");
             radio.setAttribute("value", tool);
             radio.setAttribute("name", "tool-selector");
+            radio.setAttribute("class", "radio-select");
             handleClick(radio);
+
+            //content.setAttribute("id", "tool-text");
 
             form.appendChild(radio);
             form.appendChild(content);
-            form.appendChild(br);
+            //form.appendChild(br);
         }
         document.body.appendChild(form);
+        document.body.appendChild(br);
 
         // Set tool cursor after tools view creation
         this.pixelInstance.tools.setCurrentTool(this.pixelInstance.tools.getCurrentTool());
