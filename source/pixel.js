@@ -341,16 +341,16 @@ export default class PixelPlugin
 
     onKeyDown (e)
     {
+        let zKeyCode = 90,
+            evtobj = window.event? event : e;
+
+        if (evtobj.keyCode === zKeyCode && (evtobj.ctrlKey || evtobj.metaKey) && evtobj.shiftKey)   // Cmd + Shift + Z
+            this.redoAction();
+        else if (evtobj.keyCode === zKeyCode && (evtobj.ctrlKey || evtobj.metaKey))                 // Cmd + Z
+            this.undoAction();
+
         switch (e.key)
         {
-            case "z":
-                if (e.ctrlKey || e.metaKey)                // Cmd + Z
-                    this.undoAction();
-                break;
-            case "Z":
-                if (e.ctrlKey || e.metaKey)                 // Cmd + Shift + Z
-                    this.redoAction();
-                break;
             case "c":
                 if (e.ctrlKey || e.metaKey)                 // Cmd + c
                 {
