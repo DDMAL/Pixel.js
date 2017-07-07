@@ -1,9 +1,10 @@
 import {Path} from './path';
 import {Point} from './point';
+import {Action} from './action';
 
 export class Layer
 {
-    constructor (layerId, colour, layerName, pixelInstance, layerOpacity)
+    constructor (layerId, colour, layerName, pixelInstance, layerOpacity, globalActions)
     {
         this.layerId = layerId;
         this.shapes = [];
@@ -105,13 +106,13 @@ export class Layer
     addShapeToLayer (shape)
     {
         this.shapes.push(shape);
-        this.actions.push(shape);
+        this.addAction(new Action (shape, this));
     }
 
     addPathToLayer (path)
     {
         this.paths.push(path);
-        this.actions.push(path);
+        this.addAction(new Action (path, this));
     }
 
     /**
@@ -139,7 +140,7 @@ export class Layer
     {
         let path = new Path(brushSize, blendMode);
         this.paths.push(path);
-        this.actions.push(path);
+        this.addAction(new Action (path, this));
     }
 
     removePathFromLayer (path)
@@ -147,8 +148,13 @@ export class Layer
         let index = this.paths.indexOf(path);
         this.paths.splice(index, 1);
 
-        let actionIndex = this.actions.indexOf(path);
-        this.actions.splice(actionIndex, 1);
+        this.actions.forEach((action) =>
+        {
+            if (action.object === path)
+            {
+                this.removeAction(action);
+            }
+        });
     }
 
     removeShapeFromLayer (shape)
@@ -156,8 +162,13 @@ export class Layer
         let index = this.shapes.indexOf(shape);
         this.shapes.splice(index, 1);
 
-        let actionIndex = this.actions.indexOf(shape);
-        this.actions.splice(actionIndex, 1);
+        this.actions.forEach((action) =>
+        {
+            if (action.object === shape)
+            {
+                this.removeAction(action);
+            }
+        });
     }
 
     removeSelectionFromLayer (selection)
@@ -165,8 +176,13 @@ export class Layer
         let index = this.pastedRegions.indexOf(selection);
         this.pastedRegions.splice(index, 1);
 
-        let actionIndex = this.actions.indexOf(selection);
-        this.actions.splice(actionIndex, 1);
+        this.actions.forEach((action) =>
+        {
+            if (action.object === selection)
+            {
+                this.removeAction(action);
+            }
+        });
     }
 
     setOpacity (opacity)
@@ -248,7 +264,7 @@ export class Layer
         // Redraw all actions
         this.actions.forEach((action) =>
         {
-            action.drawOnPage(this, pageIndex, zoomLevel, this.pixelInstance.core.getSettings().renderer, canvas);
+            action.object.drawOnPage(this, pageIndex, zoomLevel, this.pixelInstance.core.getSettings().renderer, canvas);
         });
     }
 
@@ -260,6 +276,24 @@ export class Layer
     addToPastedRegions (selection)
     {
         this.pastedRegions.push(selection);
-        this.actions.push(selection);
+        this.addAction(new Action (selection, this));
+    }
+
+    addAction (action)
+    {
+        this.actions.push(action);
+
+        // Selection is temporary and only concerns this layer thus no need to add to global actions
+        if (!(action.object.type === "selection" && action.object.selectedShape.blendMode === "select"))
+            this.pixelInstance.actions.push(action);
+    }
+
+    removeAction (action)
+    {
+        let actionIndex = this.actions.indexOf(action);
+        this.actions.splice(actionIndex, 1);
+
+        let globalActionIndex = this.pixelInstance.actions.indexOf(action);
+        this.pixelInstance.actions.splice(globalActionIndex, 1);
     }
 }

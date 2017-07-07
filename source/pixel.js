@@ -66,10 +66,10 @@ export default class PixelPlugin
         if (this.layers === null)
         {
             // Start by creating layers
-            let background = new Layer(0, new Colour(242, 242, 242, 1), "Background", this, 1),
-                layer1 = new Layer(1, new Colour(51, 102, 255, 1), "Layer 1", this, 0.5),
-                layer2 = new Layer(2, new Colour(255, 51, 102, 1), "Layer 2", this, 0.5),
-                layer3 = new Layer(3, new Colour(255, 255, 10, 1), "Layer 3", this, 0.5);
+            let background = new Layer(0, new Colour(242, 242, 242, 1), "Background", this, 1, this.actions),
+                layer1 = new Layer(1, new Colour(51, 102, 255, 1), "Layer 1", this, 0.5, this.actions),
+                layer2 = new Layer(2, new Colour(255, 51, 102, 1), "Layer 2", this, 0.5, this.actions),
+                layer3 = new Layer(3, new Colour(255, 255, 10, 1), "Layer 3", this, 0.5, this.actions);
 
             this.layers = [layer1, layer2, layer3];
             this.background = background;
@@ -360,14 +360,12 @@ export default class PixelPlugin
                 if (e.ctrlKey || e.metaKey)                 // Cmd + x
                 {
                     this.selection.cutShape(this.core.getSettings().maxZoomLevel);
-                    this.addAction(new Action(this.selection.selectedShape, this.layers[this.selectedLayerIndex]));
                 }
                 break;
             case "v":
                 if (e.ctrlKey || e.metaKey)                 // Cmd + v
                 {
                     this.selection.pasteShapeToLayer(this.layers[this.selectedLayerIndex]);
-                    this.addAction(new Action(this.selection, this.layers[this.selectedLayerIndex]));
                     this.selection = null;
                     this.redrawLayer(this.layers[this.selectedLayerIndex]);
                 }
@@ -644,24 +642,21 @@ export default class PixelPlugin
             if (!actionToRedo.layer.isActivated())
                 return;
 
-            if (actionToRedo.action.type === "path")
+            if (actionToRedo.object.type === "path")
             {
-                actionToRedo.layer.addPathToLayer(actionToRedo.action);
-                this.addAction(actionToRedo);
+                actionToRedo.layer.addPathToLayer(actionToRedo.object);
                 this.undoneActions.splice(this.undoneActions.length - 1,1);
             }
 
-            else if (actionToRedo.action.type === "shape")
+            else if (actionToRedo.object.type === "shape")
             {
-                actionToRedo.layer.addShapeToLayer(actionToRedo.action);
-                this.addAction(actionToRedo);
+                actionToRedo.layer.addShapeToLayer(actionToRedo.object);
                 this.undoneActions.splice(this.undoneActions.length - 1,1);
             }
 
-            else if (actionToRedo.action.type === "selection")
+            else if (actionToRedo.object.type === "selection")
             {
-                actionToRedo.layer.addToPastedRegions(actionToRedo.action);
-                this.addAction(actionToRedo);
+                actionToRedo.layer.addToPastedRegions(actionToRedo.object);
                 this.undoneActions.splice(this.undoneActions.length - 1,1);
             }
 
@@ -683,12 +678,6 @@ export default class PixelPlugin
         }
     }
 
-    addAction (action)
-    {
-        this.actions.push(action);
-        console.log(this.actions);
-    }
-
     removeActionAtIndex (index)
     {
         if (this.actions.length > 0 && this.actions.length >= index)
@@ -703,17 +692,17 @@ export default class PixelPlugin
         if (action === null)
             return;
 
-        if (action.action.type === "path")
+        if (action.object.type === "path")
         {
-            action.layer.removePathFromLayer(action.action);
+            action.layer.removePathFromLayer(action.object);
         }
-        else if (action.action.type === "shape")
+        else if (action.object.type === "shape")
         {
-            action.layer.removeShapeFromLayer(action.action);
+            action.layer.removeShapeFromLayer(action.object);
         }
-        else if (action.action.type === "selection")
+        else if (action.object.type === "selection")
         {
-            action.layer.removeSelectionFromLayer(action.action);
+            action.layer.removeSelectionFromLayer(action.object);
         }
 
         // Get index of the action and remove it from the array
@@ -795,7 +784,6 @@ export default class PixelPlugin
             }
 
             // Add path to list of actions (used for undo/redo)
-            this.addAction(new Action(selectedLayer.getCurrentPath(), selectedLayer));
             selectedLayer.getCurrentPath().connectPoint(selectedLayer, point, pageIndex, zoomLevel, false, this.core.getSettings().renderer, selectedLayer.getCanvas(), "page");
         }
         else
@@ -893,13 +881,11 @@ export default class PixelPlugin
             else if (this.rightMousePressed)
             {
                 selectedLayer.addShapeToLayer(new Rectangle(new Point(relativeCoords.x,relativeCoords.y,pageIndex), 0, 0, "subtract", this.tools.getCurrentTool()));
-                this.addAction(new Action(selectedLayer.getCurrentShape(), selectedLayer));
             }
 
             else
             {
                 selectedLayer.addShapeToLayer(new Rectangle(new Point(relativeCoords.x,relativeCoords.y,pageIndex), 0, 0, "add", this.tools.getCurrentTool()));
-                this.addAction(new Action(selectedLayer.getCurrentShape(), selectedLayer));
             }
 
             this.redrawLayer(selectedLayer);
