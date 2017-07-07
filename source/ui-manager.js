@@ -649,11 +649,19 @@ export class UIManager
         this.setMousePosition(mousePos);
         let element = document.getElementById("preview-rectangle");
 
-        if (element !== null) {
+        if (element !== null)
+        {
             element.style.width = Math.abs(this.mouse.x - this.mouse.startX) + 'px';
             element.style.height = Math.abs(this.mouse.y - this.mouse.startY) + 'px';
             element.style.left = (this.mouse.x - this.mouse.startX < 0) ? this.mouse.x + 'px' : this.mouse.startX + 'px';
             element.style.top = (this.mouse.y - this.mouse.startY < 0) ? this.mouse.y + 'px' : this.mouse.startY + 'px';
         }
+    }
+
+    removeRectanglePreview ()
+    {
+        let element = document.getElementById("preview-rectangle");
+        if (element !== null)
+            element.parentNode.removeChild(element);
     }
 }

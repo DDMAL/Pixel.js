@@ -545,6 +545,7 @@ export default class PixelPlugin
             case this.tools.type.rectangle:
                 this.mousePressed = false;
                 this.rightMousePressed = false;
+                this.uiManager.removeRectanglePreview();
                 break;
             case this.tools.type.eraser:
                 this.mousePressed = false;
