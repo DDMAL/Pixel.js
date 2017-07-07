@@ -182,7 +182,6 @@ export default class PixelPlugin
                 layer.resizeLayerCanvasToZoomLevel(zoomLevel);
             });
         });
-
         return handle;
     }
 
@@ -326,7 +325,7 @@ export default class PixelPlugin
             numberOfLayers = this.layers.length,
             key = e.keyCode ? e.keyCode : e.which;
 
-        // Selecting Layer
+        // Selecting a Layer use keyboard shortcut
         if (key >= KEY_1 && key < KEY_1 + numberOfLayers && key <= KEY_9)
         {
             this.highlightLayerSelector(key - KEY_1 + 1);
@@ -341,12 +340,12 @@ export default class PixelPlugin
 
     onKeyDown (e)
     {
-        let zKeyCode = 90,
+        let Z_KEY_CODE = 90,
             evtobj = window.event? event : e;
 
-        if (evtobj.keyCode === zKeyCode && (evtobj.ctrlKey || evtobj.metaKey) && evtobj.shiftKey)   // Cmd + Shift + Z
+        if (evtobj.keyCode === Z_KEY_CODE && (evtobj.ctrlKey || evtobj.metaKey) && evtobj.shiftKey)   // Cmd + Shift + Z
             this.redoAction();
-        else if (evtobj.keyCode === zKeyCode && (evtobj.ctrlKey || evtobj.metaKey))                 // Cmd + Z
+        else if (evtobj.keyCode === Z_KEY_CODE && (evtobj.ctrlKey || evtobj.metaKey))                 // Cmd + Z
             this.undoAction();
 
         switch (e.key)
@@ -361,14 +360,14 @@ export default class PixelPlugin
                 if (e.ctrlKey || e.metaKey)                 // Cmd + x
                 {
                     this.selection.cutShape(this.core.getSettings().maxZoomLevel);
-                    this.actions.push(new Action(this.selection.selectedShape, this.layers[this.selectedLayerIndex]));
+                    this.addAction(new Action(this.selection.selectedShape, this.layers[this.selectedLayerIndex]));
                 }
                 break;
             case "v":
                 if (e.ctrlKey || e.metaKey)                 // Cmd + v
                 {
                     this.selection.pasteShapeToLayer(this.layers[this.selectedLayerIndex]);
-                    this.actions.push(new Action(this.selection, this.layers[this.selectedLayerIndex]));
+                    this.addAction(new Action(this.selection, this.layers[this.selectedLayerIndex]));
                     this.selection = null;
                     this.redrawLayer(this.layers[this.selectedLayerIndex]);
                 }
@@ -603,7 +602,7 @@ export default class PixelPlugin
             layerActivationDiv.classList.add("layer-activated");
             layer.getCanvas().style.opacity = layer.getLayerOpacity();
 
-            if (layer.layerId === -1)      // Background
+            if (layer.layerId === this.background.layerId)      // Background
             {
                 layer.activated = true;
             }
@@ -618,7 +617,7 @@ export default class PixelPlugin
             layerActivationDiv.classList.remove("layer-activated");
             layerActivationDiv.classList.add("layer-deactivated");
 
-            if (layer.layerId === -1)      // Background
+            if (layer.layerId === this.background.layerId)      // Background
             {
                 layer.getCanvas().style.opacity = 0;
                 layer.activated = false;
@@ -648,21 +647,21 @@ export default class PixelPlugin
             if (actionToRedo.action.type === "path")
             {
                 actionToRedo.layer.addPathToLayer(actionToRedo.action);
-                this.actions.push(actionToRedo);
+                this.addAction(actionToRedo);
                 this.undoneActions.splice(this.undoneActions.length - 1,1);
             }
 
             else if (actionToRedo.action.type === "shape")
             {
                 actionToRedo.layer.addShapeToLayer(actionToRedo.action);
-                this.actions.push(actionToRedo);
+                this.addAction(actionToRedo);
                 this.undoneActions.splice(this.undoneActions.length - 1,1);
             }
 
             else if (actionToRedo.action.type === "selection")
             {
                 actionToRedo.layer.addToPastedRegions(actionToRedo.action);
-                this.actions.push(actionToRedo);
+                this.addAction(actionToRedo);
                 this.undoneActions.splice(this.undoneActions.length - 1,1);
             }
 
@@ -680,32 +679,52 @@ export default class PixelPlugin
                 return;
 
             this.undoneActions.push(actionToRemove);
-            this.removeAction(this.actions.length - 1);
+            this.removeActionAtIndex(this.actions.length - 1);
         }
     }
 
-    removeAction (index)
+    addAction (action)
+    {
+        this.actions.push(action);
+        console.log(this.actions);
+    }
+
+    removeActionAtIndex (index)
     {
         if (this.actions.length > 0 && this.actions.length >= index)
         {
             let actionToRemove = this.actions[index];
-            if (actionToRemove.action.type === "path")
-            {
-                actionToRemove.layer.removePathFromLayer(actionToRemove.action);
-                this.actions.splice(index, 1);
-            }
-            else if (actionToRemove.action.type === "shape")
-            {
-                actionToRemove.layer.removeShapeFromLayer(actionToRemove.action);
-                this.actions.splice(index, 1);
-            }
-            else if (actionToRemove.action.type === "selection")
-            {
-                actionToRemove.layer.removeSelectionFromLayer(actionToRemove.action);
-                this.actions.splice(index, 1);
-            }
-            this.redrawLayer(actionToRemove.layer);
+            this.removeAction(actionToRemove);
         }
+    }
+
+    removeAction (action)
+    {
+        if (action === null)
+            return;
+
+        if (action.action.type === "path")
+        {
+            action.layer.removePathFromLayer(action.action);
+        }
+        else if (action.action.type === "shape")
+        {
+            action.layer.removeShapeFromLayer(action.action);
+        }
+        else if (action.action.type === "selection")
+        {
+            action.layer.removeSelectionFromLayer(action.action);
+        }
+
+        // Get index of the action and remove it from the array
+        let index = this.actions.indexOf(action);
+
+        if (index !== -1)
+            this.actions.splice(index, 1);
+
+        this.redrawLayer(action.layer);
+
+        console.log(this.actions);
     }
 
     /**
@@ -776,7 +795,7 @@ export default class PixelPlugin
             }
 
             // Add path to list of actions (used for undo/redo)
-            this.actions.push(new Action(selectedLayer.getCurrentPath(), selectedLayer));
+            this.addAction(new Action(selectedLayer.getCurrentPath(), selectedLayer));
             selectedLayer.getCurrentPath().connectPoint(selectedLayer, point, pageIndex, zoomLevel, false, this.core.getSettings().renderer, selectedLayer.getCanvas(), "page");
         }
         else
@@ -874,13 +893,13 @@ export default class PixelPlugin
             else if (this.rightMousePressed)
             {
                 selectedLayer.addShapeToLayer(new Rectangle(new Point(relativeCoords.x,relativeCoords.y,pageIndex), 0, 0, "subtract", this.tools.getCurrentTool()));
-                this.actions.push(new Action(selectedLayer.getCurrentShape(), selectedLayer));
+                this.addAction(new Action(selectedLayer.getCurrentShape(), selectedLayer));
             }
 
             else
             {
                 selectedLayer.addShapeToLayer(new Rectangle(new Point(relativeCoords.x,relativeCoords.y,pageIndex), 0, 0, "add", this.tools.getCurrentTool()));
-                this.actions.push(new Action(selectedLayer.getCurrentShape(), selectedLayer));
+                this.addAction(new Action(selectedLayer.getCurrentShape(), selectedLayer));
             }
 
             this.redrawLayer(selectedLayer);

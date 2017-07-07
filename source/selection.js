@@ -21,8 +21,11 @@ export class Selection
             absoluteRectWidth = this.selectedShape.relativeRectWidth * scaleRatio,
             absoluteRectHeight = this.selectedShape.relativeRectHeight * scaleRatio;
 
+        let xmin = Math.min(absoluteRectOriginX, absoluteRectOriginX + absoluteRectWidth),
+            ymin = Math.min(absoluteRectOriginY, absoluteRectOriginY + absoluteRectHeight);
+
         let selectedLayerCtx = this.layer.getCanvas().getContext("2d");
-        let imageData = selectedLayerCtx.getImageData(absoluteRectOriginX, absoluteRectOriginY, absoluteRectWidth, absoluteRectHeight);
+        let imageData = selectedLayerCtx.getImageData(xmin, ymin, Math.abs(absoluteRectWidth), Math.abs(absoluteRectHeight));
 
         this.imageData = imageData;
     }
@@ -40,8 +43,11 @@ export class Selection
             absoluteRectWidth = this.selectedShape.relativeRectWidth * scaleRatio,
             absoluteRectHeight = this.selectedShape.relativeRectHeight * scaleRatio;
 
+        let xmin = Math.min(absoluteRectOriginX, absoluteRectOriginX + absoluteRectWidth),
+            ymin = Math.min(absoluteRectOriginY, absoluteRectOriginY + absoluteRectHeight);
+
         let selectedLayerCtx = this.layer.getCanvas().getContext("2d");
-        let imageData = selectedLayerCtx.getImageData(absoluteRectOriginX, absoluteRectOriginY, absoluteRectWidth, absoluteRectHeight);
+        let imageData = selectedLayerCtx.getImageData(xmin, ymin, Math.abs(absoluteRectWidth), Math.abs(absoluteRectHeight));
 
         this.imageData = imageData;
 
@@ -99,8 +105,8 @@ export class Selection
         let ymin = Math.min(absoluteRectOriginY, absoluteRectOriginY + absoluteRectHeight);
 
         let pasteCanvas = document.createElement("canvas");
-        pasteCanvas.width = absoluteRectWidth;
-        pasteCanvas.height = absoluteRectHeight;
+        pasteCanvas.width = Math.abs(absoluteRectWidth);
+        pasteCanvas.height = Math.abs(absoluteRectHeight);
 
         pasteCanvas.getContext("2d").putImageData(this.imageData, 0, 0);
 
