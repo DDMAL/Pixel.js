@@ -69,11 +69,9 @@ export default class PixelPlugin
             let background = new Layer(0, new Colour(242, 242, 242, 1), "Background", this, 1),
                 layer1 = new Layer(1, new Colour(51, 102, 255, 1), "Layer 1", this, 0.5),
                 layer2 = new Layer(2, new Colour(255, 51, 102, 1), "Layer 2", this, 0.5),
-                layer3 = new Layer(3, new Colour(255, 255, 10, 1), "Layer 3", this, 0.5),
-                layer4 = new Layer(4, new Colour(10, 255, 10, 1), "Layer 4", this, 0.5),
-                layer5 = new Layer(5, new Colour(255, 137, 0, 1), "Layer 5", this, 0.5);
+                layer3 = new Layer(3, new Colour(255, 255, 10, 1), "Layer 3", this, 0.5);
 
-            this.layers = [layer1, layer2, layer3, layer4, layer5];
+            this.layers = [layer1, layer2, layer3];
             this.background = background;
             this.background.canvas = this.core.getSettings().renderer._canvas;  // Link background canvas to the actual diva canvas
         }
