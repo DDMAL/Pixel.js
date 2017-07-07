@@ -397,3 +397,8 @@ li:not(:last-child) {
 #brush-cursor-div.filled {
   background-color: #666666;
 }
+
+.rectangle {
+  border: 1px solid #FF0000;
+  position: absolute;
+}

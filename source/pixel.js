@@ -707,13 +707,9 @@ export default class PixelPlugin
 
         // Get index of the action and remove it from the array
         let index = this.actions.indexOf(action);
-
-        if (index !== -1)
-            this.actions.splice(index, 1);
+        this.actions.splice(index, 1);
 
         this.redrawLayer(action.layer);
-
-        console.log(this.actions);
     }
 
     /**
@@ -871,6 +867,9 @@ export default class PixelPlugin
 
         if (this.isInPageBounds(relativeCoords.x, relativeCoords.y))
         {
+            this.uiManager.createRectanglePreview(mousePos);
+
+
             let selectedLayer = this.layers[this.selectedLayerIndex];
             if (this.tools.getCurrentTool() === this.tools.type.select)
             {
@@ -910,6 +909,8 @@ export default class PixelPlugin
 
                 if (!this.isInPageBounds(relativeCoords.x, relativeCoords.y))
                     return;
+
+                this.uiManager.resizeRectanglePreview(mousePos);
 
                 // If cursor is to the main diagonal (south east or north west of the point of origin)
                 if (this.isInMainDiagonal(relativeCoords, lastShape))
