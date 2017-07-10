@@ -629,7 +629,7 @@ export class UIManager
         this.mouse.y = mousePos.y - borderWidth;
     }
 
-    createRectanglePreview (mousePos)
+    createRectanglePreview (mousePos, layer)
     {
         this.setMousePosition(mousePos);
 
@@ -643,17 +643,19 @@ export class UIManager
         element.id = 'preview-rectangle';
         element.style.left = this.mouse.x + 'px';
         element.style.top = this.mouse.y + 'px';
+        element.style.border = "1px solid " + layer.colour.toHexString();
 
         divaOuter.insertBefore(element, divaViewport);
     }
 
-    resizeRectanglePreview (mousePos)
+    resizeRectanglePreview (mousePos, layer)
     {
         this.setMousePosition(mousePos);
         let element = document.getElementById("preview-rectangle");
 
         if (element !== null)
         {
+            element.style.border = "1px solid " + layer.colour.toHexString();
             element.style.width = Math.abs(this.mouse.x - this.mouse.startX) + 'px';
             element.style.height = Math.abs(this.mouse.y - this.mouse.startY) + 'px';
             element.style.left = (this.mouse.x - this.mouse.startX < 0) ? this.mouse.x + 'px' : this.mouse.startX + 'px';

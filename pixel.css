@@ -399,6 +399,5 @@ li:not(:last-child) {
 }
 
 .rectangle {
-  border: 1px solid #FF0000;
   position: absolute;
 }

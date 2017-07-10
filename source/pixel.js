@@ -354,12 +354,14 @@ export default class PixelPlugin
                 if (e.ctrlKey || e.metaKey)                 // Cmd + c
                 {
                     this.selection.copyShape(this.core.getSettings().maxZoomLevel);
+                    this.uiManager.removeRectanglePreview();
                 }
                 break;
             case "x":
                 if (e.ctrlKey || e.metaKey)                 // Cmd + x
                 {
                     this.selection.cutShape(this.core.getSettings().maxZoomLevel);
+                    this.uiManager.removeRectanglePreview();
                 }
                 break;
             case "v":
@@ -435,6 +437,7 @@ export default class PixelPlugin
         if (this.selection !== null)
         {
             this.selection.clearSelection(this.core.getSettings().maxZoomLevel);
+            this.uiManager.removeRectanglePreview();
         }
 
         if (evt.which === 1)
@@ -576,7 +579,7 @@ export default class PixelPlugin
         // TODO: Implement function
         console.log("colour clicked here");
     }
-    
+
     displayLayerOptions (layer, layerOptionsDiv)
     {
         if (layerOptionsDiv.classList.contains("unchecked-layer-settings")) //It is unchecked, check it
@@ -660,7 +663,6 @@ export default class PixelPlugin
                 actionToRedo.layer.addToPastedRegions(actionToRedo.object);
                 this.undoneActions.splice(this.undoneActions.length - 1,1);
             }
-
             this.redrawLayer(actionToRedo.layer);
         }
     }
@@ -676,6 +678,7 @@ export default class PixelPlugin
 
             this.undoneActions.push(actionToRemove);
             this.removeActionAtIndex(this.actions.length - 1);
+            this.uiManager.removeRectanglePreview();
         }
     }
 
@@ -707,9 +710,6 @@ export default class PixelPlugin
         }
 
         // Get index of the action and remove it from the array
-        let index = this.actions.indexOf(action);
-        this.actions.splice(index, 1);
-
         this.redrawLayer(action.layer);
     }
 
@@ -876,7 +876,7 @@ export default class PixelPlugin
 
         if (this.uiManager.isInPageBounds(relativeCoords.x, relativeCoords.y))
         {
-            this.uiManager.createRectanglePreview(mousePos);
+            this.uiManager.createRectanglePreview(mousePos, this.layers[this.selectedLayerIndex]);
 
             let selectedLayer = this.layers[this.selectedLayerIndex];
             if (this.tools.getCurrentTool() === this.tools.type.select)
@@ -923,7 +923,7 @@ export default class PixelPlugin
             if (!this.uiManager.isInPageBounds(relativeCoords.x, relativeCoords.y))
                 return;
 
-            this.uiManager.resizeRectanglePreview(mousePos);
+            this.uiManager.resizeRectanglePreview(mousePos, this.layers[this.selectedLayerIndex]);
 
             // If cursor is to the main diagonal (south east or north west of the point of origin)
             if (this.isInMainDiagonal(relativeCoords, lastShape))
