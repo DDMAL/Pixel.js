@@ -26,6 +26,11 @@ export class Shape
 
     }
 
+    changeBlendModeTo (newBlendMode)
+    {
+        this.blendMode = newBlendMode;
+    }
+
     /**
      * Gets all the pixels spanned by a shape given its set of edges. Draws the image data that the shape covers (from the imageCanvas) in the drawingCanvas
      * @param layer

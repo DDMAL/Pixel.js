@@ -66,6 +66,9 @@ export class Tools
                 this.pixelInstance.uiManager.createBrushCursor();
                 mouseClickDiv.style.cursor = "none";
                 break;
+            case this.type.select:
+                mouseClickDiv.style.cursor = "crosshair";
+                break;
             default:
                 mouseClickDiv.style.cursor = "default";
         }

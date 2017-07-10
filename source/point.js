@@ -87,4 +87,22 @@ export class Point
             y: renderer._getImageOffset(pageIndex).top - renderer._viewport.top + viewportPaddingY + absoluteY
         };
     }
+
+    getRelativeCoordinatesFromPadded (pageIndex, renderer, paddedX, paddedY, zoomLevel)
+    {
+        let scaleRatio = Math.pow(2, zoomLevel);
+
+        const viewportPaddingX = Math.max(0, (renderer._viewport.width - renderer.layout.dimensions.width) / 2);
+        const viewportPaddingY = Math.max(0, (renderer._viewport.height - renderer.layout.dimensions.height) / 2);
+
+        // Calculates where the highlights should be drawn as a function of the whole webpage coordinates
+        // (to make it look like it is on top of a page in Diva)
+        let absoluteRectOriginX = paddedX - renderer._getImageOffset(pageIndex).left + renderer._viewport.left -  viewportPaddingX,
+            absoluteRectOriginY = paddedY - renderer._getImageOffset(pageIndex).top + renderer._viewport.top - viewportPaddingY;
+
+        return{
+            x: absoluteRectOriginX/scaleRatio,
+            y: absoluteRectOriginY/scaleRatio
+        };
+    }
 }

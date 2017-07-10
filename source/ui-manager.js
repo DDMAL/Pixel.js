@@ -1,8 +1,17 @@
+import {Point} from './point'
+
 export class UIManager
 {
     constructor (pixelInstance)
     {
         this.pixelInstance = pixelInstance;
+
+        this.mouse = {
+            x: 0,
+            y: 0,
+            startX: 0,
+            startY: 0
+        };
     }
 
     createPluginElements (layers)
@@ -609,5 +618,71 @@ export class UIManager
     {
         let mouseClickDiv = document.getElementById("diva-1-outer");
         mouseClickDiv.style.cursor = "default";
+    }
+
+    setMousePosition (mousePos)
+    {
+        // Rectangle border width
+        let borderWidth = 1;
+
+        this.mouse.x = mousePos.x - borderWidth;
+        this.mouse.y = mousePos.y - borderWidth;
+    }
+
+    createRectanglePreview (mousePos)
+    {
+        this.setMousePosition(mousePos);
+
+        let divaViewport = document.getElementById("diva-1-viewport");
+        let divaOuter = document.getElementById("diva-1-outer");
+
+        this.mouse.startX = this.mouse.x;
+        this.mouse.startY = this.mouse.y;
+        let element = document.createElement('div');
+        element.className = 'rectangle';
+        element.id = 'preview-rectangle';
+        element.style.left = this.mouse.x + 'px';
+        element.style.top = this.mouse.y + 'px';
+
+        divaOuter.insertBefore(element, divaViewport);
+    }
+
+    resizeRectanglePreview (mousePos)
+    {
+        this.setMousePosition(mousePos);
+        let element = document.getElementById("preview-rectangle");
+
+        if (element !== null)
+        {
+            element.style.width = Math.abs(this.mouse.x - this.mouse.startX) + 'px';
+            element.style.height = Math.abs(this.mouse.y - this.mouse.startY) + 'px';
+            element.style.left = (this.mouse.x - this.mouse.startX < 0) ? this.mouse.x + 'px' : this.mouse.startX + 'px';
+            element.style.top = (this.mouse.y - this.mouse.startY < 0) ? this.mouse.y + 'px' : this.mouse.startY + 'px';
+        }
+    }
+
+    removeRectanglePreview ()
+    {
+        let element = document.getElementById("preview-rectangle");
+        if (element !== null)
+            element.parentNode.removeChild(element);
+    }
+
+    isInPageBounds (relativeX, relativeY)
+    {
+        let pageIndex = this.pixelInstance.core.getSettings().currentPageIndex,
+            zoomLevel = this.pixelInstance.core.getSettings().zoomLevel,
+            renderer  = this.pixelInstance.core.getSettings().renderer;
+
+        let pageDimensions = this.pixelInstance.core.publicInstance.getCurrentPageDimensionsAtCurrentZoomLevel(),
+            absolutePageOrigin = new Point(0,0).getCoordsInViewport(zoomLevel,pageIndex,renderer),
+            absolutePageWidthOffset = pageDimensions.width + absolutePageOrigin.x,  //Taking into account the padding, etc...
+            absolutePageHeightOffset = pageDimensions.height + absolutePageOrigin.y,
+            relativeBounds = new Point(0,0,0).getRelativeCoordinatesFromPadded(pageIndex, renderer, absolutePageWidthOffset, absolutePageHeightOffset, zoomLevel);
+
+        if (relativeX < 0 || relativeY < 0 || relativeX > relativeBounds.x || relativeY > relativeBounds.y)
+            return false;
+
+        return true;
     }
 }
