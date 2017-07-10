@@ -1,3 +1,5 @@
+import {Point} from './point'
+
 export class UIManager
 {
     constructor (pixelInstance)
@@ -663,5 +665,23 @@ export class UIManager
         let element = document.getElementById("preview-rectangle");
         if (element !== null)
             element.parentNode.removeChild(element);
+    }
+
+    isInPageBounds (relativeX, relativeY)
+    {
+        let pageIndex = this.pixelInstance.core.getSettings().currentPageIndex,
+            zoomLevel = this.pixelInstance.core.getSettings().zoomLevel,
+            renderer  = this.pixelInstance.core.getSettings().renderer;
+
+        let pageDimensions = this.pixelInstance.core.publicInstance.getCurrentPageDimensionsAtCurrentZoomLevel(),
+            absolutePageOrigin = new Point(0,0).getCoordsInViewport(zoomLevel,pageIndex,renderer),
+            absolutePageWidthOffset = pageDimensions.width + absolutePageOrigin.x,  //Taking into account the padding, etc...
+            absolutePageHeightOffset = pageDimensions.height + absolutePageOrigin.y,
+            relativeBounds = new Point(0,0,0).getRelativeCoordinatesFromPadded(pageIndex, renderer, absolutePageWidthOffset, absolutePageHeightOffset, zoomLevel);
+
+        if (relativeX < 0 || relativeY < 0 || relativeX > relativeBounds.x || relativeY > relativeBounds.y)
+            return false;
+
+        return true;
     }
 }

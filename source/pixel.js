@@ -761,7 +761,7 @@ export default class PixelPlugin
             relativeCoords = new Point(0,0,0).getRelativeCoordinatesFromPadded(pageIndex, renderer, mousePos.x, mousePos.y, zoomLevel);
 
         // Make sure user is not drawing outside of a diva page
-        if (this.isInPageBounds(relativeCoords.x, relativeCoords.y))
+        if (this.uiManager.isInPageBounds(relativeCoords.x, relativeCoords.y))
         {
             let selectedLayer = this.layers[this.selectedLayerIndex],
                 point = new Point(relativeCoords.x, relativeCoords.y, pageIndex),
@@ -816,7 +816,7 @@ export default class PixelPlugin
         if (Math.abs(relativeCoords.x - this.lastRelCoordX) >= Math.abs(relativeCoords.y - this.lastRelCoordY))
             horizontalMove = true;
 
-        if (!this.isInPageBounds(relativeCoords.x, relativeCoords.y))
+        if (!this.uiManager.isInPageBounds(relativeCoords.x, relativeCoords.y))
             return;
 
         if (!this.layerChangedMidDraw)
@@ -874,7 +874,7 @@ export default class PixelPlugin
             renderer = this.core.getSettings().renderer,
             relativeCoords = new Point(0,0,0).getRelativeCoordinatesFromPadded(pageIndex, renderer, mousePos.x, mousePos.y, zoomLevel);
 
-        if (this.isInPageBounds(relativeCoords.x, relativeCoords.y))
+        if (this.uiManager.isInPageBounds(relativeCoords.x, relativeCoords.y))
         {
             this.uiManager.createRectanglePreview(mousePos);
 
@@ -920,7 +920,7 @@ export default class PixelPlugin
                 relativeCoords = new Point(0,0,0).getRelativeCoordinatesFromPadded(pageIndex, renderer, mousePos.x, mousePos.y, zoomLevel),
                 lastShape = this.layers[this.selectedLayerIndex].getCurrentShape();
 
-            if (!this.isInPageBounds(relativeCoords.x, relativeCoords.y))
+            if (!this.uiManager.isInPageBounds(relativeCoords.x, relativeCoords.y))
                 return;
 
             this.uiManager.resizeRectanglePreview(mousePos);
@@ -934,7 +934,7 @@ export default class PixelPlugin
                 // Draw a square on shift down
                 if (this.shiftDown)
                 {
-                    let squareInBounds = this.isInPageBounds(lastShape.origin.relativeOriginX + lastShape.relativeRectWidth,
+                    let squareInBounds = this.uiManager.isInPageBounds(lastShape.origin.relativeOriginX + lastShape.relativeRectWidth,
                         lastShape.origin.relativeOriginY + lastShape.relativeRectWidth);
 
                     if (squareInBounds)
@@ -952,7 +952,7 @@ export default class PixelPlugin
 
                 if (this.shiftDown)
                 {
-                    let squareInBounds = this.isInPageBounds(lastShape.origin.relativeOriginX + lastShape.relativeRectWidth,
+                    let squareInBounds = this.uiManager.isInPageBounds(lastShape.origin.relativeOriginX + lastShape.relativeRectWidth,
                         lastShape.origin.relativeOriginY - lastShape.relativeRectWidth);
 
                     if (squareInBounds)
@@ -988,24 +988,6 @@ export default class PixelPlugin
         brushSizeSlider.value = parseFloat(this.prevSize) + mouseXVariation;
 
         this.uiManager.resizeBrushCursor();
-    }
-
-    isInPageBounds (relativeX, relativeY)
-    {
-        let pageIndex = this.core.getSettings().currentPageIndex,
-            zoomLevel = this.core.getSettings().zoomLevel,
-            renderer  = this.core.getSettings().renderer;
-
-        let pageDimensions = this.core.publicInstance.getCurrentPageDimensionsAtCurrentZoomLevel(),
-            absolutePageOrigin = new Point(0,0).getCoordsInViewport(zoomLevel,pageIndex,renderer),
-            absolutePageWidthOffset = pageDimensions.width + absolutePageOrigin.x,  //Taking into account the padding, etc...
-            absolutePageHeightOffset = pageDimensions.height + absolutePageOrigin.y,
-            relativeBounds = new Point(0,0,0).getRelativeCoordinatesFromPadded(pageIndex, renderer, absolutePageWidthOffset, absolutePageHeightOffset, zoomLevel);
-
-        if (relativeX < 0 || relativeY < 0 || relativeX > relativeBounds.x || relativeY > relativeBounds.y)
-            return false;
-
-        return true;
     }
 
     // TODO: Generalize so that function returns any general relative position using enums
