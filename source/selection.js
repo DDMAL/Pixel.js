@@ -73,6 +73,7 @@ export class Selection
             data[i + 2] = layerToPasteTo.colour.blue;        // blue
         }
 
+        this.selectedShape.changeBlendModeTo("add");
         layerToPasteTo.addToPastedRegions(this);
     }
 
