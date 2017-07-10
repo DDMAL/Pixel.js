@@ -677,10 +677,10 @@ export class UIManager
             renderer  = this.pixelInstance.core.getSettings().renderer;
 
         let pageDimensions = this.pixelInstance.core.publicInstance.getCurrentPageDimensionsAtCurrentZoomLevel(),
-            absolutePageOrigin = new Point(0,0).getCoordsInViewport(zoomLevel,pageIndex,renderer),
+            absolutePageOrigin = new Point().getCoordsInViewport(zoomLevel,pageIndex,renderer),
             absolutePageWidthOffset = pageDimensions.width + absolutePageOrigin.x,  //Taking into account the padding, etc...
             absolutePageHeightOffset = pageDimensions.height + absolutePageOrigin.y,
-            relativeBounds = new Point(0,0,0).getRelativeCoordinatesFromPadded(pageIndex, renderer, absolutePageWidthOffset, absolutePageHeightOffset, zoomLevel);
+            relativeBounds = new Point().getRelativeCoordinatesFromPadded(pageIndex, renderer, absolutePageWidthOffset, absolutePageHeightOffset, zoomLevel);
 
         if (relativeX < 0 || relativeY < 0 || relativeX > relativeBounds.x || relativeY > relativeBounds.y)
             return false;

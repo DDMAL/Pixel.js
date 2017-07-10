@@ -354,14 +354,12 @@ export default class PixelPlugin
                 if (e.ctrlKey || e.metaKey)                 // Cmd + c
                 {
                     this.selection.copyShape(this.core.getSettings().maxZoomLevel);
-                    this.uiManager.removeRectanglePreview();
                 }
                 break;
             case "x":
                 if (e.ctrlKey || e.metaKey)                 // Cmd + x
                 {
                     this.selection.cutShape(this.core.getSettings().maxZoomLevel);
-                    this.uiManager.removeRectanglePreview();
                 }
                 break;
             case "v":
@@ -437,7 +435,6 @@ export default class PixelPlugin
         if (this.selection !== null)
         {
             this.selection.clearSelection(this.core.getSettings().maxZoomLevel);
-            this.uiManager.removeRectanglePreview();
         }
 
         if (evt.which === 1)
@@ -548,7 +545,6 @@ export default class PixelPlugin
             case this.tools.type.rectangle:
                 this.mousePressed = false;
                 this.rightMousePressed = false;
-                this.uiManager.removeRectanglePreview();
                 break;
             case this.tools.type.eraser:
                 this.mousePressed = false;
@@ -678,7 +674,6 @@ export default class PixelPlugin
 
             this.undoneActions.push(actionToRemove);
             this.removeActionAtIndex(this.actions.length - 1);
-            this.uiManager.removeRectanglePreview();
         }
     }
 
@@ -758,7 +753,7 @@ export default class PixelPlugin
         let pageIndex = this.core.getSettings().currentPageIndex,
             zoomLevel = this.core.getSettings().zoomLevel,
             renderer = this.core.getSettings().renderer,
-            relativeCoords = new Point(0,0,0).getRelativeCoordinatesFromPadded(pageIndex, renderer, mousePos.x, mousePos.y, zoomLevel);
+            relativeCoords = new Point().getRelativeCoordinatesFromPadded(pageIndex, renderer, mousePos.x, mousePos.y, zoomLevel);
 
         // Make sure user is not drawing outside of a diva page
         if (this.uiManager.isInPageBounds(relativeCoords.x, relativeCoords.y))
@@ -809,7 +804,7 @@ export default class PixelPlugin
             pageIndex = this.core.getSettings().currentPageIndex,
             zoomLevel = this.core.getSettings().zoomLevel,
             renderer = this.core.getSettings().renderer,
-            relativeCoords = new Point(0,0,0).getRelativeCoordinatesFromPadded(pageIndex, renderer, mousePos.x, mousePos.y, zoomLevel);
+            relativeCoords = new Point().getRelativeCoordinatesFromPadded(pageIndex, renderer, mousePos.x, mousePos.y, zoomLevel);
 
         // FIXME: direction of line drawing should be calculated only after the first shift button press
         // Right now it is being calculated at every point
@@ -872,12 +867,10 @@ export default class PixelPlugin
         let pageIndex = this.core.getSettings().currentPageIndex,
             zoomLevel = this.core.getSettings().zoomLevel,
             renderer = this.core.getSettings().renderer,
-            relativeCoords = new Point(0,0,0).getRelativeCoordinatesFromPadded(pageIndex, renderer, mousePos.x, mousePos.y, zoomLevel);
+            relativeCoords = new Point().getRelativeCoordinatesFromPadded(pageIndex, renderer, mousePos.x, mousePos.y, zoomLevel);
 
         if (this.uiManager.isInPageBounds(relativeCoords.x, relativeCoords.y))
         {
-            this.uiManager.createRectanglePreview(mousePos, this.layers[this.selectedLayerIndex]);
-
             let selectedLayer = this.layers[this.selectedLayerIndex];
             if (this.tools.getCurrentTool() === this.tools.type.select)
             {
@@ -917,13 +910,11 @@ export default class PixelPlugin
             let pageIndex = this.core.getSettings().currentPageIndex,
                 zoomLevel = this.core.getSettings().zoomLevel,
                 renderer = this.core.getSettings().renderer,
-                relativeCoords = new Point(0,0,0).getRelativeCoordinatesFromPadded(pageIndex, renderer, mousePos.x, mousePos.y, zoomLevel),
+                relativeCoords = new Point().getRelativeCoordinatesFromPadded(pageIndex, renderer, mousePos.x, mousePos.y, zoomLevel),
                 lastShape = this.layers[this.selectedLayerIndex].getCurrentShape();
 
             if (!this.uiManager.isInPageBounds(relativeCoords.x, relativeCoords.y))
                 return;
-
-            this.uiManager.resizeRectanglePreview(mousePos, this.layers[this.selectedLayerIndex]);
 
             // If cursor is to the main diagonal (south east or north west of the point of origin)
             if (this.isInMainDiagonal(relativeCoords, lastShape))
