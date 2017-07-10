@@ -411,7 +411,7 @@ label {
   background-color: #ececec;
   display: inline-block;
   cursor: pointer;
-  padding: 8px 50px;
+  padding: 3px 20px;
   font-family: sans-serif;
   font: icon;
 }
@@ -432,7 +432,7 @@ label + input[type="radio"] + label {
 .tool-selector {
   border: 3px solid #414141;
   display: inline-block;
-  margin: 0px 0px 20px 0px;
+  margin: 5px 0px 3px 0px;
   overflow: hidden;
 }
 
