@@ -754,9 +754,11 @@ export default class PixelPlugin
         if (this.core.getSettings().currentPageIndex !== this.layers[0].pageIndex)
             return;
 
+        // Get settings under the current zoomLevel
         let pageIndex = this.core.getSettings().currentPageIndex,
-            zoomLevel = this.core.getSettings().maxZoomLevel,
-            relativeCoords = this.getRelativeCoordinatesFromPadded(mousePos.x, mousePos.y);
+            zoomLevel = this.core.getSettings().zoomLevel,
+            renderer = this.core.getSettings().renderer,
+            relativeCoords = new Point(0,0,0).getRelativeCoordinatesFromPadded(pageIndex, renderer, mousePos.x, mousePos.y, zoomLevel);
 
         // Make sure user is not drawing outside of a diva page
         if (this.isInPageBounds(relativeCoords.x, relativeCoords.y))
@@ -780,7 +782,8 @@ export default class PixelPlugin
                 selectedLayer.addToCurrentPath(point, "subtract");
             }
 
-            // Add path to list of actions (used for undo/redo)
+            // Draw in max zoom level
+            zoomLevel = this.core.getSettings().maxZoomLevel;
             selectedLayer.getCurrentPath().connectPoint(selectedLayer, point, pageIndex, zoomLevel, false, this.core.getSettings().renderer, selectedLayer.getCanvas(), "page");
         }
         else
@@ -798,17 +801,20 @@ export default class PixelPlugin
         if (this.core.getSettings().currentPageIndex !== this.layers[0].pageIndex)
             return;
 
+        if (!this.mousePressed)
+            return;
+
         let point,
             horizontalMove = false,
-            relativeCoords = this.getRelativeCoordinatesFromPadded(mousePos.x, mousePos.y);
+            pageIndex = this.core.getSettings().currentPageIndex,
+            zoomLevel = this.core.getSettings().zoomLevel,
+            renderer = this.core.getSettings().renderer,
+            relativeCoords = new Point(0,0,0).getRelativeCoordinatesFromPadded(pageIndex, renderer, mousePos.x, mousePos.y, zoomLevel);
 
         // FIXME: direction of line drawing should be calculated only after the first shift button press
         // Right now it is being calculated at every point
         if (Math.abs(relativeCoords.x - this.lastRelCoordX) >= Math.abs(relativeCoords.y - this.lastRelCoordY))
             horizontalMove = true;
-
-        if (!this.mousePressed)
-            return;
 
         if (!this.isInPageBounds(relativeCoords.x, relativeCoords.y))
             return;
@@ -864,12 +870,13 @@ export default class PixelPlugin
             return;
 
         let pageIndex = this.core.getSettings().currentPageIndex,
-            relativeCoords = this.getRelativeCoordinatesFromPadded(mousePos.x, mousePos.y);
+            zoomLevel = this.core.getSettings().zoomLevel,
+            renderer = this.core.getSettings().renderer,
+            relativeCoords = new Point(0,0,0).getRelativeCoordinatesFromPadded(pageIndex, renderer, mousePos.x, mousePos.y, zoomLevel);
 
         if (this.isInPageBounds(relativeCoords.x, relativeCoords.y))
         {
             this.uiManager.createRectanglePreview(mousePos);
-
 
             let selectedLayer = this.layers[this.selectedLayerIndex];
             if (this.tools.getCurrentTool() === this.tools.type.select)
@@ -887,7 +894,6 @@ export default class PixelPlugin
             {
                 selectedLayer.addShapeToLayer(new Rectangle(new Point(relativeCoords.x,relativeCoords.y,pageIndex), 0, 0, "add", this.tools.getCurrentTool()));
             }
-
             this.redrawLayer(selectedLayer);
         }
     }
@@ -903,56 +909,61 @@ export default class PixelPlugin
 
         if (!this.layerChangedMidDraw)
         {
-            if (this.mousePressed)
+            if (!this.mousePressed)
             {
-                let relativeCoords = this.getRelativeCoordinatesFromPadded(mousePos.x, mousePos.y),
-                    lastShape = this.layers[this.selectedLayerIndex].getCurrentShape();
-
-                if (!this.isInPageBounds(relativeCoords.x, relativeCoords.y))
-                    return;
-
-                this.uiManager.resizeRectanglePreview(mousePos);
-
-                // If cursor is to the main diagonal (south east or north west of the point of origin)
-                if (this.isInMainDiagonal(relativeCoords, lastShape))
-                {
-                    let lastWidth = lastShape.relativeRectWidth;
-                    lastShape.relativeRectWidth = relativeCoords.x - lastShape.origin.relativeOriginX;
-
-                    // Draw a square on shift down
-                    if (this.shiftDown)
-                    {
-                        let squareInBounds = this.isInPageBounds(lastShape.origin.relativeOriginX + lastShape.relativeRectWidth,
-                            lastShape.origin.relativeOriginY + lastShape.relativeRectWidth);
-
-                        if (squareInBounds)
-                            lastShape.relativeRectHeight = lastShape.relativeRectWidth;
-                        else
-                            lastShape.relativeRectWidth = lastWidth;
-                    }
-                    else
-                        lastShape.relativeRectHeight = relativeCoords.y - lastShape.origin.relativeOriginY;
-                }
-                else        // If cursor is to the antidiagonal (north east or south west of the point of origin)
-                {
-                    let lastWidth = lastShape.relativeRectWidth;
-                    lastShape.relativeRectWidth = relativeCoords.x - lastShape.origin.relativeOriginX;
-
-                    if (this.shiftDown)
-                    {
-                        let squareInBounds = this.isInPageBounds(lastShape.origin.relativeOriginX + lastShape.relativeRectWidth,
-                            lastShape.origin.relativeOriginY - lastShape.relativeRectWidth);
-
-                        if (squareInBounds)
-                            lastShape.relativeRectHeight = - lastShape.relativeRectWidth;
-                        else
-                            lastShape.relativeRectWidth = lastWidth;
-                    }
-                    else
-                        lastShape.relativeRectHeight = relativeCoords.y - lastShape.origin.relativeOriginY;
-                }
-                this.redrawLayer(this.layers[this.selectedLayerIndex]);
+                return;
             }
+
+            let pageIndex = this.core.getSettings().currentPageIndex,
+                zoomLevel = this.core.getSettings().zoomLevel,
+                renderer = this.core.getSettings().renderer,
+                relativeCoords = new Point(0,0,0).getRelativeCoordinatesFromPadded(pageIndex, renderer, mousePos.x, mousePos.y, zoomLevel),
+                lastShape = this.layers[this.selectedLayerIndex].getCurrentShape();
+
+            if (!this.isInPageBounds(relativeCoords.x, relativeCoords.y))
+                return;
+
+            this.uiManager.resizeRectanglePreview(mousePos);
+
+            // If cursor is to the main diagonal (south east or north west of the point of origin)
+            if (this.isInMainDiagonal(relativeCoords, lastShape))
+            {
+                let lastWidth = lastShape.relativeRectWidth;
+                lastShape.relativeRectWidth = relativeCoords.x - lastShape.origin.relativeOriginX;
+
+                // Draw a square on shift down
+                if (this.shiftDown)
+                {
+                    let squareInBounds = this.isInPageBounds(lastShape.origin.relativeOriginX + lastShape.relativeRectWidth,
+                        lastShape.origin.relativeOriginY + lastShape.relativeRectWidth);
+
+                    if (squareInBounds)
+                        lastShape.relativeRectHeight = lastShape.relativeRectWidth;
+                    else
+                        lastShape.relativeRectWidth = lastWidth;
+                }
+                else
+                    lastShape.relativeRectHeight = relativeCoords.y - lastShape.origin.relativeOriginY;
+            }
+            else        // If cursor is to the antidiagonal (north east or south west of the point of origin)
+            {
+                let lastWidth = lastShape.relativeRectWidth;
+                lastShape.relativeRectWidth = relativeCoords.x - lastShape.origin.relativeOriginX;
+
+                if (this.shiftDown)
+                {
+                    let squareInBounds = this.isInPageBounds(lastShape.origin.relativeOriginX + lastShape.relativeRectWidth,
+                        lastShape.origin.relativeOriginY - lastShape.relativeRectWidth);
+
+                    if (squareInBounds)
+                        lastShape.relativeRectHeight = - lastShape.relativeRectWidth;
+                    else
+                        lastShape.relativeRectWidth = lastWidth;
+                }
+                else
+                    lastShape.relativeRectHeight = relativeCoords.y - lastShape.origin.relativeOriginY;
+            }
+            this.redrawLayer(this.layers[this.selectedLayerIndex]);
         }
         else
         {
@@ -979,6 +990,24 @@ export default class PixelPlugin
         this.uiManager.resizeBrushCursor();
     }
 
+    isInPageBounds (relativeX, relativeY)
+    {
+        let pageIndex = this.core.getSettings().currentPageIndex,
+            zoomLevel = this.core.getSettings().zoomLevel,
+            renderer  = this.core.getSettings().renderer;
+
+        let pageDimensions = this.core.publicInstance.getCurrentPageDimensionsAtCurrentZoomLevel(),
+            absolutePageOrigin = new Point(0,0).getCoordsInViewport(zoomLevel,pageIndex,renderer),
+            absolutePageWidthOffset = pageDimensions.width + absolutePageOrigin.x,  //Taking into account the padding, etc...
+            absolutePageHeightOffset = pageDimensions.height + absolutePageOrigin.y,
+            relativeBounds = new Point(0,0,0).getRelativeCoordinatesFromPadded(pageIndex, renderer, absolutePageWidthOffset, absolutePageHeightOffset, zoomLevel);
+
+        if (relativeX < 0 || relativeY < 0 || relativeX > relativeBounds.x || relativeY > relativeBounds.y)
+            return false;
+
+        return true;
+    }
+
     // TODO: Generalize so that function returns any general relative position using enums
     isInMainDiagonal (relativeCoords, lastShape)
     {
@@ -1001,45 +1030,6 @@ export default class PixelPlugin
         {
             this.redrawLayer(layer);
         });
-    }
-
-    isInPageBounds (relativeX, relativeY)
-    {
-        let pageIndex = this.core.getSettings().currentPageIndex,
-            zoomLevel = this.core.getSettings().zoomLevel,
-            renderer  = this.core.getSettings().renderer;
-
-        let pageDimensions = this.core.publicInstance.getCurrentPageDimensionsAtCurrentZoomLevel(),
-            absolutePageOrigin = new Point(0,0).getCoordsInViewport(zoomLevel,pageIndex,renderer),
-            absolutePageWidthOffset = pageDimensions.width + absolutePageOrigin.x,  //Taking into account the padding, etc...
-            absolutePageHeightOffset = pageDimensions.height + absolutePageOrigin.y,
-            relativeBounds = this.getRelativeCoordinatesFromPadded(absolutePageWidthOffset, absolutePageHeightOffset);
-
-        if (relativeX < 0 || relativeY < 0 || relativeX > relativeBounds.x || relativeY > relativeBounds.y)
-            return false;
-
-        return true;
-    }
-
-    getRelativeCoordinatesFromPadded (paddedX, paddedY)
-    {
-        let pageIndex = this.core.getSettings().currentPageIndex,
-            zoomLevel = this.core.getSettings().zoomLevel,
-            renderer = this.core.getSettings().renderer,
-            scaleRatio = Math.pow(2, zoomLevel);
-
-        const viewportPaddingX = Math.max(0, (renderer._viewport.width - renderer.layout.dimensions.width) / 2);
-        const viewportPaddingY = Math.max(0, (renderer._viewport.height - renderer.layout.dimensions.height) / 2);
-
-        // Calculates where the highlights should be drawn as a function of the whole webpage coordinates
-        // (to make it look like it is on top of a page in Diva)
-        let absoluteRectOriginX = paddedX - renderer._getImageOffset(pageIndex).left + renderer._viewport.left -  viewportPaddingX,
-            absoluteRectOriginY = paddedY - renderer._getImageOffset(pageIndex).top + renderer._viewport.top - viewportPaddingY;
-
-        return{
-            x: absoluteRectOriginX/scaleRatio,
-            y: absoluteRectOriginY/scaleRatio
-        };
     }
 
     /**
