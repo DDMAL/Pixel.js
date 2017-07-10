@@ -9,7 +9,8 @@ export class Tools
                 rectangle: "rectangle",
                 grab: "grab",
                 eraser: "eraser",
-                select: "select"
+                select: "select",
+                wand: "magic wand"
 
             };
         this.currentTool = this.type.brush;
@@ -36,9 +37,11 @@ export class Tools
                 break;
             case this.type.brush:
                 this.pixelInstance.uiManager.destroyBrushCursor();
+                this.pixelInstance.uiManager.destroyBrushSizeSelector();
                 break;
             case this.type.eraser:
                 this.pixelInstance.uiManager.destroyBrushCursor();
+                this.pixelInstance.uiManager.destroyBrushSizeSelector();
                 break;
             default:
                 break;
@@ -59,10 +62,12 @@ export class Tools
                 mouseClickDiv.style.cursor = "crosshair";
                 break;
             case this.type.brush:
+                this.pixelInstance.uiManager.createBrushSizeSelector();
                 this.pixelInstance.uiManager.createBrushCursor();
                 mouseClickDiv.style.cursor = "none";
                 break;
             case this.type.eraser:
+                this.pixelInstance.uiManager.createBrushSizeSelector();
                 this.pixelInstance.uiManager.createBrushCursor();
                 mouseClickDiv.style.cursor = "none";
                 break;

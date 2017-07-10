@@ -10,13 +10,13 @@
 import {Point} from './point';
 import {Rectangle} from './rectangle';
 import {Layer} from './layer';
-import {Action} from './action';
 import {Colour} from './colour';
 import {Export} from './export';
 import {UIManager} from './ui-manager';
 import {Tools} from './tools';
 import {Import} from './import';
 import {Selection} from './selection';
+import {Mask} from './mask';
 
 export default class PixelPlugin
 {
