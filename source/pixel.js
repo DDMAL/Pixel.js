@@ -16,6 +16,8 @@ import {UIManager} from './ui-manager';
 import {Tools} from './tools';
 import {Import} from './import';
 import {Selection} from './selection';
+import {Mask} from './mask';
+import {Wand} from './wand';
 
 export default class PixelPlugin
 {
