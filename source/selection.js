@@ -88,7 +88,8 @@ export class Selection
     {
         if (this.layer !== null && this.selectedShape !== null)
         {
-            this.layer.removeShapeFromLayer(this.selectedShape);
+            if (this.selectedShape.blendMode === "select")
+                this.layer.removeShapeFromLayer(this.selectedShape);
             this.layer.drawLayer(maxZoomLevel, this.layer.getCanvas());
         }
     }

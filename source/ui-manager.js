@@ -20,7 +20,6 @@ export class UIManager
         this.createUndoButton();
         this.createRedoButton();
         this.createLayersView(layers);
-        this.createBrushSizeSelector();
         this.createToolsView(this.pixelInstance.tools.getAllTools());
         this.createExportButtons();
         this.createImportButtons();
@@ -76,14 +75,10 @@ export class UIManager
             radio.setAttribute("class", "radio-select");
             handleClick(radio);
 
-            //content.setAttribute("id", "tool-text");
-
             form.appendChild(radio);
             form.appendChild(content);
-            //form.appendChild(br);
         }
         document.body.appendChild(form);
-        document.body.appendChild(br);
 
         // Set tool cursor after tools view creation
         this.pixelInstance.tools.setCurrentTool(this.pixelInstance.tools.getCurrentTool());
@@ -346,7 +341,8 @@ export class UIManager
     destroyBrushSizeSelector ()
     {
         let brushSizeDiv = document.getElementById("brush-size");
-        brushSizeDiv.parentNode.removeChild(brushSizeDiv);
+        if (brushSizeDiv !== null)
+            brushSizeDiv.parentNode.removeChild(brushSizeDiv);
     }
 
     createUndoButton ()
