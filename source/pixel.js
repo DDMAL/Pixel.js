@@ -370,6 +370,10 @@ export default class PixelPlugin
                 break;
             case "s":
                 this.tools.setCurrentTool(this.tools.type.select);
+                break;
+            case "w":
+                this.tools.setCurrentTool(this.tools.type.wand);
+                break;
         }
     }
 
@@ -438,6 +442,8 @@ export default class PixelPlugin
                     this.mousePressed = true;
                     this.initializeRectanglePreview(mousePos);
                     break;
+                case this.tools.type.wand:
+                    this.mousePressed = true;
                 default:
                     this.mousePressed = true;
             }
@@ -542,12 +548,6 @@ export default class PixelPlugin
     {
         // TODO: Implement function
         console.log("colour clicked here");
-    }
-
-    rgbToHex (r, g, b)
-    {
-        if (r > 255 || g > 255 || b > 255) throw "Invalid color component";
-        return ((r << 16) | (g << 8) | b).toString(16);
     }
 
     displayLayerOptions (layer, layerOptionsDiv)

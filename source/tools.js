@@ -10,7 +10,7 @@ export class Tools
                 grab: "grab",
                 eraser: "eraser",
                 select: "select",
-                wand: "magic wand"
+                wand: "wand"
 
             };
         this.currentTool = this.type.brush;
