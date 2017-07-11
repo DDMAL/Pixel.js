@@ -28,6 +28,8 @@ export class Selection
         let imageData = selectedLayerCtx.getImageData(xmin, ymin, Math.abs(absoluteRectWidth), Math.abs(absoluteRectHeight));
 
         this.imageData = imageData;
+
+        this.selectedShape.changeBlendModeTo("add");
     }
 
     cutShape (maxZoomLevel)
@@ -73,7 +75,6 @@ export class Selection
             data[i + 2] = layerToPasteTo.colour.blue;        // blue
         }
 
-        this.selectedShape.changeBlendModeTo("add");
         layerToPasteTo.addToPastedRegions(this);
     }
 
