@@ -387,6 +387,9 @@ export default class PixelPlugin
             case "s":
                 this.tools.setCurrentTool(this.tools.type.select);
                 break;
+            case "w":
+                this.tools.setCurrentTool(this.tools.type.wand);
+                break;
         }
     }
 
@@ -462,6 +465,8 @@ export default class PixelPlugin
                     this.selection = new Selection();
                     this.initializeRectanglePreview(mousePos);
                     break;
+                case this.tools.type.wand:
+                    this.mousePressed = true;
                 default:
                     this.mousePressed = true;
             }
