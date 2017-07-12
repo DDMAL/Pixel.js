@@ -43,6 +43,9 @@ export class Tools
                 this.pixelInstance.uiManager.destroyBrushCursor();
                 this.pixelInstance.uiManager.destroyBrushSizeSelector();
                 break;
+            case this.type.wand:
+                this.pixelInstance.uiManager.destroyWandFillButton();
+                break;
             default:
                 break;
         }
@@ -74,6 +77,9 @@ export class Tools
             case this.type.select:
                 mouseClickDiv.style.cursor = "crosshair";
                 break;
+            case this.type.wand:
+                this.pixelInstance.uiManager.createWandFillButton();
+                mouseClickDiv.style.cursor = "nw-resize";
             default:
                 mouseClickDiv.style.cursor = "default";
         }

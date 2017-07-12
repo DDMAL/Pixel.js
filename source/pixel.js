@@ -147,7 +147,7 @@ export default class PixelPlugin
         rect.setAttribute('x', '15');
         rect.setAttribute('y', '10');
         rect.setAttribute('width', '25');
-        rect.setAttribute('height', 25);
+        rect.setAttribute('height', '25');
 
         g.appendChild(rect);
         root.appendChild(g);
@@ -469,6 +469,8 @@ export default class PixelPlugin
                     break;
                 case this.tools.type.wand:
                     this.mousePressed = true;
+                    this.wand = new Wand();
+                    this.wand.initializeWand();
                 default:
                     this.mousePressed = true;
             }
