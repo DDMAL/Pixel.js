@@ -469,7 +469,7 @@ export default class PixelPlugin
                     break;
                 case this.tools.type.wand:
                     this.mousePressed = true;
-                    this.wand = new Wand();
+                    this.wand = new Wand(this);
                     this.wand.initializeWand();
                 default:
                     this.mousePressed = true;
@@ -653,19 +653,19 @@ export default class PixelPlugin
             if (actionToRedo.object.type === "path")
             {
                 actionToRedo.layer.addPathToLayer(actionToRedo.object);
-                this.undoneActions.splice(this.undoneActions.length - 1,1);
+                this.undoneActions.splice(this.undoneActions.length - 1, 1);
             }
 
             else if (actionToRedo.object.type === "shape")
             {
                 actionToRedo.layer.addShapeToLayer(actionToRedo.object);
-                this.undoneActions.splice(this.undoneActions.length - 1,1);
+                this.undoneActions.splice(this.undoneActions.length - 1, 1);
             }
 
             else if (actionToRedo.object.type === "selection")
             {
                 actionToRedo.layer.addToPastedRegions(actionToRedo.object);
-                this.undoneActions.splice(this.undoneActions.length - 1,1);
+                this.undoneActions.splice(this.undoneActions.length - 1, 1);
             }
             this.redrawLayer(actionToRedo.layer);
         }

@@ -321,7 +321,7 @@ export class UIManager
         brushSizeDiv.setAttribute("class", "tool-settings");
         brushSizeDiv.setAttribute("id", "brush-size");
 
-        let text = document.createTextNode("brush size:");
+        let text = document.createTextNode("Brush size:");
         let brushSizeSelector = document.createElement("input");
         brushSizeSelector.setAttribute("id", "brush-size-selector");
         brushSizeSelector.setAttribute("type", "range");

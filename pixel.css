@@ -440,3 +440,20 @@ label + input[type="radio"] + label {
   overflow: hidden;
 }
 
+.wand-canvas {
+  position: absolute;
+}
+
+button {
+  background-color: #414141;
+  border: none;
+  color: white;
+  padding: 3px 20px;
+  text-align: center;
+  text-decoration: none;
+  display: inline-block;
+  font-family: sans-serif;
+  font: icon;
+  margin: 4px 2px;
+  cursor: pointer;
+}

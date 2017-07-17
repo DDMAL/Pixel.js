@@ -1,34 +1,52 @@
 export class Wand
 {
-    constructor ()
+    constructor (pixelInstance)
     {
-    this.colorThreshold = 15;
-    this.blurRadius = 5;
-    this.simplifyTolerant = 0;
-    this.simplifyCount = 30;
-    this.hatchLength = 4;
-    this.hatchOffset = 0;
+        this.pixelInstance = pixelInstance;
 
-    this.imageInfo = null;
-    this.cacheInd = null;
-    this.mask = null;
-    this.downPoint = null;
-    this.allowDraw = false;
-    this.currentThreshold = this.colorThreshold;
+        this.colorThreshold = 15;
+        this.blurRadius = 5;
+        this.simplifyTolerant = 0;
+        this.simplifyCount = 30;
+        this.hatchLength = 4;
+        this.hatchOffset = 0;
+
+        this.imageInfo = null;
+        this.cacheInd = null;
+        this.mask = null;
+        this.downPoint = null;
+        this.allowDraw = false;
+        this.currentThreshold = this.colorThreshold;
     }
 
     initializeWand ()
     {
         this.showThreshold();
 
+        //PUT DIVA INSTANCE HERE
+        let divaCanvas = this.pixelInstance.core.getSettings().renderer._canvas;
+        this.initCanvas(divaCanvas);
+
         let wandSettings = document.createElement("div"),
-            blurRadius = document.createElement("input");
+            blurRadius = document.createElement("input"),
+            wrapper = document.createElement("div"),
+            content = document.createElement("div"),
+            wandCvs = document.createElement("canvas");
+
+        wandCvs.setAttribute("id", "wand-canvas");
+        wandCvs.setAttribute("onmouseup", "onMouseUp.apply(this, arguments)");
+        wandCvs.setAttribute("onmousedown", "onMouseDown.apply(this, arguments)");
+        wandCvs.setAttribute("onmousemove", "onMouseMove.apply(this, arguments)");
+
+        //document.body.appendChild(wandCvs);
+        //document.getElementById("wand-canvas").onmouseup()
+
         this.threshold = document.createElement("div");
 
         blurRadius.setAttribute("id", "blurRadius");
         blurRadius.setAttribute("type", "text");
-        blurRadius.setAttribute("onChange", "onRadiusChange.apply(this. arguments)");
-        blurRadius.setAttribute("value", "null");
+        blurRadius.setAttribute("onChange", "onRadiusChange.apply(this, arguments)");
+        //blurRadius.setAttribute("value", "null");
 
         this.threshold.setAttribute("id", "threshold");
 
@@ -43,37 +61,37 @@ export class Wand
     }
 
     //deprecated
-    uploadClick()
-    {
-        document.getElementById("file-upload").click();
-    }
+    // uploadClick ()
+    // {
+    //     document.getElementById("file-upload").click();
+    // }
 
     onRadiusChange (e)
     {
         this.blurRadius = e.target.value;
     }
 
-    //deprecated
-    imgChange (inp)
-    {
-        if (inp.files && inp.files[0])
-        {
-            var reader = new FileReader();
-            reader.onload = function (e)
-            {
-                var img = document.getElementById("test-picture");
-                img.setAttribute('src', e.target.result);
-                img.onload = function() {
-                    window.initCanvas(img);
-                };
-            }
-            reader.readAsDataURL(inp.files[0]);
-        }
-    }
+    // //deprecated
+    // imgChange (inp)
+    // {
+    //     if (inp.files && inp.files[0])
+    //     {
+    //         var reader = new FileReader();
+    //         reader.onload = function (e)
+    //         {
+    //             var img = document.getElementById("test-picture");
+    //             img.setAttribute('src', e.target.result);
+    //             img.onload = function() {
+    //                 window.initCanvas(img);
+    //             };
+    //         }
+    //         reader.readAsDataURL(inp.files[0]);
+    //     }
+    // }
 
     initCanvas (img)
     {
-        var cvs = document.getElementById("resultCanvas");
+        var cvs = document.getElementById("wand-canvas"); //was "resultCanvas"
         cvs.width = img.width;
         cvs.height = img.height;
         this.imageInfo = {
@@ -178,6 +196,7 @@ export class Wand
 
     drawBorder (noBorder)
     {
+        console.log("mask", this.mask);
         if (!this.mask)
             return;
 
