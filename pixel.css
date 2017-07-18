@@ -1,5 +1,6 @@
 /*Stylizing Pixel*/
 .layer-div {
+  display: inline-block;
   position: relative;
 }
 
@@ -371,4 +372,92 @@ kbd {
 
 li:not(:last-child) {
   margin-bottom: 5px;
+}
+
+#brush-cursor-div {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  border: 1px solid #666666;
+  border-radius: 50%;
+  -ms-filter: "progid:DXImageTransform.Microsoft.Alpha(Opacity=60)";
+  filter: alpha(opacity=60);
+  opacity: 0.6;
+
+  width: 8px;
+  height: 8px;
+
+  -webkit-transition: background-color .5s ease-in-out;
+  -moz-transition: background-color .5s ease-in-out;
+  -o-transition: background-color .5s ease-in-out;
+  -ms-transition: background-color .5s ease-in-out;
+  transition: background-color .5s ease-in-out;
+}
+
+#brush-cursor-div.filled {
+  background-color: #666666;
+}
+
+.rectangle {
+  position: absolute;
+}
+
+/* Radio buttons */
+
+input[type="radio"] {
+  position: absolute;
+  visibility: hidden;
+  display: none;
+}
+
+label {
+  color: darkgray;
+  background-color: #ececec;
+  display: inline-block;
+  cursor: pointer;
+  padding: 3px 20px;
+  font-family: sans-serif;
+  font: icon;
+}
+
+input[type="radio"]:checked + label {
+  color: white;
+  background: black; /* Old browsers */
+  background: -moz-linear-gradient(top, rgba(181,189,200,1) 0%, rgb(93, 99, 143) 36%, rgb(5, 5, 5) 100%); /* FF3.6-15 */
+  background: -webkit-linear-gradient(top, rgba(181,189,200,1) 0%, rgb(96, 99, 146) 36%, rgb(2, 3, 4) 100%); /* Chrome10-25,Safari5.1-6 */
+  background: linear-gradient(to bottom, rgba(181,189,200,1) 0%, rgb(88, 90, 122) 36%, rgb(18, 18, 18) 100%); /* W3C, IE10+, FF16+, Chrome26+, Opera12+, Safari7+ */
+  filter: progid:DXImageTransform.Microsoft.gradient( startColorstr='#b5bdc8', endColorstr='#28343b',GradientType=0 ); /* IE6-9 */
+}
+
+label + input[type="radio"] + label {
+  border-left: solid 3px #414141;
+}
+
+.tool-selector {
+  border: 3px solid #414141;
+  display: inline-block;
+  margin: 5px 0px 3px 0px;
+  overflow: hidden;
+}
+
+.wand-canvas {
+  position: absolute;
+}
+
+button {
+  background-color: #414141;
+  border: none;
+  color: white;
+  padding: 3px 20px;
+  text-align: center;
+  text-decoration: none;
+  display: inline-block;
+  font-family: sans-serif;
+  font: icon;
+  margin: 4px 2px;
+  cursor: pointer;
+}
+
+#brush-size {
+  visibility: hidden;
 }

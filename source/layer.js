@@ -1,9 +1,10 @@
 import {Path} from './path';
 import {Point} from './point';
+import {Action} from './action';
 
 export class Layer
 {
-    constructor (layerId, colour, layerName, pixelInstance, layerOpacity)
+    constructor (layerId, colour, layerName, pixelInstance, layerOpacity, globalActions)
     {
         this.layerId = layerId;
         this.shapes = [];
@@ -17,6 +18,8 @@ export class Layer
         this.layerOpacity = layerOpacity;
         this.pixelInstance = pixelInstance;
         this.pageIndex = this.pixelInstance.core.getSettings().currentPageIndex;
+        this.preBinarizedImageCanvas = null;
+        this.pastedRegions = [];
         this.cloneCanvas();
     }
 
@@ -37,6 +40,11 @@ export class Layer
 
         this.resizeLayerCanvasToZoomLevel(this.pixelInstance.core.getSettings().zoomLevel);
         this.placeLayerCanvasOnTopOfEditingPage();
+
+
+        this.preBinarizedImageCanvas = document.createElement("canvas");
+        this.preBinarizedImageCanvas.width = this.canvas.width;
+        this.preBinarizedImageCanvas.height = this.canvas.height;
     }
 
     resizeLayerCanvasToZoomLevel (zoomLevel)
@@ -55,6 +63,9 @@ export class Layer
         this.canvas.style.height = height + "px";
 
         this.placeLayerCanvasOnTopOfEditingPage();
+
+        if (this.pixelInstance.uiManager !== null)
+            this.pixelInstance.uiManager.resizeBrushCursor();
     }
 
     placeLayerCanvasOnTopOfEditingPage ()
@@ -95,13 +106,13 @@ export class Layer
     addShapeToLayer (shape)
     {
         this.shapes.push(shape);
-        this.actions.push(shape);
+        this.addAction(new Action (shape, this));
     }
 
     addPathToLayer (path)
     {
         this.paths.push(path);
-        this.actions.push(path);
+        this.addAction(new Action (path, this));
     }
 
     /**
@@ -129,7 +140,7 @@ export class Layer
     {
         let path = new Path(brushSize, blendMode);
         this.paths.push(path);
-        this.actions.push(path);
+        this.addAction(new Action (path, this));
     }
 
     removePathFromLayer (path)
@@ -137,8 +148,13 @@ export class Layer
         let index = this.paths.indexOf(path);
         this.paths.splice(index, 1);
 
-        let actionIndex = this.actions.indexOf(path);
-        this.actions.splice(actionIndex, 1);
+        this.actions.forEach((action) =>
+        {
+            if (action.object === path)
+            {
+                this.removeAction(action);
+            }
+        });
     }
 
     removeShapeFromLayer (shape)
@@ -146,8 +162,27 @@ export class Layer
         let index = this.shapes.indexOf(shape);
         this.shapes.splice(index, 1);
 
-        let actionIndex = this.actions.indexOf(shape);
-        this.actions.splice(actionIndex, 1);
+        this.actions.forEach((action) =>
+        {
+            if (action.object === shape)
+            {
+                this.removeAction(action);
+            }
+        });
+    }
+
+    removeSelectionFromLayer (selection)
+    {
+        let index = this.pastedRegions.indexOf(selection);
+        this.pastedRegions.splice(index, 1);
+
+        this.actions.forEach((action) =>
+        {
+            if (action.object === selection)
+            {
+                this.removeAction(action);
+            }
+        });
     }
 
     setOpacity (opacity)
@@ -213,26 +248,52 @@ export class Layer
         if (!this.isActivated())
             return;
 
+        this.drawLayerInPageCoords(zoomLevel, canvas, this.pageIndex);
+    }
+
+    drawLayerInPageCoords (zoomLevel, canvas, pageIndex)
+    {
         let ctx = canvas.getContext('2d');
+        // Clear canvas
         ctx.clearRect(0, 0, canvas.width, canvas.height);
 
-        let renderer = this.pixelInstance.core.getSettings().renderer;
+        // Redraw PreBinarized Image on layer canvas
+        if (this.preBinarizedImageCanvas !== null)
+            ctx.drawImage(this.preBinarizedImageCanvas, 0, 0);
 
-        renderer._renderedPages.forEach((pageIndex) =>
+        // Redraw all actions
+        this.actions.forEach ((action) =>
         {
-            this.actions.forEach((action) =>
-            {
-                action.drawOnPage(this, pageIndex, zoomLevel, renderer, canvas);
-            });
+            action.object.drawOnPage(this, pageIndex, zoomLevel, this.pixelInstance.core.getSettings().renderer, canvas);
         });
     }
 
-    // Called on export
-    drawLayerInPageCoords (zoomLevel, canvas, pageIndex)
+    setPreBinarizedImageCanvas (canvas)
     {
-        this.actions.forEach((action) =>
-        {
-            action.drawOnPage(this, pageIndex, zoomLevel, this.pixelInstance.core.getSettings().renderer, canvas);
-        });
+        this.preBinarizedImageCanvas = canvas;
+    }
+
+    addToPastedRegions (selection)
+    {
+        this.pastedRegions.push(selection);
+        this.addAction(new Action (selection, this));
+    }
+
+    addAction (action)
+    {
+        this.actions.push(action);
+
+        // Selection is temporary and only concerns this layer thus no need to add to global actions
+        if (!(action.object.type === "selection" && action.object.selectedShape.blendMode === "select"))
+            this.pixelInstance.actions.push(action);
+    }
+
+    removeAction (action)
+    {
+        let actionIndex = this.actions.indexOf(action);
+        this.actions.splice(actionIndex, 1);
+
+        let globalActionIndex = this.pixelInstance.actions.indexOf(action);
+        this.pixelInstance.actions.splice(globalActionIndex, 1);
     }
 }

@@ -1,8 +1,18 @@
+import {Point} from './point';
+import {Wand} from './wand';
+
 export class UIManager
 {
     constructor (pixelInstance)
     {
         this.pixelInstance = pixelInstance;
+
+        this.mouse = {
+            x: 0,
+            y: 0,
+            startX: 0,
+            startY: 0
+        };
     }
 
     createPluginElements (layers)
@@ -11,9 +21,9 @@ export class UIManager
         this.createUndoButton();
         this.createRedoButton();
         this.createLayersView(layers);
-        this.createBrushSizeSelector();
         this.createToolsView(this.pixelInstance.tools.getAllTools());
         this.createExportButtons();
+        this.createImportButtons();
     }
 
     destroyPluginElements (layers, background)
@@ -23,10 +33,13 @@ export class UIManager
         this.destroyUndoButton();
         this.destroyRedoButton();
         this.destroyExportButtons();
+        this.destroyImportButtons();
         this.destroyPixelCanvases(layers);
-        this.destroyToolsView(["brush", "rectangle", "grab", "eraser"]);
+        this.destroyToolsView(this.pixelInstance.tools.getAllTools());
         this.destroyLockedLayerSelectors(background);
         this.destroyDownloadLinks();
+        this.destroyBrushCursor();
+        this.restoreDefaultCursor();
     }
 
     // Tools are strings or enums
@@ -34,18 +47,13 @@ export class UIManager
     {
         let form = document.createElement("form");
         form.setAttribute("id", "tool-selector");
+        form.setAttribute("class", "tool-selector");
 
         let handleClick = (radio) =>
         {
             radio.addEventListener("click", () =>
             {
                 this.pixelInstance.tools.setCurrentTool(radio.value);
-
-                if (radio.value === "grab")
-                    this.pixelInstance.enableDragScrollable();
-
-                else
-                    this.pixelInstance.disableDragScrollable();
             });
         };
 
@@ -54,23 +62,25 @@ export class UIManager
         {
             let tool = tools[index],
                 radio = document.createElement("input"),
-                content = document.createTextNode(tool),
-                br = document.createElement("br");
+                //content = document.createTextNode(tool),
+                content = document.createElement("label");
+
+            content.setAttribute("for", tool);
+            content.innerHTML = tool;
 
             radio.setAttribute("id", tool);
             radio.setAttribute("type", "radio");
             radio.setAttribute("value", tool);
             radio.setAttribute("name", "tool-selector");
+            radio.setAttribute("class", "radio-select");
             handleClick(radio);
-
-            if (tool === this.pixelInstance.tools.getCurrentTool())
-                radio.checked = true;
 
             form.appendChild(radio);
             form.appendChild(content);
-            form.appendChild(br);
         }
         document.body.appendChild(form);
+        // Set tool cursor after tools view creation
+        this.pixelInstance.tools.setCurrentTool(this.pixelInstance.tools.getCurrentTool());
     }
 
     destroyToolsView ()
@@ -101,7 +111,7 @@ export class UIManager
 
     destroyPixelCanvases (layers)
     {
-        layers.forEach((layer) =>
+        layers.forEach ((layer) =>
         {
             layer.getCanvas().parentNode.removeChild(layer.getCanvas());
         });
@@ -132,7 +142,7 @@ export class UIManager
         opacitySlider.addEventListener("input", () =>
         {
             layer.setLayerOpacity(opacitySlider.value / 50);
-            if (layer.isActivated())    // Respecify opacity only when the layer is activated
+            if (layer.isActivated())    // Re-specify opacity only when the layer is activated
                 layer.getCanvas().style.opacity = layer.getLayerOpacity();
         });
 
@@ -170,7 +180,7 @@ export class UIManager
         layerName.setAttribute("type", "text");
         layerName.setAttribute("readonly", "true");
         layerName.setAttribute("value", layer.layerName);
-        layerName.setAttribute("ondblclick", "this.readOnly='';");
+        //layerName.setAttribute("ondblclick", "this.readOnly='';");
 
         colourDiv.setAttribute("class", "color-box");
         colourDiv.setAttribute("style", "background-color: " + layer.colour.toHexString() + ";");
@@ -187,7 +197,7 @@ export class UIManager
 
         colourDiv.addEventListener("click", () => { this.pixelInstance.displayColourOptions(); });
         layerActivationDiv.addEventListener("click", () => { this.pixelInstance.toggleLayerActivation(layer, layerActivationDiv); });
-        layerName.addEventListener('keypress', (e) => { this.pixelInstance.editLayerName(e, layerName); });
+        //layerName.addEventListener('keypress', (e) => { this.pixelInstance.editLayerName(e, layerName, layerDiv); });
         layerOptionsDiv.onclick = () => { this.pixelInstance.displayLayerOptions(layer, layerOptionsDiv); };
 
         layerDiv.appendChild(layerName);
@@ -219,7 +229,7 @@ export class UIManager
         {
             colourDiv.addEventListener("click", () => { this.pixelInstance.displayColourOptions(); });
             layerActivationDiv.addEventListener("click", () => { this.pixelInstance.toggleLayerActivation(layer, layerActivationDiv); });
-            layerName.addEventListener('keypress', (e) => { this.pixelInstance.editLayerName(e, layerName); });
+            layerName.addEventListener('keypress', (e) => { this.pixelInstance.editLayerName(e, layerName, layerDiv); });
             layerOptionsDiv.onclick = () => { this.pixelInstance.displayLayerOptions(layer, layerOptionsDiv); };
 
             layerDiv.ondrag = (evt) => { this.pixelInstance.dragging(evt); };
@@ -238,12 +248,12 @@ export class UIManager
             };
         };
 
-
         // Backwards because layers' display should be the same as visual "z-index" priority (depth)
         for (var index = layers.length - 1; index >= 0; index--)
         {
             let layer = layers[index],
                 layerDiv = document.createElement("div"),
+                linebreak = document.createElement("br"),
                 colourDiv = document.createElement("div"),
                 layerName = document.createElement("input"),
                 layerOptionsDiv = document.createElement("div"),
@@ -259,6 +269,9 @@ export class UIManager
             layerName.setAttribute("readonly", "true");
             layerName.setAttribute("value", layer.layerName);
             layerName.setAttribute("ondblclick", "this.readOnly='';");
+
+            //sets draggable attribute to false on double click
+            layerName.addEventListener('dblclick', (e) => {this.pixelInstance.editLayerName(e, layerName, layerDiv);});
 
             colourDiv.setAttribute("class", "color-box");
             colourDiv.setAttribute("style", "background-color: " + layer.colour.toHexString() + ";");
@@ -286,6 +299,7 @@ export class UIManager
             layerDiv.appendChild(colourDiv);
             layerDiv.appendChild(layerActivationDiv);
             layersViewDiv.appendChild(layerDiv);
+            layersViewDiv.appendChild(linebreak);
         }
         document.body.appendChild(layersViewDiv);
 
@@ -305,13 +319,18 @@ export class UIManager
         brushSizeDiv.setAttribute("class", "tool-settings");
         brushSizeDiv.setAttribute("id", "brush-size");
 
-        let text = document.createTextNode("brush size:");
+        let text = document.createTextNode("Brush size:");
         let brushSizeSelector = document.createElement("input");
         brushSizeSelector.setAttribute("id", "brush-size-selector");
         brushSizeSelector.setAttribute("type", "range");
         brushSizeSelector.setAttribute('max', 40);
         brushSizeSelector.setAttribute('min', 1);
         brushSizeSelector.setAttribute('value', 25);
+
+        brushSizeSelector.addEventListener("input", () =>
+        {
+            this.createBrushCursor();
+        });
 
         brushSizeDiv.appendChild(text);
         brushSizeDiv.appendChild(brushSizeSelector);
@@ -321,7 +340,8 @@ export class UIManager
     destroyBrushSizeSelector ()
     {
         let brushSizeDiv = document.getElementById("brush-size");
-        brushSizeDiv.parentNode.removeChild(brushSizeDiv);
+        if (brushSizeDiv !== null)
+            brushSizeDiv.parentNode.removeChild(brushSizeDiv);
     }
 
     createUndoButton ()
@@ -405,9 +425,55 @@ export class UIManager
         pngexportDataButton.parentNode.removeChild(pngexportDataButton);
     }
 
-    updateProgress (percentage) {
-        let percentageStr = percentage + "%";
-        let widthStr = "width: " + percentageStr;
+
+    createImportButtons ()
+    {
+        let imageLoader = document.createElement("input");
+        imageLoader.setAttribute("type", "file");
+        imageLoader.setAttribute("id", "imageLoader");
+        imageLoader.setAttribute("name", "imageLoader");
+
+        this.import = (e) => { this.pixelInstance.importPNGToLayer(e); };
+
+        imageLoader.addEventListener('change', this.import, false);
+
+        document.body.appendChild(imageLoader);
+    }
+
+    destroyImportButtons ()
+    {
+        let imageLoader = document.getElementById("imageLoader");
+        imageLoader.parentNode.removeChild(imageLoader);
+    }
+
+    createWandFillButton ()
+    {
+        let polygonButton = document.createElement("div"),
+            polyText = document.createTextNode("Create polygons by current selection");
+        let wand = new Wand();
+
+        polygonButton.setAttribute("class", "button");
+        polygonButton.onclick = function() {wand.trace()};
+        polygonButton.setAttribute("id", "polygon");
+        //document.getElementById("polygon").innerText = "Create polygons by current selection";
+        polygonButton.appendChild(polyText);
+        document.body.appendChild(polygonButton);
+    }
+
+    destroyWandFillButton ()
+    {
+        let polygonButton = document.getElementById("polygon");
+        if (polygonButton !== null)
+        {
+            polygonButton.parentNode.removeChild(polygonButton);
+        }
+    }
+
+    updateProgress (percentage)
+    {
+        let percentageStr = percentage + "%",
+            widthStr = "width: " + percentageStr;
+
         document.getElementById("pbar-inner-div").setAttribute("style", widthStr);
         document.getElementById("pbar-inner-text").innerHTML = percentageStr;
     }
@@ -478,7 +544,7 @@ export class UIManager
     {
         let downloadElements = document.getElementsByClassName("export-download");
 
-        while(downloadElements[0])
+        while (downloadElements[0])
         {
             downloadElements[0].parentNode.removeChild(downloadElements[0]);
         }
@@ -518,8 +584,134 @@ export class UIManager
     getBrushSizeSelectorValue ()
     {
         // Brush size relative to scaleRatio to allow for more precise manipulations on higher zoom levels
-        let brushSizeSlider = document.getElementById("brush-size-selector")
-        let brushSizeValue = (brushSizeSlider.value / brushSizeSlider.max) * 10;
-        return 0.05 + Math.exp(brushSizeValue - 6); // 0.05 + e ^ (x - 6) was the most intuitive function we found in terms of brush size range
+        let brushSizeSlider = document.getElementById("brush-size-selector"),
+            brushSizeValue = (brushSizeSlider.value / brushSizeSlider.max) * 10;
+
+        return 0.05 + Math.exp(brushSizeValue - 6);   // 0.05 + e ^ (x - 6) was the most intuitive function we found in terms of brush size range
+    }
+
+    createBrushCursor ()
+    {
+        let cursorDiv = document.getElementById("brush-cursor-div"),
+            divaViewport = document.getElementById("diva-1-viewport"),
+            divaOuter = document.getElementById("diva-1-outer");
+
+        if (cursorDiv === null)
+        {
+            cursorDiv = document.createElement('div');
+            cursorDiv.setAttribute("id", "brush-cursor-div");
+            divaOuter.insertBefore(cursorDiv, divaViewport);
+        }
+
+        cursorDiv.setAttribute("oncontextmenu", "return false");
+        this.resizeBrushCursor();
+    }
+
+    resizeBrushCursor ()
+    {
+        let cursorDiv = document.getElementById("brush-cursor-div");
+
+        if (cursorDiv === null)
+            return;
+
+        let scaleRatio = Math.pow(2, this.pixelInstance.core.getSettings().zoomLevel),
+            brushSizeSelectorValue = this.getBrushSizeSelectorValue() * scaleRatio;
+
+        cursorDiv.style.width = brushSizeSelectorValue + "px";
+        cursorDiv.style.height = brushSizeSelectorValue + "px";
+    }
+
+    destroyBrushCursor ()
+    {
+        let cursorDiv = document.getElementById("brush-cursor-div");
+
+        if (cursorDiv !== null)
+        {
+            cursorDiv.parentNode.removeChild(cursorDiv);
+        }
+    }
+
+    moveBrushCursor (mousePos)
+    {
+        let cursorDiv = document.getElementById("brush-cursor-div"),
+            scaleRatio = Math.pow(2, this.pixelInstance.core.getSettings().zoomLevel),
+            brushSize = this.getBrushSizeSelectorValue() * scaleRatio;
+
+        cursorDiv.style.left = mousePos.x - brushSize/2 - 1 + "px"; // the -1 is to account for the border width
+        cursorDiv.style.top = mousePos.y  - brushSize/2 - 1 + "px"; // the -1 is to account for the border width
+    }
+
+    restoreDefaultCursor ()
+    {
+        let mouseClickDiv = document.getElementById("diva-1-outer");
+        mouseClickDiv.style.cursor = "default";
+    }
+
+    setMousePosition (mousePos)
+    {
+        // Rectangle border width
+        let borderWidth = 1;
+
+        this.mouse.x = mousePos.x - borderWidth;
+        this.mouse.y = mousePos.y - borderWidth;
+    }
+
+    createRectanglePreview (mousePos, layer)
+    {
+        this.setMousePosition(mousePos);
+
+        let divaViewport = document.getElementById("diva-1-viewport");
+        let divaOuter = document.getElementById("diva-1-outer");
+
+        this.mouse.startX = this.mouse.x;
+        this.mouse.startY = this.mouse.y;
+        let element = document.createElement('div');
+        element.className = 'rectangle';
+        element.id = 'preview-rectangle';
+        element.style.left = this.mouse.x + 'px';
+        element.style.top = this.mouse.y + 'px';
+        element.style.border = "1px solid " + layer.colour.toHexString();
+
+        divaOuter.insertBefore(element, divaViewport);
+    }
+
+    resizeRectanglePreview (mousePos, layer)
+    {
+        this.setMousePosition(mousePos);
+        let element = document.getElementById("preview-rectangle");
+
+        if (element !== null)
+        {
+            element.style.border = "1px solid " + layer.colour.toHexString();
+            element.style.width = Math.abs(this.mouse.x - this.mouse.startX) + 'px';
+            element.style.height = Math.abs(this.mouse.y - this.mouse.startY) + 'px';
+            element.style.left = (this.mouse.x - this.mouse.startX < 0) ? this.mouse.x + 'px' : this.mouse.startX + 'px';
+            element.style.top = (this.mouse.y - this.mouse.startY < 0) ? this.mouse.y + 'px' : this.mouse.startY + 'px';
+        }
+    }
+
+    removeRectanglePreview ()
+    {
+        let element = document.getElementById("preview-rectangle");
+        if (element !== null)
+            element.parentNode.removeChild(element);
+    }
+
+    isInPageBounds (relativeX, relativeY)
+    {
+        let pageIndex = this.pixelInstance.core.getSettings().currentPageIndex,
+            zoomLevel = this.pixelInstance.core.getSettings().zoomLevel,
+            renderer  = this.pixelInstance.core.getSettings().renderer;
+
+        let pageDimensions = this.pixelInstance.core.publicInstance.getCurrentPageDimensionsAtCurrentZoomLevel(),
+            absolutePageOrigin = new Point().getCoordsInViewport(zoomLevel,pageIndex,renderer),
+            absolutePageWidthOffset = pageDimensions.width + absolutePageOrigin.x,  //Taking into account the padding, etc...
+            absolutePageHeightOffset = pageDimensions.height + absolutePageOrigin.y,
+            relativeBounds = new Point().getRelativeCoordinatesFromPadded(pageIndex, renderer, absolutePageWidthOffset, absolutePageHeightOffset, zoomLevel);
+
+        if (relativeX < 0 || relativeY < 0 || relativeX > relativeBounds.x || relativeY > relativeBounds.y)
+            return false;
+
+        return true;
     }
 }

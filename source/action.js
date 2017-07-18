@@ -1,8 +1,8 @@
 export class Action
 {
-    constructor (action, layer)
+    constructor (object, layer)
     {
-        this.action = action;
+        this.object = object;
         this.layer = layer;
     }
 }
