@@ -37,11 +37,9 @@ export class Tools
                 break;
             case this.type.brush:
                 this.pixelInstance.uiManager.destroyBrushCursor();
-                this.pixelInstance.uiManager.destroyBrushSizeSelector();
                 break;
             case this.type.eraser:
                 this.pixelInstance.uiManager.destroyBrushCursor();
-                this.pixelInstance.uiManager.destroyBrushSizeSelector();
                 break;
             case this.type.wand:
                 this.pixelInstance.uiManager.destroyWandFillButton();
@@ -55,30 +53,39 @@ export class Tools
         let mouseClickDiv = document.getElementById("diva-1-outer");
 
         // Add actions that are specific to the current tool
-        switch (tool)
+        let slider = document.getElementById("brush-size");
+        if (slider === null)
         {
+            this.pixelInstance.uiManager.createBrushSizeSelector();
+            slider = document.getElementById("brush-size");
+        }
+        switch (tool) {
             case this.type.grab:
                 this.pixelInstance.enableDragScrollable();
+                slider.style.visibility = "hidden";
                 mouseClickDiv.style.cursor = "-webkit-grab";
                 break;
             case this.type.rectangle:
+                slider.style.visibility = "hidden";
                 mouseClickDiv.style.cursor = "crosshair";
                 break;
             case this.type.brush:
-                this.pixelInstance.uiManager.createBrushSizeSelector();
+                slider.style.visibility = "visible";
                 this.pixelInstance.uiManager.createBrushCursor();
                 mouseClickDiv.style.cursor = "none";
                 break;
             case this.type.eraser:
-                this.pixelInstance.uiManager.createBrushSizeSelector();
+                slider.style.visibility = "visible";
                 this.pixelInstance.uiManager.createBrushCursor();
                 mouseClickDiv.style.cursor = "none";
                 break;
             case this.type.select:
+                slider.style.visibility = "hidden";
                 mouseClickDiv.style.cursor = "crosshair";
                 break;
             case this.type.wand:
                 this.pixelInstance.uiManager.createWandFillButton();
+                slider.style.visibility = "hidden";
                 mouseClickDiv.style.cursor = "nw-resize";
             default:
                 mouseClickDiv.style.cursor = "default";

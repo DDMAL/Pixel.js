@@ -58,7 +58,6 @@ export class UIManager
         };
 
         // Create an element for each tool and
-        var br = document.createElement("br");
         for (let index = 0; index < tools.length; index++)
         {
             let tool = tools[index],
@@ -80,7 +79,6 @@ export class UIManager
             form.appendChild(content);
         }
         document.body.appendChild(form);
-
         // Set tool cursor after tools view creation
         this.pixelInstance.tools.setCurrentTool(this.pixelInstance.tools.getCurrentTool());
     }
