@@ -1,4 +1,5 @@
-import {Point} from './point'
+import {Point} from './point';
+import {Wand} from './wand';
 
 export class UIManager
 {
@@ -32,7 +33,7 @@ export class UIManager
         this.destroyUndoButton();
         this.destroyRedoButton();
         this.destroyExportButtons();
-        this.destroImportButtons();
+        this.destroyImportButtons();
         this.destroyPixelCanvases(layers);
         this.destroyToolsView(this.pixelInstance.tools.getAllTools());
         this.destroyLockedLayerSelectors(background);
@@ -57,7 +58,6 @@ export class UIManager
         };
 
         // Create an element for each tool and
-        var br = document.createElement("br");
         for (let index = 0; index < tools.length; index++)
         {
             let tool = tools[index],
@@ -79,7 +79,6 @@ export class UIManager
             form.appendChild(content);
         }
         document.body.appendChild(form);
-
         // Set tool cursor after tools view creation
         this.pixelInstance.tools.setCurrentTool(this.pixelInstance.tools.getCurrentTool());
     }
@@ -320,7 +319,7 @@ export class UIManager
         brushSizeDiv.setAttribute("class", "tool-settings");
         brushSizeDiv.setAttribute("id", "brush-size");
 
-        let text = document.createTextNode("brush size:");
+        let text = document.createTextNode("Brush size:");
         let brushSizeSelector = document.createElement("input");
         brushSizeSelector.setAttribute("id", "brush-size-selector");
         brushSizeSelector.setAttribute("type", "range");
@@ -441,10 +440,33 @@ export class UIManager
         document.body.appendChild(imageLoader);
     }
 
-    destroImportButtons ()
+    destroyImportButtons ()
     {
         let imageLoader = document.getElementById("imageLoader");
         imageLoader.parentNode.removeChild(imageLoader);
+    }
+
+    createWandFillButton ()
+    {
+        let polygonButton = document.createElement("div"),
+            polyText = document.createTextNode("Create polygons by current selection");
+        let wand = new Wand();
+
+        polygonButton.setAttribute("class", "button");
+        polygonButton.onclick = function() {wand.trace()};
+        polygonButton.setAttribute("id", "polygon");
+        //document.getElementById("polygon").innerText = "Create polygons by current selection";
+        polygonButton.appendChild(polyText);
+        document.body.appendChild(polygonButton);
+    }
+
+    destroyWandFillButton ()
+    {
+        let polygonButton = document.getElementById("polygon");
+        if (polygonButton !== null)
+        {
+            polygonButton.parentNode.removeChild(polygonButton);
+        }
     }
 
     updateProgress (percentage)

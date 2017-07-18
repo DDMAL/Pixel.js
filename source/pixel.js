@@ -16,6 +16,8 @@ import {UIManager} from './ui-manager';
 import {Tools} from './tools';
 import {Import} from './import';
 import {Selection} from './selection';
+import {Mask} from './mask';
+import {Wand} from './wand';
 
 export default class PixelPlugin
 {
@@ -145,7 +147,7 @@ export default class PixelPlugin
         rect.setAttribute('x', '15');
         rect.setAttribute('y', '10');
         rect.setAttribute('width', '25');
-        rect.setAttribute('height', 25);
+        rect.setAttribute('height', '25');
 
         g.appendChild(rect);
         root.appendChild(g);
@@ -387,6 +389,9 @@ export default class PixelPlugin
             case "s":
                 this.tools.setCurrentTool(this.tools.type.select);
                 break;
+            case "w":
+                this.tools.setCurrentTool(this.tools.type.wand);
+                break;
         }
     }
 
@@ -462,6 +467,10 @@ export default class PixelPlugin
                     this.selection = new Selection();
                     this.initializeRectanglePreview(mousePos);
                     break;
+                case this.tools.type.wand:
+                    this.mousePressed = true;
+                    this.wand = new Wand(this);
+                    this.wand.initializeWand();
                 default:
                     this.mousePressed = true;
             }
@@ -644,19 +653,19 @@ export default class PixelPlugin
             if (actionToRedo.object.type === "path")
             {
                 actionToRedo.layer.addPathToLayer(actionToRedo.object);
-                this.undoneActions.splice(this.undoneActions.length - 1,1);
+                this.undoneActions.splice(this.undoneActions.length - 1, 1);
             }
 
             else if (actionToRedo.object.type === "shape")
             {
                 actionToRedo.layer.addShapeToLayer(actionToRedo.object);
-                this.undoneActions.splice(this.undoneActions.length - 1,1);
+                this.undoneActions.splice(this.undoneActions.length - 1, 1);
             }
 
             else if (actionToRedo.object.type === "selection")
             {
                 actionToRedo.layer.addToPastedRegions(actionToRedo.object);
-                this.undoneActions.splice(this.undoneActions.length - 1,1);
+                this.undoneActions.splice(this.undoneActions.length - 1, 1);
             }
             this.redrawLayer(actionToRedo.layer);
         }
