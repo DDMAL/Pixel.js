@@ -395,7 +395,7 @@ export default class PixelPlugin
         }
     }
 
-    editLayerName (e, layerName, layerDiv)
+    editLayerName (e, layerName, layerDiv, outsideClick)
     {
         const RETURN_KEY = 13;
 
@@ -404,8 +404,9 @@ export default class PixelPlugin
         layerDiv.removeAttribute("draggable");
         layerDiv.setAttribute("draggable", "false");
 
+        //COME BACK HERE
         let key = e.which || e.keyCode;
-        if (key === RETURN_KEY)
+        if (key === RETURN_KEY || outsideClick)
         {
             // TODO: Resubscribe to mouse events
             this.layers[this.selectedLayerIndex].updateLayerName(layerName.value);

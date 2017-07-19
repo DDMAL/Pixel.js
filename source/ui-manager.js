@@ -229,7 +229,8 @@ export class UIManager
         {
             colourDiv.addEventListener("click", () => { this.pixelInstance.displayColourOptions(); });
             layerActivationDiv.addEventListener("click", () => { this.pixelInstance.toggleLayerActivation(layer, layerActivationDiv); });
-            layerName.addEventListener('keypress', (e) => { this.pixelInstance.editLayerName(e, layerName, layerDiv); });
+            layerName.addEventListener('keypress', (e) => { this.pixelInstance.editLayerName(e, layerName, layerDiv, false); });
+            layerName.onblur = (e) => {this.pixelInstance.editLayerName(e, layerName, layerDiv, true); };
             layerOptionsDiv.onclick = () => { this.pixelInstance.displayLayerOptions(layer, layerOptionsDiv); };
 
             layerDiv.ondrag = (evt) => { this.pixelInstance.dragging(evt); };
@@ -271,7 +272,7 @@ export class UIManager
             layerName.setAttribute("ondblclick", "this.readOnly='';");
 
             //sets draggable attribute to false on double click
-            layerName.addEventListener('dblclick', (e) => {this.pixelInstance.editLayerName(e, layerName, layerDiv);});
+            layerName.addEventListener('dblclick', (e) => {this.pixelInstance.editLayerName(e, layerName, layerDiv, false);});
 
             colourDiv.setAttribute("class", "color-box");
             colourDiv.setAttribute("style", "background-color: " + layer.colour.toHexString() + ";");

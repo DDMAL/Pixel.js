@@ -21,11 +21,15 @@ export class Wand
 
     initializeWand ()
     {
+        this.pageIndex = this.pixelInstance.core.publicInstance.getCurrentPageIndex();
+        this.zoomLevel = this.pixelInstance.core.publicInstance.getZoomLevel();
         this.showThreshold();
 
         //PUT DIVA INSTANCE HERE
-        let divaCanvas = this.pixelInstance.core.getSettings().renderer._canvas;
-        this.initCanvas(divaCanvas);
+        let divaCanvas = this.pixelInstance.core.getSettings().renderer._canvas,
+            canvasWidth = this.pixelInstance.core.publicInstance.getPageDimensionsAtZoomLevel(this.pageIndex, this.zoomLevel).width,
+            canvasHeight = this.pixelInstance.core.publicInstance.getPageDimensionsAtZoomLevel(this.pageIndex, this.zoomLevel).height;
+        this.initCanvas(divaCanvas, canvasWidth, canvasHeight);
 
         let wandSettings = document.createElement("div"),
             blurRadius = document.createElement("input"),
@@ -89,14 +93,16 @@ export class Wand
     //     }
     // }
 
-    initCanvas (img)
+    initCanvas (img, width, height)
     {
+        //come here
         var cvs = document.getElementById("wand-canvas"); //was "resultCanvas"
-        cvs.width = img.width;
-        cvs.height = img.height;
+        console.log(cvs);
+        cvs.width = width;
+        cvs.height = height;
         this.imageInfo = {
-            width: img.width,
-            height: img.height,
+            width: width,
+            height: height,
             context: cvs.getContext("2d")
         };
         this.mask = null;
