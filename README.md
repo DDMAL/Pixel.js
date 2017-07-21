@@ -1,3 +1,9 @@
+<p align="center">
+  <a href="http://ddmal.github.io/pixel.js">
+    <img src="http://i.imgur.com/8LycyBH.png" />
+  </a>
+</p>
+
 # Pixel.js
 ```Pixel.js``` is a drawing and layering plugin that works on top of [```Diva.js```](https://github.com/DDMAL/diva.js). 
 
