@@ -389,22 +389,21 @@ export default class PixelPlugin
             case "s":
                 this.tools.setCurrentTool(this.tools.type.select);
                 break;
-            case "w":
-                this.tools.setCurrentTool(this.tools.type.wand);
-                break;
+            //To be uncommented when the wand tool works
+            // case "w":
+            //     this.tools.setCurrentTool(this.tools.type.wand);
+            //     break;
         }
     }
 
     editLayerName (e, layerName, layerDiv, outsideClick)
     {
         const RETURN_KEY = 13;
-
-        // TODO: Listen for changes when clicked outside of LayerName
+        
         // TODO: Find a way to unsubscribe from keyboard events while allowing enter key to be pressed
         layerDiv.removeAttribute("draggable");
         layerDiv.setAttribute("draggable", "false");
 
-        //COME BACK HERE
         let key = e.which || e.keyCode;
         if (key === RETURN_KEY || outsideClick)
         {
