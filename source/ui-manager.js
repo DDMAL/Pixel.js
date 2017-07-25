@@ -249,7 +249,7 @@ export class UIManager
             };
         };
 
-        // Backwards because layers' display should be the same as visual "z-index" priority (depth)
+        // Backwards because layers' display should be the same as the layers' order/visual "z-index" priority (depth)
         for (var index = layers.length - 1; index >= 0; index--)
         {
             let layer = layers[index],
@@ -265,14 +265,16 @@ export class UIManager
             layerDiv.setAttribute("class", "layer-div");
             layerDiv.setAttribute("value", layer.layerId);
             layerDiv.setAttribute("id", "layer-" + layer.layerId + "-selector");
-
+            layerDiv.setAttribute("title", "Hotkey: " + layer.layerId);
             layerName.setAttribute("type", "text");
             layerName.setAttribute("readonly", "true");
             layerName.setAttribute("value", layer.layerName);
             layerName.setAttribute("ondblclick", "this.readOnly='';");
 
             //sets draggable attribute to false on double click
-            layerName.addEventListener('dblclick', (e) => {this.pixelInstance.editLayerName(e, layerName, layerDiv, false);});
+            layerName.addEventListener('dblclick', (e) => {
+                this.pixelInstance.editLayerName(e, layerName, layerDiv, false);
+            });
 
             colourDiv.setAttribute("class", "color-box");
             colourDiv.setAttribute("style", "background-color: " + layer.colour.toHexString() + ";");
@@ -281,10 +283,13 @@ export class UIManager
             layerOptionsDiv.setAttribute("id", "layer-" + layer.layerId + "-options");
 
             if (layer.isActivated())
+            {
                 layerActivationDiv.setAttribute("class", "layer-activated");
+            }
             else
+            {
                 layerActivationDiv.setAttribute("class", "layer-deactivated");
-
+            }
 
             layerActivationDiv.setAttribute("id", "layer-" + layer.layerId + "-activation");
 
@@ -320,8 +325,9 @@ export class UIManager
         brushSizeDiv.setAttribute("class", "tool-settings");
         brushSizeDiv.setAttribute("id", "brush-size");
 
-        let text = document.createTextNode("Brush size:");
-        let brushSizeSelector = document.createElement("input");
+        let text = document.createTextNode("Brush size:"),
+            brushSizeSelector = document.createElement("input");
+
         brushSizeSelector.setAttribute("id", "brush-size-selector");
         brushSizeSelector.setAttribute("type", "range");
         brushSizeSelector.setAttribute('max', 40);
