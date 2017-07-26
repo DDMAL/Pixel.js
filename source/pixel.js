@@ -320,6 +320,8 @@ export default class PixelPlugin
     {
         const KEY_1 = 49;
         const KEY_9 = 56;
+        const H_KEY = 72;
+        const M_KEY = 77;
         const SHIFT_KEY = 16;
 
         let lastLayer = this.selectedLayerIndex,
@@ -337,10 +339,25 @@ export default class PixelPlugin
 
         if (key === SHIFT_KEY)
             this.shiftDown = false;
+
+        if (key === M_KEY)
+        {
+            //let layerActivationDiv = document.getElementById("layer-" + (this.selectedLayerIndex + 1) + "-activation");
+            //this.toggleLayerActivation(this.layers[this.selectedLayerIndex], layerActivationDiv);
+            //this.layers[this.selectedLayerIndex].activateLayer();
+        }
+
+        if (key === H_KEY)
+        {
+            let layerActivationDiv = document.getElementById("layer-" + (this.selectedLayerIndex + 1) + "-activation");
+            this.toggleLayerActivation(this.layers[this.selectedLayerIndex], layerActivationDiv);
+        }
     }
 
     onKeyDown (e)
     {
+        let layerActivationDiv = document.getElementById("layer-" + (this.selectedLayerIndex + 1) + "-activation");
+
         let Z_KEY_CODE = 90,
             evtobj = window.event? event : e;
 
@@ -389,6 +406,15 @@ export default class PixelPlugin
             case "s":
                 this.tools.setCurrentTool(this.tools.type.select);
                 break;
+            case "m":
+                if (layerActivationDiv.classList.contains("layer-deactivated"))
+                    this.layers[this.selectedLayerIndex].deactivateLayer();
+                else
+                    this.layers[this.selectedLayerIndex].activateLayer();
+            case "h":
+                this.toggleLayerActivation(this.layers[this.selectedLayerIndex], layerActivationDiv);
+                //this.layers[this.selectedLayerIndex].deactivateLayer();
+                //COME BACK HERE
             //To be uncommented when the wand tool works
             // case "w":
             //     this.tools.setCurrentTool(this.tools.type.wand);
