@@ -125,7 +125,7 @@ export class UIManager
             opacitySlider = document.createElement("input"),
             text = document.createTextNode("Opacity");
 
-        br.setAttribute("id", "opacity-br");
+        br.setAttribute("id", "opacity-br-" + layer.layerId);
 
         opacityDiv.setAttribute("class", "layer-tool");
         opacityDiv.setAttribute("id", "layer-" + layer.layerId + "-opacity-tool");
@@ -159,7 +159,7 @@ export class UIManager
     destroyOpacitySlider (layer)
     {
         let opacitySlider = document.getElementById("layer-" + layer.layerId + "-opacity-tool"),
-            br = document.getElementById("opacity-br");
+            br = document.getElementById("opacity-br-" + layer.layerId);
         opacitySlider.parentElement.removeChild(opacitySlider);
         br.parentElement.removeChild(br);
     }
