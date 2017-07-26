@@ -399,7 +399,7 @@ export default class PixelPlugin
     editLayerName (e, layerName, layerDiv, outsideClick)
     {
         const RETURN_KEY = 13;
-        
+
         // TODO: Find a way to unsubscribe from keyboard events while allowing enter key to be pressed
         layerDiv.removeAttribute("draggable");
         layerDiv.setAttribute("draggable", "false");
