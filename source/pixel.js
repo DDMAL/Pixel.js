@@ -342,9 +342,15 @@ export default class PixelPlugin
 
         if (key === M_KEY)
         {
-            //let layerActivationDiv = document.getElementById("layer-" + (this.selectedLayerIndex + 1) + "-activation");
-            //this.toggleLayerActivation(this.layers[this.selectedLayerIndex], layerActivationDiv);
-            //this.layers[this.selectedLayerIndex].activateLayer();
+            let layerActivationDiv = document.getElementById("layer-" + (this.selectedLayerIndex + 1) + "-activation");
+            if (layerActivationDiv.classList.contains("layer-activated"))
+            {
+                this.layerActivate(this.layers[this.selectedLayerIndex], layerActivationDiv);
+            }
+            else if (layerActivationDiv.classList.contains("layer-deactivated"))
+            {
+                this.layerDeactivate(this.layers[this.selectedLayerIndex], layerActivationDiv);
+            }
         }
 
         if (key === H_KEY)
@@ -407,12 +413,23 @@ export default class PixelPlugin
                 this.tools.setCurrentTool(this.tools.type.select);
                 break;
             case "m":
-                if (layerActivationDiv.classList.contains("layer-deactivated"))
-                    this.layers[this.selectedLayerIndex].deactivateLayer();
-                else
-                    this.layers[this.selectedLayerIndex].activateLayer();
+                console.log("enter M press");
+                if (layerActivationDiv.classList.contains("layer-activated"))
+                {
+                    this.layerDeactivate(this.layers[this.selectedLayerIndex], layerActivationDiv);
+                }
+                else if (layerActivationDiv.classList.contains("layer-deactivated"))
+                {
+                    this.layerActivate(this.layers[this.selectedLayerIndex], layerActivationDiv);
+                }
+                //this.toggleLayerActivation(this.layers[this.selectedLayerIndex], layerActivationDiv);
+                break;
             case "h":
-                this.toggleLayerActivation(this.layers[this.selectedLayerIndex], layerActivationDiv);
+                if (layerActivationDiv.classList.contains("layer-activated"))
+                {
+                    this.toggleLayerActivation(this.layers[this.selectedLayerIndex], layerActivationDiv);
+                }
+                break;
                 //this.layers[this.selectedLayerIndex].deactivateLayer();
                 //COME BACK HERE
             //To be uncommented when the wand tool works
@@ -626,38 +643,48 @@ export default class PixelPlugin
         }
     }
 
+    layerActivate (layer, layerActivationDiv)
+    {
+        layerActivationDiv.classList.remove("layer-deactivated");
+        layerActivationDiv.classList.add("layer-activated");
+        layer.getCanvas().style.opacity = layer.getLayerOpacity();
+
+        if (layer.layerId === this.background.layerId)      // Background
+        {
+            layer.activated = true;
+        }
+        else
+        {
+            layer.activateLayer();
+            this.redrawLayer(layer);
+        }
+    }
+
+    layerDeactivate (layer, layerActivationDiv)
+    {
+        layerActivationDiv.classList.remove("layer-activated");
+        layerActivationDiv.classList.add("layer-deactivated");
+
+        if (layer.layerId === this.background.layerId)      // Background
+        {
+            layer.getCanvas().style.opacity = 0;
+            layer.activated = false;
+        }
+        else
+        {
+            layer.deactivateLayer();
+        }
+    }
+
     toggleLayerActivation (layer, layerActivationDiv)
     {
         if (layerActivationDiv.classList.contains("layer-deactivated")) // Activating
         {
-            layerActivationDiv.classList.remove("layer-deactivated");
-            layerActivationDiv.classList.add("layer-activated");
-            layer.getCanvas().style.opacity = layer.getLayerOpacity();
-
-            if (layer.layerId === this.background.layerId)      // Background
-            {
-                layer.activated = true;
-            }
-            else
-            {
-                layer.activateLayer();
-                this.redrawLayer(layer);
-            }
+            this.layerActivate(layer, layerActivationDiv);
         }
         else    // Deactivating
         {
-            layerActivationDiv.classList.remove("layer-activated");
-            layerActivationDiv.classList.add("layer-deactivated");
-
-            if (layer.layerId === this.background.layerId)      // Background
-            {
-                layer.getCanvas().style.opacity = 0;
-                layer.activated = false;
-            }
-            else
-            {
-                layer.deactivateLayer();
-            }
+            this.layerDeactivate(layer, layerActivationDiv);
         }
     }
 
