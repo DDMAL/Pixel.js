@@ -1,7 +1,5 @@
 <p align="center">
-  <a href="http://ddmal.github.io/pixel.js">
     <img src="http://i.imgur.com/8LycyBH.png" />
-  </a>
 </p>
 
 # Pixel.js
