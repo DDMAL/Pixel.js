@@ -10,8 +10,6 @@ export class Tools
                 grab: "grab",
                 eraser: "eraser",
                 select: "select"
-                //wand: "wand"
-
             };
         this.currentTool = this.type.brush;
     }
@@ -40,9 +38,6 @@ export class Tools
                 break;
             case this.type.eraser:
                 this.pixelInstance.uiManager.destroyBrushCursor();
-                break;
-            case this.type.wand:
-                this.pixelInstance.uiManager.destroyWandFillButton();
                 break;
             default:
                 break;
@@ -83,10 +78,6 @@ export class Tools
                 slider.style.visibility = "hidden";
                 mouseClickDiv.style.cursor = "crosshair";
                 break;
-            case this.type.wand:
-                this.pixelInstance.uiManager.createWandFillButton();
-                slider.style.visibility = "hidden";
-                mouseClickDiv.style.cursor = "nw-resize";
             default:
                 mouseClickDiv.style.cursor = "default";
         }

@@ -440,10 +440,7 @@ label + input[type="radio"] + label {
   overflow: hidden;
 }
 
-.wand-canvas {
-  position: absolute;
-}
-
+/* Stylizing undo, redo buttons*/
 button {
   background-color: #414141;
   border: none;
@@ -458,6 +455,7 @@ button {
   cursor: pointer;
 }
 
+/* For controlling the brush size slider's visibility */
 #brush-size {
   visibility: hidden;
 }
