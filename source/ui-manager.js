@@ -224,7 +224,8 @@ export class UIManager
 
     createLayersView (layers)
     {
-        let departureIndex, destinationIndex;
+        let departureIndex, destinationIndex,
+            duringSwap = false;
 
         let layersViewDiv = document.createElement("div");
         layersViewDiv.setAttribute("id", "layers-view");
@@ -234,13 +235,19 @@ export class UIManager
         {
             colourDiv.addEventListener("click", () => { this.pixelInstance.displayColourOptions(); });
             layerActivationDiv.addEventListener("click", () => { this.pixelInstance.toggleLayerActivation(layer, layerActivationDiv); });
-            layerName.addEventListener('keypress', (e) => { this.pixelInstance.editLayerName(e, layerName, layerDiv, false); });
-            layerName.onblur = (e) => {this.pixelInstance.editLayerName(e, layerName, layerDiv, true); };
+            layerName.addEventListener('keypress', (e) => { this.pixelInstance.editLayerName(e, layerName, layerDiv, false, duringSwap, layer); });
             layerOptionsDiv.onclick = () => { this.pixelInstance.displayLayerOptions(layer, layerOptionsDiv); };
 
-            layerDiv.ondrag = (evt) => { this.pixelInstance.dragging(evt); };
+            layerDiv.ondrag = (evt) =>
+            {
+                this.pixelInstance.dragging(evt);
+                duringSwap = true;
+            };
             layerDiv.ondragstart = (evt) => { this.pixelInstance.dragStart(evt); };
-            layerDiv.ondrop = (evt) => { this.pixelInstance.drop(evt, departureIndex, destinationIndex); };
+            layerDiv.ondrop = (evt) => {
+                this.pixelInstance.drop(evt, departureIndex, destinationIndex);
+                duringSwap = false;
+            };
             layerDiv.onmousedown = () =>
             {
                 departureIndex = layerDiv.getAttribute("index");
@@ -277,8 +284,12 @@ export class UIManager
             layerName.setAttribute("ondblclick", "this.readOnly='';");
 
             //sets draggable attribute to false on double click
+            //only allows the onblur event after a double click
             layerName.addEventListener('dblclick', (e) => {
-                this.pixelInstance.editLayerName(e, layerName, layerDiv, false);
+                this.pixelInstance.editLayerName(e, layerName, layerDiv, false, duringSwap, layer);
+                layerName.onblur = (e) => {
+                    this.pixelInstance.editLayerName(e, layerName, layerDiv, true, duringSwap, layer);
+                };
             });
 
             colourDiv.setAttribute("class", "color-box");

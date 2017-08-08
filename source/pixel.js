@@ -431,7 +431,7 @@ export default class PixelPlugin
         }
     }
 
-    editLayerName (e, layerName, layerDiv, outsideClick)
+    editLayerName (e, layerName, layerDiv, outsideClick, duringSwap, layer)
     {
         const RETURN_KEY = 13;
 
@@ -442,10 +442,17 @@ export default class PixelPlugin
         let key = e.which || e.keyCode;
         if (key === RETURN_KEY || outsideClick)
         {
-            // TODO: Resubscribe to mouse events
-            this.layers[this.selectedLayerIndex].updateLayerName(layerName.value);
-            layerName.setAttribute("readonly", "true");
-            layerDiv.setAttribute("draggable", "true");
+            if (duringSwap === false)
+            {
+                // TODO: Resubscribe to mouse events
+                layer.updateLayerName(layerName.value);
+                layerName.setAttribute("readonly", "true");
+                layerDiv.setAttribute("draggable", "true");
+            }
+            else if (duringSwap === true)
+            {
+                //do nothing
+            }
         }
     }
 

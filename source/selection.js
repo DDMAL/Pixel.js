@@ -68,13 +68,12 @@ export class Selection
         let data = this.imageData.data;
 
         // Change imageData colour to layer's colour
-        for(let i = 0; i < data.length; i += 4)
+        for (let i = 0; i < data.length; i += 4)
         {
             data[i] = layerToPasteTo.colour.red;             // red
             data[i + 1] = layerToPasteTo.colour.green;       // green
             data[i + 2] = layerToPasteTo.colour.blue;        // blue
         }
-
         layerToPasteTo.addToPastedRegions(this);
     }
 
