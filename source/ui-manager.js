@@ -1,5 +1,4 @@
 import {Point} from './point';
-import {Wand} from './wand';
 
 export class UIManager
 {
@@ -468,29 +467,6 @@ export class UIManager
     {
         let imageLoader = document.getElementById("imageLoader");
         imageLoader.parentNode.removeChild(imageLoader);
-    }
-
-    createWandFillButton ()
-    {
-        let polygonButton = document.createElement("div"),
-            polyText = document.createTextNode("Create polygons by current selection");
-        let wand = new Wand();
-
-        polygonButton.setAttribute("class", "button");
-        polygonButton.onclick = function() {wand.trace()};
-        polygonButton.setAttribute("id", "polygon");
-        //document.getElementById("polygon").innerText = "Create polygons by current selection";
-        polygonButton.appendChild(polyText);
-        document.body.appendChild(polygonButton);
-    }
-
-    destroyWandFillButton ()
-    {
-        let polygonButton = document.getElementById("polygon");
-        if (polygonButton !== null)
-        {
-            polygonButton.parentNode.removeChild(polygonButton);
-        }
     }
 
     updateProgress (percentage)

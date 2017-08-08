@@ -16,8 +16,6 @@ import {UIManager} from './ui-manager';
 import {Tools} from './tools';
 import {Import} from './import';
 import {Selection} from './selection';
-import {Mask} from './mask';
-import {Wand} from './wand';
 
 export default class PixelPlugin
 {
@@ -430,10 +428,6 @@ export default class PixelPlugin
                     this.toggleLayerActivation(this.layers[this.selectedLayerIndex], layerActivationDiv);
                 }
                 break;
-            //To be uncommented when the wand tool works
-            // case "w":
-            //     this.tools.setCurrentTool(this.tools.type.wand);
-            //     break;
         }
     }
 
@@ -515,10 +509,6 @@ export default class PixelPlugin
                     this.selection = new Selection();
                     this.initializeRectanglePreview(mousePos);
                     break;
-                case this.tools.type.wand:
-                    this.mousePressed = true;
-                    this.wand = new Wand(this);
-                    this.wand.initializeWand();
                 default:
                     this.mousePressed = true;
             }
