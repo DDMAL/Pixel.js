@@ -165,9 +165,7 @@ export class Layer
         this.actions.forEach((action) =>
         {
             if (action.object === shape)
-            {
                 this.removeAction(action);
-            }
         });
     }
 
@@ -179,9 +177,7 @@ export class Layer
         this.actions.forEach((action) =>
         {
             if (action.object === selection)
-            {
                 this.removeAction(action);
-            }
         });
     }
 

@@ -430,8 +430,6 @@ export default class PixelPlugin
                     this.toggleLayerActivation(this.layers[this.selectedLayerIndex], layerActivationDiv);
                 }
                 break;
-                //this.layers[this.selectedLayerIndex].deactivateLayer();
-                //COME BACK HERE
             //To be uncommented when the wand tool works
             // case "w":
             //     this.tools.setCurrentTool(this.tools.type.wand);
@@ -439,7 +437,7 @@ export default class PixelPlugin
         }
     }
 
-    editLayerName (e, layerName, layerDiv, outsideClick)
+    editLayerName (e, layerName, layerDiv, outsideClick, duringSwap, layer)
     {
         const RETURN_KEY = 13;
 
@@ -450,10 +448,17 @@ export default class PixelPlugin
         let key = e.which || e.keyCode;
         if (key === RETURN_KEY || outsideClick)
         {
-            // TODO: Resubscribe to mouse events
-            this.layers[this.selectedLayerIndex].updateLayerName(layerName.value);
-            layerName.setAttribute("readonly", "true");
-            layerDiv.setAttribute("draggable", "true");
+            if (duringSwap === false)
+            {
+                // TODO: Resubscribe to mouse events
+                layer.updateLayerName(layerName.value);
+                layerName.setAttribute("readonly", "true");
+                layerDiv.setAttribute("draggable", "true");
+            }
+            else if (duringSwap === true)
+            {
+                //do nothing
+            }
         }
     }
 
