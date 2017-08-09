@@ -1,4 +1,5 @@
 import {Point} from './point';
+import {CannotDeleteLayerException} from './exceptions';
 
 export class UIManager
 {
@@ -19,6 +20,7 @@ export class UIManager
         this.placeLayerCanvasesInDiva(layers);
         this.createUndoButton();
         this.createRedoButton();
+        this.createDeleteLayerButton();
         this.createLayersView(layers);
         this.createToolsView(this.pixelInstance.tools.getAllTools());
         this.createExportButtons();
@@ -31,6 +33,7 @@ export class UIManager
         this.destroyBrushSizeSelector();
         this.destroyUndoButton();
         this.destroyRedoButton();
+        this.destroyDeleteLayerButton();
         this.destroyExportButtons();
         this.destroyImportButtons();
         this.destroyPixelCanvases(layers);
@@ -405,6 +408,39 @@ export class UIManager
     {
         let redoButton = document.getElementById("redo-button");
         redoButton.parentNode.removeChild(redoButton);
+    }
+
+    createDeleteLayerButton ()
+    {
+        let deleteLayerButton = document.createElement("button"),
+            text = document.createTextNode("Delete selected layer");
+
+        this.deleteLayer = () =>
+        {
+            try
+            {
+                this.pixelInstance.deleteLayer();
+            }
+            catch (e)
+            {
+                if (e instanceof CannotDeleteLayerException)
+                {
+                    alert(e.message);
+                }
+            }
+        };
+
+        deleteLayerButton.setAttribute("id", "delete-layer-button");
+        deleteLayerButton.appendChild(text);
+        deleteLayerButton.addEventListener("click", this.deleteLayer);
+
+        document.body.appendChild(deleteLayerButton);
+    }
+
+    destroyDeleteLayerButton ()
+    {
+        let deleteLayerButton = document.getElementById("delete-layer-button");
+        deleteLayerButton.parentNode.removeChild(deleteLayerButton);
     }
 
     createExportButtons ()
