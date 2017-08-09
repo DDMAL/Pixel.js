@@ -16,6 +16,8 @@ import {UIManager} from './ui-manager';
 import {Tools} from './tools';
 import {Import} from './import';
 import {Selection} from './selection';
+import {CannotDeleteLayerException} from "./exceptions";
+
 
 export default class PixelPlugin
 {
@@ -68,9 +70,10 @@ export default class PixelPlugin
             let background = new Layer(0, new Colour(242, 242, 242, 1), "Background", this, 1, this.actions),
                 layer1 = new Layer(1, new Colour(51, 102, 255, 1), "Layer 1", this, 0.5, this.actions),
                 layer2 = new Layer(2, new Colour(255, 51, 102, 1), "Layer 2", this, 0.5, this.actions),
-                layer3 = new Layer(3, new Colour(255, 255, 10, 1), "Layer 3", this, 0.5, this.actions);
+                layer3 = new Layer(3, new Colour(255, 255, 10, 1), "Layer 3", this, 0.5, this.actions),
+                layer4 = new Layer(4, new Colour(2, 136, 0, 1), "Layer 4", this, 0.5, this.actions);
 
-            this.layers = [layer1, layer2, layer3];
+            this.layers = [layer1, layer2, layer3, layer4];
             this.background = background;
             this.background.canvas = this.core.getSettings().renderer._canvas;  // Link background canvas to the actual diva canvas
         }
@@ -91,6 +94,7 @@ export default class PixelPlugin
         this.subscribeToKeyboardEvents();
         this.redrawAllLayers();  // Repaint the tiles to retrigger VisibleTilesDidLoad
 
+        //FIXME (PotassiumK): are the two lines below still supposed to be here?
         if (this.tools.getCurrentTool() === this.tools.type.brush || this.tools.getCurrentTool() === this.tools.type.eraser)
             document.getElementById("diva-1-outer").style.cursor = "none";  // hacky way to set the cursor to the circle on startup (when brush is selected)
 
@@ -681,6 +685,42 @@ export default class PixelPlugin
         {
             this.layerDeactivate(layer, layerActivationDiv);
         }
+    }
+
+    /**
+     * -----------------------------------------------
+     *            Delete / Create New Layer
+     * -----------------------------------------------
+     **/
+
+    deleteLayer ()
+    {
+        let newLayersArray = [],
+            layer = this.layers[this.selectedLayerIndex];
+
+        if (this.layers.length <= 1)
+            throw new CannotDeleteLayerException("Must at least have one layer other than the background");
+
+        for (let i = 0; i < this.layers.length; i++)
+        {
+            if (layer !== this.layers[i])
+            {
+                newLayersArray.push(this.layers[i]);
+            }
+        }
+
+        this.layers = newLayersArray;
+        //reset to the first element on each delete
+        this.selectedLayerIndex = 0;
+
+        //refreshing the layers view to reflect changes
+        this.uiManager.destroyPluginElements(this.layers, this.background);
+        this.uiManager.createPluginElements(this.layers);
+        this.uiManager.destroyPixelCanvases(this.layers);   // TODO: Optimization: Instead of destroying all of the canvases only destroy the one of interest
+        this.uiManager.placeLayerCanvasesInDiva(this.layers);
+        this.uiManager.placeLayerCanvasesInDiva(this.background);
+        this.highlightLayerSelector(this.layers[this.selectedLayerIndex].layerId); //TODO: select some default layer (actually not sure what this does tbh)
+        this.redrawAllLayers();
     }
 
     /**
