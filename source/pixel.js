@@ -1,3 +1,4 @@
+/*jshint esversion: 6 */
 /**
  * This plugin will be used to transform Diva into a layering tool which will be used to provide
  * the ground truth data for the machine learning algorithm

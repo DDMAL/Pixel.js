@@ -1,3 +1,4 @@
+/*jshint esversion: 6 */
 import {Point} from './point';
 import {CannotDeleteLayerException} from './exceptions';
 

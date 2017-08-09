@@ -1,3 +1,4 @@
+/*jshint esversion: 6 */
 import {Shape} from './shape';
 import {Circle} from './circle';
 import {Point} from './point';

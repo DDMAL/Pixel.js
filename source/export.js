@@ -1,3 +1,4 @@
+/*jshint esversion: 6 */
 import {Colour} from './colour';
 import {Point} from './point';
 

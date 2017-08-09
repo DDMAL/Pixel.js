@@ -1,3 +1,4 @@
+/*jshint esversion: 6 */
 class PixelException
 {
     constructor (message)
