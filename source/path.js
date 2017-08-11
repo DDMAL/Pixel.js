@@ -34,6 +34,20 @@ export class Path
         });
     }
 
+    /**
+     * Calculates the coordinates of the point to be added depending on the specified coordinates system
+     * Places a point in the path
+     * Only connects a point to the previous on if isDown is true
+     * This is mainly used when the user is in the process of drawing the path
+     * @param layer
+     * @param point
+     * @param pageIndex
+     * @param zoomLevel
+     * @param isDown
+     * @param renderer
+     * @param canvas
+     * @param coordinatesSystem
+     */
     connectPoint (layer, point, pageIndex, zoomLevel, isDown, renderer, canvas, coordinatesSystem)
     {
         let scaleRatio = Math.pow(2, zoomLevel),

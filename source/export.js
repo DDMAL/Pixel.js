@@ -50,7 +50,7 @@ export class Export
             pngCanvas.height = height;
 
             this.dataCanvases.push(pngCanvas);
-            this.replaceLayerWithImageData(this.pixelInstance.core.getSettings().renderer._canvas, pngCanvas, this.pageIndex, layerCanvas, progressCanvas);
+            this.getImageData(this.pixelInstance.core.getSettings().renderer._canvas, pngCanvas, this.pageIndex, layerCanvas, progressCanvas);
         });
     }
 
@@ -117,12 +117,14 @@ export class Export
     }
 
     /**
-     * Scans the canvas that it was initialized with and replaces its pixels with the actual image data from a divaCanvas
+     * Scans the layer canvas and replaces its pixels with the actual image data from a divaCanvas
      * @param divaCanvas
      * @param drawingCanvas
      * @param pageIndex
+     * @param canvasToScan
+     * @param progressCanvas: Outputs a preview of the export image
      */
-    replaceLayerWithImageData (divaCanvas, drawingCanvas, pageIndex, canvasToScan, progressCanvas)
+    getImageData (divaCanvas, drawingCanvas, pageIndex, canvasToScan, progressCanvas)
     {
         let chunkSize = canvasToScan.width,
             chunkNum = 0,
@@ -167,6 +169,18 @@ export class Export
         doChunk();
     }
 
+    /**
+     * Gets the image data of a specific pixel by its location on Diva's image (row, col)
+     * The challenge with this is that we don't have access to the full diva image, only the visible tiles
+     * The suggested temporary solution is to force loading a non visible tile by going to its location
+     * @param row
+     * @param col
+     * @param pageIndex
+     * @param renderer
+     * @param imageCanvas
+     * @param drawingCanvas
+     * @param progressCanvas
+     */
     drawImageDataOnCanvas (row, col, pageIndex, renderer, imageCanvas, drawingCanvas, progressCanvas)
     {
         let drawingCtx = drawingCanvas.getContext('2d'),
@@ -202,6 +216,18 @@ export class Export
         progressCtx.fillRect(col, row, 1, 1);
     }
 
+    /**
+     * 1. Updates the progress bar
+     * 2. Creates image URLs to the images after they are successfully processed
+     * 3. Handles export interruption
+     * 4. Removes export page overlay
+     * @param row
+     * @param drawingCanvas
+     * @param chunkNum
+     * @param chunkSize
+     * @param canvasToScan
+     * @returns {{needsRecall: boolean}}
+     */
     postProcessImageDataIteration (row, drawingCanvas, chunkNum, chunkSize, canvasToScan)
     {
         // Finished exporting a layer
@@ -274,6 +300,14 @@ export class Export
         };
     }
 
+    /**
+     * Scans the canvas and populates the matrix entries with the ID of the layer that spans the pixel corresponding
+     * to the matrix entry
+     * @param layer
+     * @param matrix
+     * @param canvasToScan
+     * @param progressCanvas
+     */
     fillMatrix (layer, matrix, canvasToScan, progressCanvas)
     {
         let chunkSize = canvasToScan.width,
@@ -343,6 +377,9 @@ export class Export
         doChunk();
     }
 
+    /**
+     * Creates a matrix the size of the image
+     */
     initializeMatrix ()
     {
         let core = this.pixelInstance.core;

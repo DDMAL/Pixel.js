@@ -31,7 +31,7 @@ export class Point
     }
 
     /**
-     * Calculates the coordinates of a point on the canvas in pixels, where the top left corner of the canvas
+     * Calculates the coordinates of a point on the diva canvas (viewport) in pixels, where the top left corner of the canvas
      * represents the (0,0) coordinate.
      * This is relative to the viewport padding.
      * @param zoomLevel
@@ -58,7 +58,8 @@ export class Point
     }
 
     /**
-     * Calculates the coordinates of a point on a page in pixels from the padded coordinates used to display the point on canvas
+     * Calculates the coordinates of a point on a page in pixels
+     * from the padded coordinates used to display the point on diva canvas (viewport)
      * @param pageIndex
      * @param renderer
      * @param paddedX
@@ -76,6 +77,15 @@ export class Point
         };
     }
 
+    /**
+     * Calculates the coordinates of a point on diva canvas (viewport) in pixels
+     * from the absolute coordinates on the page
+     * @param pageIndex
+     * @param renderer
+     * @param absoluteX
+     * @param absoluteY
+     * @returns {{x: *, y: *}}
+     */
     getPaddedCoordinatesFromAbsolute (pageIndex, renderer, absoluteX, absoluteY)
     {
         const viewportPaddingX = Math.max(0, (renderer._viewport.width - renderer.layout.dimensions.width) / 2);
@@ -89,6 +99,16 @@ export class Point
         };
     }
 
+    /**
+     * Calculates the coordinates of a point relative to a page (used to calculate the absolute coordinates at different zoom levels) in pixels
+     * from the padded coordinates used to display the point on diva canvas (viewport)
+     * @param pageIndex
+     * @param renderer
+     * @param paddedX
+     * @param paddedY
+     * @param zoomLevel
+     * @returns {{x: number, y: number}}
+     */
     getRelativeCoordinatesFromPadded (pageIndex, renderer, paddedX, paddedY, zoomLevel)
     {
         let scaleRatio = Math.pow(2, zoomLevel);

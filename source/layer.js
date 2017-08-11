@@ -5,7 +5,7 @@ import {Action} from './action';
 
 export class Layer
 {
-    constructor (layerId, colour, layerName, pixelInstance, layerOpacity, globalActions)
+    constructor (layerId, colour, layerName, pixelInstance, layerOpacity)
     {
         this.layerId = layerId;
         this.shapes = [];
@@ -19,11 +19,14 @@ export class Layer
         this.layerOpacity = layerOpacity;
         this.pixelInstance = pixelInstance;
         this.pageIndex = this.pixelInstance.core.getSettings().currentPageIndex;
-        this.preBinarizedImageCanvas = null;
+        this.backgroundImageCanvas = null;
         this.pastedRegions = [];
         this.cloneCanvas();
     }
 
+    /**
+     * Creates a layer canvas that is the same size as a page in diva
+     */
     cloneCanvas ()
     {
         let maxZoomLevel = this.pixelInstance.core.getSettings().maxZoomLevel;
@@ -42,10 +45,9 @@ export class Layer
         this.resizeLayerCanvasToZoomLevel(this.pixelInstance.core.getSettings().zoomLevel);
         this.placeLayerCanvasOnTopOfEditingPage();
 
-
-        this.preBinarizedImageCanvas = document.createElement("canvas");
-        this.preBinarizedImageCanvas.width = this.canvas.width;
-        this.preBinarizedImageCanvas.height = this.canvas.height;
+        this.backgroundImageCanvas = document.createElement("canvas");
+        this.backgroundImageCanvas.width = this.canvas.width;
+        this.backgroundImageCanvas.height = this.canvas.height;
     }
 
     resizeLayerCanvasToZoomLevel (zoomLevel)
@@ -204,22 +206,6 @@ export class Layer
         }
     }
 
-    deactivateLayer ()
-    {
-        this.activated = false;
-        this.clearCtx();
-    }
-
-    activateLayer ()
-    {
-        this.activated = true;
-    }
-
-    toggleLayerActivation ()
-    {
-        this.activated = !this.activated;
-    }
-
     isActivated ()
     {
         return this.activated;
@@ -255,8 +241,8 @@ export class Layer
         ctx.clearRect(0, 0, canvas.width, canvas.height);
 
         // Redraw PreBinarized Image on layer canvas
-        if (this.preBinarizedImageCanvas !== null)
-            ctx.drawImage(this.preBinarizedImageCanvas, 0, 0);
+        if (this.backgroundImageCanvas !== null)
+            ctx.drawImage(this.backgroundImageCanvas, 0, 0);
 
         // Redraw all actions
         this.actions.forEach ((action) =>
@@ -265,9 +251,9 @@ export class Layer
         });
     }
 
-    setPreBinarizedImageCanvas (canvas)
+    setBackgroundImageCanvas (canvas)
     {
-        this.preBinarizedImageCanvas = canvas;
+        this.backgroundImageCanvas = canvas;
     }
 
     addToPastedRegions (selection)
@@ -292,5 +278,83 @@ export class Layer
 
         let globalActionIndex = this.pixelInstance.actions.indexOf(action);
         this.pixelInstance.actions.splice(globalActionIndex, 1);
+    }
+
+    displayColourOptions ()
+    {
+        // TODO: Implement function
+        console.log("colour clicked here");
+    }
+
+    /**
+     * Displays the layer options (such as opacity) as a drop down from the layer selectors
+     */
+    displayLayerOptions ()
+    {
+        let layerOptionsDiv = document.getElementById("layer-" + this.layerId + "-options");
+
+        if (layerOptionsDiv.classList.contains("unchecked-layer-settings")) //It is unchecked, check it
+        {
+            layerOptionsDiv.classList.remove("unchecked-layer-settings");
+            layerOptionsDiv.classList.add("checked-layer-settings");
+            this.pixelInstance.uiManager.createOpacitySlider(this, layerOptionsDiv.parentElement.parentElement, layerOptionsDiv.parentElement);
+        }
+        else
+        {
+            layerOptionsDiv.classList.remove("checked-layer-settings");
+            layerOptionsDiv.classList.add("unchecked-layer-settings");
+            this.pixelInstance.uiManager.destroyOpacitySlider(this);
+        }
+    }
+
+    /**
+     * Visually displays a layer
+     */
+    activateLayer ()
+    {
+        let layerActivationDiv = document.getElementById("layer-" + this.layerId + "-activation");
+        layerActivationDiv.classList.remove("layer-deactivated");
+        layerActivationDiv.classList.add("layer-activated");
+        this.getCanvas().style.opacity = this.getLayerOpacity();
+
+        if (this.layerId === this.pixelInstance.background.layerId)      // Background
+        {
+            this.activated = true;
+        }
+        else
+        {
+            this.activated = true;
+            this.pixelInstance.redrawLayer(this);
+        }
+    }
+
+    deactivateLayer ()
+    {
+        let layerActivationDiv = document.getElementById("layer-" + this.layerId + "-activation");
+        layerActivationDiv.classList.remove("layer-activated");
+        layerActivationDiv.classList.add("layer-deactivated");
+        this.activated = false;
+
+        if (this.layerId === this.pixelInstance.background.layerId)      // Background
+        {
+            this.getCanvas().style.opacity = 0;
+        }
+        else
+        {
+            this.clearCtx();
+        }
+    }
+
+    toggleLayerActivation ()
+    {
+        let layerActivationDiv = document.getElementById("layer-" + this.layerId + "-activation");
+        if (layerActivationDiv.classList.contains("layer-deactivated"))
+        {
+            this.activateLayer();
+        }
+        else
+        {
+            this.deactivateLayer();
+        }
     }
 }

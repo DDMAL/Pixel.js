@@ -1,6 +1,10 @@
 /*jshint esversion: 6 */
 import {Point} from './point';
-import {CannotDeleteLayerException} from './exceptions';
+import
+{
+    CannotDeleteLayerException,
+    CannotSelectLayerException
+} from "./exceptions";
 
 export class UIManager
 {
@@ -204,10 +208,9 @@ export class UIManager
 
         layerActivationDiv.setAttribute("id", "layer-" + layer.layerId + "-activation");
 
-        colourDiv.addEventListener("click", () => { this.pixelInstance.displayColourOptions(); });
-        layerActivationDiv.addEventListener("click", () => { this.pixelInstance.toggleLayerActivation(layer, layerActivationDiv); });
-        //layerName.addEventListener('keypress', (e) => { this.pixelInstance.editLayerName(e, layerName, layerDiv); });
-        layerOptionsDiv.onclick = () => { this.pixelInstance.displayLayerOptions(layer, layerOptionsDiv); };
+        colourDiv.addEventListener("click", () => { layer.displayColourOptions(); });
+        layerActivationDiv.addEventListener("click", () => { layer.toggleLayerActivation(); });
+        layerOptionsDiv.onclick = () => { layer.displayLayerOptions(); };
 
         layerDiv.appendChild(layerName);
         layerDiv.appendChild(layerOptionsDiv);
@@ -237,10 +240,10 @@ export class UIManager
 
         let handleEvents = (layer, colourDiv, layerActivationDiv, layerName, layerOptionsDiv, layerDiv) =>
         {
-            colourDiv.addEventListener("click", () => { this.pixelInstance.displayColourOptions(); });
-            layerActivationDiv.addEventListener("click", () => { this.pixelInstance.toggleLayerActivation(layer, layerActivationDiv); });
+            colourDiv.addEventListener("click", () => { layer.displayColourOptions(); });
+            layerActivationDiv.addEventListener("click", () => { layer.toggleLayerActivation(); });
             layerName.addEventListener('keypress', (e) => { this.pixelInstance.editLayerName(e, layerName, layerDiv, false, duringSwap, layer); });
-            layerOptionsDiv.onclick = () => { this.pixelInstance.displayLayerOptions(layer, layerOptionsDiv); };
+            layerOptionsDiv.onclick = () => { layer.displayLayerOptions(); };
 
             layerDiv.ondrag = (evt) =>
             {
@@ -255,7 +258,7 @@ export class UIManager
             layerDiv.onmousedown = () =>
             {
                 departureIndex = layerDiv.getAttribute("index");
-                this.pixelInstance.highlightLayerSelector(layerDiv.getAttribute("value"));
+                this.highlightLayerSelectorById(layer.layerId);
             };
 
             layerDiv.ondragover = (evt) =>
@@ -337,6 +340,43 @@ export class UIManager
     {
         let layersViewDiv = document.getElementById("layers-view");
         layersViewDiv.parentNode.removeChild(layersViewDiv);
+    }
+
+    highlightLayerSelectorById (layerToHighlightId)
+    {
+        let matchFound = false;
+
+        this.pixelInstance.layers.forEach((layer) =>
+        {
+            if (layer.layerId === layerToHighlightId)
+            {
+                matchFound = true;
+            }
+        });
+
+        if (!matchFound)
+        {
+            throw new CannotSelectLayerException("The layer you are trying to select does not exist.");
+        }
+
+        this.pixelInstance.layers.forEach ((layer) =>
+        {
+            // Highlight only the selected layer and remove highlights from all other layers
+            if (layer.layerId === layerToHighlightId)
+            {
+                let div = document.getElementById("layer-" + layer.layerId + "-selector");
+
+                if (!div.hasAttribute("selected-layer"))
+                    div.classList.add("selected-layer");
+                this.pixelInstance.selectedLayerIndex = this.pixelInstance.layers.indexOf(layer);
+            }
+            else
+            {
+                let div = document.getElementById("layer-" + layer.layerId + "-selector");
+                if (div.classList.contains("selected-layer"))
+                    div.classList.remove("selected-layer");
+            }
+        });
     }
 
     createBrushSizeSelector ()
@@ -750,5 +790,107 @@ export class UIManager
             return false;
 
         return true;
+    }
+
+    /**
+     * ===============================================
+     *                     Tutorial
+     * ===============================================
+     **/
+
+    tutorial ()
+    {
+        let overlay = document.createElement('div');
+        overlay.setAttribute("id", "tutorial-div");
+
+        let background = document.createElement('div');
+        background.setAttribute("id", "tutorial-overlay");
+
+        let modal = document.createElement('div');
+        modal.setAttribute("id", "myModal");
+        modal.setAttribute("class", "modal");
+
+        let modalContent = document.createElement('div');
+        modalContent.setAttribute("class", "modal-content");
+
+        let modalHeader = document.createElement('div');
+        modalHeader.setAttribute("class", "modal-header");
+
+        let text = document.createTextNode("Hello, World");
+        let h2 = document.createElement('h2');
+        h2.appendChild(text);
+
+        let closeModal = document.createElement('span');
+        closeModal.setAttribute("class", "close");
+        closeModal.innerHTML = "&times;";
+
+        let modalBody = document.createElement('div');
+        modalBody.setAttribute("class", "modal-body");
+
+        let tutorialP = document.createElement('p');
+        tutorialP.innerHTML = "The following is a glossary of the hotkeys you will find useful when using Pixel.js";
+
+        let hotkeyGlossary = document.createElement('ul');
+        hotkeyGlossary.setAttribute("style", "list-style-type:none;");
+
+        let LayerSelect = document.createElement('li');
+        LayerSelect.innerHTML = "<kbd>1</kbd> ... <kbd>9</kbd> layer select";
+
+        let brushTool = document.createElement('li');
+        brushTool.innerHTML = "<kbd>b</kbd> brush tool";
+
+        let rectangleTool = document.createElement('li');
+        rectangleTool.innerHTML = "<kbd>r</kbd> rectangle tool";
+
+        let grabTool = document.createElement('li');
+        grabTool.innerHTML = "<kbd>g</kbd> grab tool";
+
+        let eraserTool = document.createElement('li');
+        eraserTool.innerHTML = "<kbd>e</kbd> eraser tool";
+
+        let shift = document.createElement('li');
+        shift.innerHTML = "<kbd>Shift</kbd>  force tools to paint in an exact way.";
+
+        let undo = document.createElement('li');
+        undo.innerHTML = "<kbd>cmd</kbd> + <kbd>z</kbd> undo";
+
+        let redo = document.createElement('li');
+        redo.innerHTML = "<kbd>cmd</kbd> + <kbd>Shift</kbd> + <kbd>z</kbd> redo";
+
+        let modalFooter = document.createElement('div');
+        modalFooter.setAttribute("class", "modal-footer");
+
+        let close = document.createElement('h2');
+        close.innerHTML = "Got It!";
+
+        hotkeyGlossary.appendChild(LayerSelect);
+        hotkeyGlossary.appendChild(brushTool);
+        hotkeyGlossary.appendChild(rectangleTool);
+        hotkeyGlossary.appendChild(grabTool);
+        hotkeyGlossary.appendChild(eraserTool);
+        hotkeyGlossary.appendChild(shift);
+        hotkeyGlossary.appendChild(undo);
+        hotkeyGlossary.appendChild(redo);
+
+        modal.appendChild(modalContent);
+        modalContent.appendChild(modalHeader);
+        modalContent.appendChild(modalBody);
+        modalContent.appendChild(modalFooter);
+        modalHeader.appendChild(h2);
+        modalHeader.appendChild(closeModal);
+        modalBody.appendChild(tutorialP);
+        modalBody.appendChild(hotkeyGlossary);
+        modalFooter.appendChild(close);
+
+        overlay.appendChild(background);
+        overlay.appendChild(modal);
+        document.body.appendChild(overlay);
+
+        modal.style.display = "block";
+
+        modalFooter.addEventListener("click", () =>
+        {
+            overlay.parentNode.removeChild(overlay);
+        });
     }
 }

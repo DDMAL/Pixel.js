@@ -18,6 +18,10 @@ export class Colour
         return "rgba(" + this.red +  ", " + this.green + ", " + this.blue + ", " + this.alpha + ")";
     }
 
+    /**
+     * Returns the Colour object in a hexadecimal string format (#RRGGBB)
+     * @returns {string}
+     */
     toHexString ()
     {
         let hexString = "#";
@@ -41,10 +45,14 @@ export class Colour
         return hexString;
     }
 
-    isSimilarTo (colour)
+    /**
+     * Compares 2 colours to each other based on a certain tolerance
+     * @param colour
+     * @param tolerance
+     * @returns {boolean}
+     */
+    isSimilarTo (colour, tolerance)
     {
-        let tolerance = 1;
-
         if (!((colour.red >= this.red - tolerance) && (colour.red <= this.red + tolerance)))
             return false;
 

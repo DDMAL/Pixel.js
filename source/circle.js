@@ -86,6 +86,7 @@ export class Circle extends Shape
 
         let scaleRatio = Math.pow(2, zoomLevel);
 
+        // Scan a square spanning the top, bottom, left and right coordinates of the circle
         for (var y = circleTop.getCoordsInViewport(zoomLevel, pageIndex, renderer).y;
             y <= circleBottom.getCoordsInViewport(zoomLevel, pageIndex, renderer).y; y++)
         {

@@ -9,7 +9,7 @@ export class Tools
                 brush: "brush",
                 rectangle: "rectangle",
                 grab: "grab",
-                eraser: "eraser",
+                erase: "eraser",
                 select: "select"
             };
         this.currentTool = this.type.brush;
@@ -37,7 +37,7 @@ export class Tools
             case this.type.brush:
                 this.pixelInstance.uiManager.destroyBrushCursor();
                 break;
-            case this.type.eraser:
+            case this.type.erase:
                 this.pixelInstance.uiManager.destroyBrushCursor();
                 break;
             default:
@@ -70,7 +70,7 @@ export class Tools
                 this.pixelInstance.uiManager.createBrushCursor();
                 mouseClickDiv.style.cursor = "none";
                 break;
-            case this.type.eraser:
+            case this.type.erase:
                 slider.style.visibility = "visible";
                 this.pixelInstance.uiManager.createBrushCursor();
                 mouseClickDiv.style.cursor = "none";
