@@ -99,7 +99,6 @@ export default class PixelPlugin
         this.subscribeToKeyboardEvents();
         this.redrawAllLayers();  // Repaint the tiles to retrigger VisibleTilesDidLoad
 
-        //FIXME (PotassiumK): are the two lines below still supposed to be here?
         if (this.tools.getCurrentTool() === this.tools.type.brush || this.tools.getCurrentTool() === this.tools.type.eraser)
             document.getElementById("diva-1-outer").style.cursor = "none";  // hacky way to set the cursor to the circle on startup (when brush is selected)
 
@@ -380,6 +379,7 @@ export default class PixelPlugin
 
     onKeyDown (e)
     {
+        //FIXME: This is no longer right
         let layerActivationDiv = document.getElementById("layer-" + (this.selectedLayerIndex + 1) + "-activation");
 
         let Z_KEY_CODE = 90,
@@ -835,7 +835,6 @@ export default class PixelPlugin
     // Specify the class of the selected div. CSS takes care of the rest
     highlightLayerSelector (layerType)
     {
-        //TODO: Throw exception layer does not exist
         let matchFound = false;
 
         //Select the specified layer and unselect all other layers
