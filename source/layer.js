@@ -1,3 +1,4 @@
+/*jshint esversion: 6 */
 import {Path} from './path';
 import {Point} from './point';
 import {Action} from './action';

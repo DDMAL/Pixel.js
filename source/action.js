@@ -1,3 +1,4 @@
+/*jshint esversion: 6 */
 export class Action
 {
     constructor (object, layer)

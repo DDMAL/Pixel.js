@@ -1,3 +1,4 @@
+/*jshint esversion: 6 */
 class PixelException
 {
     constructor (message)
@@ -7,3 +8,5 @@ class PixelException
 }
 
 export class CannotDeleteLayerException extends PixelException {}
+
+export class CannotSelectLayerException extends PixelException {}

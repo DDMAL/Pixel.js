@@ -1,3 +1,4 @@
+/*jshint esversion: 6 */
 export class Colour
 {
     constructor (red, green, blue, alpha)
