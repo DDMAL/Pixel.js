@@ -8,3 +8,5 @@ class PixelException
 }
 
 export class CannotDeleteLayerException extends PixelException {}
+
+export class CannotSelectLayerException extends PixelException {}

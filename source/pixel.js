@@ -17,7 +17,11 @@ import {UIManager} from './ui-manager';
 import {Tools} from './tools';
 import {Import} from './import';
 import {Selection} from './selection';
-import {CannotDeleteLayerException} from "./exceptions";
+import
+{
+    CannotDeleteLayerException,
+    CannotSelectLayerException
+} from "./exceptions";
 
 
 export default class PixelPlugin
@@ -322,7 +326,7 @@ export default class PixelPlugin
     onKeyUp (e)
     {
         const KEY_1 = 49;
-        const KEY_9 = 56;
+        const KEY_9 = 57;
         const H_KEY = 72;
         const M_KEY = 77;
         const SHIFT_KEY = 16;
@@ -331,10 +335,21 @@ export default class PixelPlugin
             numberOfLayers = this.layers.length,
             key = e.keyCode ? e.keyCode : e.which;
 
-        // Selecting a Layer use keyboard shortcut
-        if (key >= KEY_1 && key < KEY_1 + numberOfLayers && key <= KEY_9)
+        // Selecting a Layer using keyboard shortcutkeys 1 to 9
+        //if (key >= KEY_1 && key < KEY_1 + numberOfLayers && key <= KEY_9)
+        if (key >= KEY_1 && key <= KEY_9)
         {
-            this.highlightLayerSelector(key - KEY_1 + 1);
+            try
+            {
+                this.highlightLayerSelector(key - KEY_1 + 1);
+            }
+            catch (e)
+            {
+                if (e instanceof CannotSelectLayerException)
+                {
+                    alert(e.message);
+                }
+            }
 
             if (lastLayer !== this.selectedLayerIndex && this.mousePressed)
                 this.layerChangedMidDraw = true;
@@ -416,7 +431,6 @@ export default class PixelPlugin
                 this.tools.setCurrentTool(this.tools.type.select);
                 break;
             case "m":
-                console.log("enter M press");
                 if (layerActivationDiv.classList.contains("layer-activated"))
                 {
                     this.layerDeactivate(this.layers[this.selectedLayerIndex], layerActivationDiv);
@@ -821,13 +835,27 @@ export default class PixelPlugin
     // Specify the class of the selected div. CSS takes care of the rest
     highlightLayerSelector (layerType)
     {
+        //TODO: Throw exception layer does not exist
+        let matchFound = false;
+
+        //Select the specified layer and unselect all other layers
         layerType = parseInt(layerType);
 
-        this.layers.forEach ((layer) =>
+        for (let i = 0; i < this.layers.length; i++)
         {
-            // layerType is a string i
-            if (layer.layerId === layerType)
+            if (layerType === this.layers[i].layerId)
             {
+                matchFound = true;
+            }
+        }
+        if (!matchFound)
+        {
+            throw new CannotSelectLayerException("The layer you are trying to select does not exist.");
+        }
+
+        this.layers.forEach ((layer) => {
+            // layerType is a string
+            if (layer.layerId === layerType) {
                 let div = document.getElementById("layer-" + layer.layerId + "-selector");
 
                 if (!div.hasAttribute("selected-layer"))
