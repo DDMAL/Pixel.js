@@ -365,6 +365,23 @@ export default class PixelPlugin
     {
         switch (e.key.toLowerCase())
         {
+            case "backspace":
+                //FIXME: is it also "backspace" for windows?
+                try
+                {
+                    if (e.ctrlKey || e.metaKey)                 // Cmd + Delete
+                    {
+                        this.deleteLayer();
+                    }
+                }
+                catch (e)
+                {
+                    if (e instanceof CannotDeleteLayerException)
+                    {
+                        alert(e.message);
+                    }
+                }
+                break;
             case "z":
                 if ((e.ctrlKey || e.metaKey) && e.shiftKey)     // Cmd + Shift + Z
                     this.redoAction();
