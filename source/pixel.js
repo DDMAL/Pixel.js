@@ -965,7 +965,7 @@ export default class PixelPlugin
 
                 let squareInBounds = this.uiManager.isInPageBounds(rectangle.origin.relativeOriginX + rectangle.relativeRectWidth,
                     rectangle.origin.relativeOriginY + (mainDiagonal * rectangle.relativeRectWidth));
-
+              
                 if (squareInBounds)
                     rectangle.relativeRectHeight = mainDiagonal * rectangle.relativeRectWidth;
                 else

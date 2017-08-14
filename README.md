@@ -1,9 +1,13 @@
+<p align="center">
+    <img src="http://i.imgur.com/8LycyBH.png" />
+</p>
+
 # Pixel.js
 ```Pixel.js``` is a drawing and layering plugin that works on top of [```Diva.js```](https://github.com/DDMAL/diva.js). 
 
 ## Objectives
 - Transform [```Diva.js```](https://github.com/DDMAL/diva.js) from a document image viewer to a document editor and annotator.
-- Label every pixel of the image with its corresponding class (background, staff lines, text, etc...). This will be used to provide the ground truth data for the machine learning algorithm that classifies and isolates the different components of old manuscripts and scores.
+- Label every pixel of the image with its corresponding class (background, staff lines, text, etc.) This will be used to provide the ground truth data for a machine learning algorithm that classifies and isolates the different components of old manuscripts and scores.
 
 ## Prerequisites
 The following is a list of prerequisites that are necessary to run [```Diva.js```](https://github.com/DDMAL/diva.js) (and thus Pixel.js). The script in the quick start section is intended to install them as well as build and run pixel.
