@@ -369,8 +369,21 @@ export default class PixelPlugin
         {
             case "backspace":
                 //FIXME: is it also "backspace" for windows?
-                if (e.ctrlKey || e.metaKey)                     // Cmd + Delete
-                    this.deleteLayer();
+                try
+                {
+                    if (e.ctrlKey || e.metaKey)                 // Cmd + Delete
+                    {
+                        this.deleteLayer();
+                    }
+                }
+                catch (e)
+                {
+                    if (e instanceof CannotDeleteLayerException)
+                    {
+                        alert(e.message);
+                    }
+                }
+                break;
             case "z":
                 if ((e.ctrlKey || e.metaKey) && e.shiftKey)     // Cmd + Shift + Z
                     this.redoAction();
@@ -615,7 +628,7 @@ export default class PixelPlugin
         this.uiManager.destroyPixelCanvases(oldLayersArray);   // TODO: Optimization: Instead of destroying all of the canvases only destroy the one of interest
         this.uiManager.placeLayerCanvasesInDiva(this.layers);
         this.uiManager.placeLayerCanvasesInDiva(this.background);
-        this.highlightLayerSelector(this.layers[this.selectedLayerIndex].layerId); //TODO: select some default layer (actually not sure what this does tbh)
+        //this.highlightLayerSelector(this.layers[this.selectedLayerIndex].layerId); //TODO: select some default layer (actually not sure what this does tbh)
         this.redrawAllLayers();
     }
 
