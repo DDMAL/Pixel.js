@@ -301,8 +301,8 @@ kbd {
   padding-left: 25%; /* Location of the box */
   left: 0;
   top: 0;
-  width: 50%; /* Full width */
-  height: 50%; /* Full height */
+  width: 50%;
+  height: 100%; /* Full height */
   overflow: auto; /* Enable scroll if needed */
 }
 
@@ -458,4 +458,8 @@ button {
 /* For controlling the brush size slider's visibility */
 #brush-size {
   visibility: hidden;
+}
+
+.tutorial-image {
+  max-width: 100%;
 }
