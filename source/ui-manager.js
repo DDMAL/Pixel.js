@@ -26,6 +26,7 @@ export class UIManager
         this.createUndoButton();
         this.createRedoButton();
         this.createDeleteLayerButton();
+        this.createCreateLayerButton();
         this.createLayersView(layers);
         this.createToolsView(this.pixelInstance.tools.getAllTools());
         this.createExportButtons();
@@ -39,6 +40,7 @@ export class UIManager
         this.destroyUndoButton();
         this.destroyRedoButton();
         this.destroyDeleteLayerButton();
+        this.destroyCreateLayerButton();
         this.destroyExportButtons();
         this.destroyImportButtons();
         this.destroyPixelCanvases(layers);
@@ -120,7 +122,8 @@ export class UIManager
     {
         layers.forEach ((layer) =>
         {
-            layer.getCanvas().parentNode.removeChild(layer.getCanvas());
+            if (layer.getCanvas().parentNode !== null)
+                layer.getCanvas().parentNode.removeChild(layer.getCanvas());
         });
     }
 
@@ -482,6 +485,26 @@ export class UIManager
     {
         let deleteLayerButton = document.getElementById("delete-layer-button");
         deleteLayerButton.parentNode.removeChild(deleteLayerButton);
+    }
+
+    createCreateLayerButton ()
+    {
+        let createLayerButton = document.createElement("button"),
+            text = document.createTextNode("Create new layer");
+
+        this.createLayer = () => { this.pixelInstance.createLayer(); };
+
+        createLayerButton.setAttribute("id", "create-layer-button");
+        createLayerButton.appendChild(text);
+        createLayerButton.addEventListener("click", this.createLayer);
+
+        document.body.appendChild(createLayerButton);
+    }
+
+    destroyCreateLayerButton ()
+    {
+        let createLayerButton = document.getElementById("create-layer-button");
+        createLayerButton.parentNode.removeChild(createLayerButton);
     }
 
     createExportButtons ()

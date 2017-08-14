@@ -51,6 +51,7 @@ export default class PixelPlugin
         this.tools = null;
         this.selection = null;
         this.horizontalMove = false;
+        this.layerIdCounter = 2;
     }
 
     /**
@@ -72,13 +73,10 @@ export default class PixelPlugin
         if (this.layers === null)
         {
             // Start by creating layers
-            let background = new Layer(0, new Colour(242, 242, 242, 1), "Background", this, 1, this.actions),
-                layer1 = new Layer(1, new Colour(51, 102, 255, 1), "Layer 1", this, 0.5, this.actions),
-                layer2 = new Layer(2, new Colour(255, 51, 102, 1), "Layer 2", this, 0.5, this.actions),
-                layer3 = new Layer(3, new Colour(255, 255, 10, 1), "Layer 3", this, 0.5, this.actions),
-                layer4 = new Layer(4, new Colour(2, 136, 0, 1), "Layer 4", this, 0.5, this.actions);
+            let background = new Layer(0, new Colour(242, 242, 242, 1), "Background", this, 1),
+                layer1 = new Layer(1, new Colour(51, 102, 255, 1), "Layer 1", this, 0.5);
 
-            this.layers = [layer1, layer2, layer3, layer4];
+            this.layers = [layer1];
             this.background = background;
             this.background.canvas = this.core.getSettings().renderer._canvas;  // Link background canvas to the actual diva canvas
         }
@@ -602,39 +600,54 @@ export default class PixelPlugin
 
     deleteLayer ()
     {
-        let newLayersArray = [],
-            oldLayersArray = this.layers,
-            layer = this.layers[this.selectedLayerIndex],
+        let layer = this.layers[this.selectedLayerIndex],
             currentLayersLength = this.layers.length;
 
         if (currentLayersLength <= 1)
             throw new CannotDeleteLayerException("Must at least have one layer other than the background");
 
-        for (let i = 0; i < currentLayersLength; i++)
-        {
-            if (layer !== this.layers[i])
-            {
-                newLayersArray.push(this.layers[i]);
-            }
-        }
+        this.uiManager.destroyPluginElements(this.layers, this.background);
+        this.layers.splice(this.selectedLayerIndex, 1);
 
-        this.layers = newLayersArray;
         //reset to the first element on each delete
         this.selectedLayerIndex = 0;
 
         //refreshing the layers view to reflect changes
-        this.uiManager.destroyPluginElements(this.layers, this.background);
         this.uiManager.createPluginElements(this.layers);
-        this.uiManager.destroyPixelCanvases(oldLayersArray);   // TODO: Optimization: Instead of destroying all of the canvases only destroy the one of interest
-        this.uiManager.placeLayerCanvasesInDiva(this.layers);
-        this.uiManager.placeLayerCanvasesInDiva(this.background);
-        //this.highlightLayerSelector(this.layers[this.selectedLayerIndex].layerId); //TODO: select some default layer (actually not sure what this does tbh)
         this.redrawAllLayers();
     }
 
     createLayer ()
     {
+        let colour;
 
+        switch (this.layerIdCounter)
+        {
+            case 1:
+                colour = new Colour(51, 102, 255, 1);
+                break;
+            case 2:
+                colour = new Colour(255, 51, 102, 1);
+                break;
+            case 3:
+                colour = new Colour(255, 255, 10, 1);
+                break;
+            case 4:
+                colour = new Colour(2, 136, 0, 1);
+                break;
+            default:
+                colour = new Colour(parseInt(255 * Math.random()), parseInt(255 * Math.random()), parseInt(255 * Math.random()), 1);
+        }
+
+        let layer = new Layer(this.layerIdCounter, colour, "Layer " + this.layerIdCounter, this, 0.5);
+
+        this.layerIdCounter++;
+        this.layers.push(layer);
+
+        this.uiManager.destroyPluginElements(this.layers, this.background);
+        this.uiManager.createPluginElements(this.layers);
+
+        this.redrawAllLayers();
     }
 
     /**
