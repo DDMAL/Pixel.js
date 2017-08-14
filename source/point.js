@@ -1,3 +1,4 @@
+/*jshint esversion: 6 */
 export class Point
 {
     /**
@@ -20,7 +21,7 @@ export class Point
      * @param zoomLevel
      * @returns {{x: number, y: number}}
      */
-    getCoordsInPage(zoomLevel)
+    getCoordsInPage (zoomLevel)
     {
         let scaleRatio = Math.pow(2,zoomLevel);
         return {
@@ -30,7 +31,7 @@ export class Point
     }
 
     /**
-     * Calculates the coordinates of a point on the canvas in pixels, where the top left corner of the canvas
+     * Calculates the coordinates of a point on the diva canvas (viewport) in pixels, where the top left corner of the canvas
      * represents the (0,0) coordinate.
      * This is relative to the viewport padding.
      * @param zoomLevel
@@ -38,7 +39,7 @@ export class Point
      * @param renderer
      * @returns {{x: number, y: number}}
      */
-    getCoordsInViewport(zoomLevel, pageIndex, renderer)
+    getCoordsInViewport (zoomLevel, pageIndex, renderer)
     {
         const viewportPaddingX = Math.max(0, (renderer._viewport.width - renderer.layout.dimensions.width) / 2);
         const viewportPaddingY = Math.max(0, (renderer._viewport.height - renderer.layout.dimensions.height) / 2);
@@ -47,8 +48,8 @@ export class Point
 
         // Calculates where the highlights should be drawn as a function of the whole canvas coordinates system
         // (to make it look like it is on top of a page in Diva)
-        let offsetX = renderer._getImageOffset(pageIndex).left - renderer._viewport.left + viewportPaddingX + absoluteCoordinates.x;
-        let offsetY = renderer._getImageOffset(pageIndex).top - renderer._viewport.top + viewportPaddingY + absoluteCoordinates.y;
+        let offsetX = renderer._getImageOffset(pageIndex).left - renderer._viewport.left + viewportPaddingX + absoluteCoordinates.x,
+            offsetY = renderer._getImageOffset(pageIndex).top - renderer._viewport.top + viewportPaddingY + absoluteCoordinates.y;
 
         return {
             x: offsetX,
@@ -57,14 +58,15 @@ export class Point
     }
 
     /**
-     * Calculates the coordinates of a point on a page in pixels from the padded coordinates used to display the point on canvas
+     * Calculates the coordinates of a point on a page in pixels
+     * from the padded coordinates used to display the point on diva canvas (viewport)
      * @param pageIndex
      * @param renderer
      * @param paddedX
      * @param paddedY
      * @returns {{x: number, y: number}}
      */
-    getAbsoluteCoordinatesFromPadded(pageIndex, renderer, paddedX, paddedY)
+    getAbsoluteCoordinatesFromPadded (pageIndex, renderer, paddedX, paddedY)
     {
         const viewportPaddingX = Math.max(0, (renderer._viewport.width - renderer.layout.dimensions.width) / 2);
         const viewportPaddingY = Math.max(0, (renderer._viewport.height - renderer.layout.dimensions.height) / 2);
@@ -75,7 +77,16 @@ export class Point
         };
     }
 
-    getPaddedCoordinatesFromAbsolute(pageIndex, renderer, absoluteX, absoluteY)
+    /**
+     * Calculates the coordinates of a point on diva canvas (viewport) in pixels
+     * from the absolute coordinates on the page
+     * @param pageIndex
+     * @param renderer
+     * @param absoluteX
+     * @param absoluteY
+     * @returns {{x: *, y: *}}
+     */
+    getPaddedCoordinatesFromAbsolute (pageIndex, renderer, absoluteX, absoluteY)
     {
         const viewportPaddingX = Math.max(0, (renderer._viewport.width - renderer.layout.dimensions.width) / 2);
         const viewportPaddingY = Math.max(0, (renderer._viewport.height - renderer.layout.dimensions.height) / 2);
@@ -88,4 +99,31 @@ export class Point
         };
     }
 
+    /**
+     * Calculates the coordinates of a point relative to a page (used to calculate the absolute coordinates at different zoom levels) in pixels
+     * from the padded coordinates used to display the point on diva canvas (viewport)
+     * @param pageIndex
+     * @param renderer
+     * @param paddedX
+     * @param paddedY
+     * @param zoomLevel
+     * @returns {{x: number, y: number}}
+     */
+    getRelativeCoordinatesFromPadded (pageIndex, renderer, paddedX, paddedY, zoomLevel)
+    {
+        let scaleRatio = Math.pow(2, zoomLevel);
+
+        const viewportPaddingX = Math.max(0, (renderer._viewport.width - renderer.layout.dimensions.width) / 2);
+        const viewportPaddingY = Math.max(0, (renderer._viewport.height - renderer.layout.dimensions.height) / 2);
+
+        // Calculates where the highlights should be drawn as a function of the whole webpage coordinates
+        // (to make it look like it is on top of a page in Diva)
+        let absoluteRectOriginX = paddedX - renderer._getImageOffset(pageIndex).left + renderer._viewport.left -  viewportPaddingX,
+            absoluteRectOriginY = paddedY - renderer._getImageOffset(pageIndex).top + renderer._viewport.top - viewportPaddingY;
+
+        return{
+            x: absoluteRectOriginX/scaleRatio,
+            y: absoluteRectOriginY/scaleRatio
+        };
+    }
 }

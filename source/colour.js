@@ -1,3 +1,4 @@
+/*jshint esversion: 6 */
 export class Colour
 {
     constructor (red, green, blue, alpha)
@@ -17,13 +18,17 @@ export class Colour
         return "rgba(" + this.red +  ", " + this.green + ", " + this.blue + ", " + this.alpha + ")";
     }
 
+    /**
+     * Returns the Colour object in a hexadecimal string format (#RRGGBB)
+     * @returns {string}
+     */
     toHexString ()
     {
         let hexString = "#";
 
-        let red = this.red.toString(16);
-        let green = this.green.toString(16);
-        let blue = this.blue.toString(16);
+        let red = this.red.toString(16),
+            green = this.green.toString(16),
+            blue = this.blue.toString(16);
 
         if (red.length === 1)
             hexString = hexString.concat("0");
@@ -40,10 +45,14 @@ export class Colour
         return hexString;
     }
 
-    isSimilarTo (colour)
+    /**
+     * Compares 2 colours to each other based on a certain tolerance
+     * @param colour
+     * @param tolerance
+     * @returns {boolean}
+     */
+    isSimilarTo (colour, tolerance)
     {
-        let tolerance = 1;
-
         if (!((colour.red >= this.red - tolerance) && (colour.red <= this.red + tolerance)))
             return false;
 

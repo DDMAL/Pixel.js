@@ -1,3 +1,4 @@
+/*jshint esversion: 6 */
 /**
  * This plugin will be used to transform Diva into a layering tool which will be used to provide
  * the ground truth data for the machine learning algorithm
@@ -10,11 +11,18 @@
 import {Point} from './point';
 import {Rectangle} from './rectangle';
 import {Layer} from './layer';
-import {Action} from './action';
 import {Colour} from './colour';
 import {Export} from './export';
 import {UIManager} from './ui-manager';
 import {Tools} from './tools';
+import {Import} from './import';
+import {Selection} from './selection';
+import
+{
+    CannotDeleteLayerException,
+    CannotSelectLayerException
+} from "./exceptions";
+
 
 export default class PixelPlugin
 {
@@ -30,15 +38,20 @@ export default class PixelPlugin
         this.background = null;
         this.layers = null;
         this.mousePressed = false;
+        this.rightMousePressed = false;
         this.selectedLayerIndex = 0;
         this.layerChangedMidDraw = false;
         this.actions = [];
         this.undoneActions = [];
         this.shiftDown = false;
+        this.initialShiftPress = true;
         this.lastRelCoordX = null;
         this.lastRelCoordY = null;
         this.uiManager = null;
         this.tools = null;
+        this.selection = null;
+        this.horizontalMove = false;
+        this.layerIdCounter = 2;
     }
 
     /**
@@ -57,25 +70,23 @@ export default class PixelPlugin
 
     activatePlugin ()
     {
-        this.tutorial();
-
         if (this.layers === null)
         {
             // Start by creating layers
             let background = new Layer(0, new Colour(242, 242, 242, 1), "Background", this, 1),
-                layer1 = new Layer(1, new Colour(51, 102, 255, 1), "Layer 1", this, 0.5),
-                layer2 = new Layer(2, new Colour(255, 51, 102, 1), "Layer 2", this, 0.5),
-                layer3 = new Layer(3, new Colour(255, 255, 10, 1), "Layer 3", this, 0.5),
-                layer4 = new Layer(4, new Colour(10, 255, 10, 1), "Layer 4", this, 0.5),
-                layer5 = new Layer(5, new Colour(255, 137, 0, 1), "Layer 5", this, 0.5);
+                layer1 = new Layer(1, new Colour(51, 102, 255, 1), "Layer 1", this, 0.5);
 
-            this.layers = [layer1, layer2, layer3, layer4, layer5];
+            this.layers = [layer1];
             this.background = background;
             this.background.canvas = this.core.getSettings().renderer._canvas;  // Link background canvas to the actual diva canvas
         }
 
-        this.uiManager = new UIManager(this);
-        this.tools = new Tools(this);
+        if (this.uiManager === null)
+            this.uiManager = new UIManager(this);
+
+        if (this.tools === null)
+            this.tools = new Tools(this);
+
         this.uiManager.createPluginElements(this.layers);
         this.scrollEventHandle = this.subscribeToScrollEvent();
         this.zoomEventHandle = this.subscribeToZoomLevelWillChangeEvent();
@@ -84,9 +95,12 @@ export default class PixelPlugin
         this.subscribeToWindowResizeEvent();
         this.subscribeToMouseEvents();
         this.subscribeToKeyboardEvents();
-        this.redrawAllLayers();  // Repaint the tiles to retrigger VisibleTilesDidLoad
 
+        // Setting Tool to change the cursor type
+        this.tools.setCurrentTool(this.tools.getCurrentTool());
         this.activated = true;
+
+        //this.uiManager.tutorial();
     }
 
     deactivatePlugin ()
@@ -99,7 +113,6 @@ export default class PixelPlugin
         this.redrawAllLayers(); // Repaint the tiles to make the highlights disappear off the page
 
         this.uiManager.destroyPluginElements(this.layers, this.background);
-
         this.enableDragScrollable();
         this.activated = false;
     }
@@ -137,7 +150,7 @@ export default class PixelPlugin
         rect.setAttribute('x', '15');
         rect.setAttribute('y', '10');
         rect.setAttribute('width', '25');
-        rect.setAttribute('height', 25);
+        rect.setAttribute('height', '25');
 
         g.appendChild(rect);
         root.appendChild(g);
@@ -153,46 +166,48 @@ export default class PixelPlugin
      * ===============================================
      **/
 
+    // Repositions all layers on top of editing page when the browser window is resized
     subscribeToWindowResizeEvent ()
     {
         window.addEventListener("resize", () =>
         {
-            this.layers.forEach((layer) =>
+            this.layers.forEach ((layer) =>
             {
                 layer.placeLayerCanvasOnTopOfEditingPage();
             });
         });
     }
 
+    // Resizes the elements of the layers on viewport zoom
     subscribeToZoomLevelWillChangeEvent ()
     {
         let handle = global.Diva.Events.subscribe('ZoomLevelWillChange', (zoomLevel) =>
         {
-            this.layers.forEach((layer) =>
+            this.layers.forEach ((layer) =>
             {
                 layer.resizeLayerCanvasToZoomLevel(zoomLevel);
             });
         });
-
         return handle;
     }
 
+    // Repositions all layers on top of editing page on viewport scroll
     subscribeToScrollEvent ()
     {
         let handle = global.Diva.Events.subscribe('ViewerDidScroll', () =>
         {
-            this.layers.forEach((layer) =>
+            this.layers.forEach ((layer) =>
             {
                 layer.placeLayerCanvasOnTopOfEditingPage();
             });
         });
-
         return handle;
     }
 
     subscribeToMouseEvents ()
     {
         let canvas = document.getElementById("diva-1-outer");
+        this.uiManager.createBrushCursor();
 
         this.mouseDown = (evt) => { this.onMouseDown(evt); };
         this.mouseUp = (evt) => { this.onMouseUp(evt); };
@@ -290,13 +305,14 @@ export default class PixelPlugin
             this.layers[destinationLayerIndex] = tempLayerStorage;
         }
 
+        // Destroy all UI elements then recreate them (to show that the layers have been reordered through the UI)
         this.selectedLayerIndex = destinationLayerIndex;
         this.uiManager.destroyPluginElements(this.layers, this.background);
         this.uiManager.createPluginElements(this.layers);
         this.uiManager.destroyPixelCanvases(this.layers);   // TODO: Optimization: Instead of destroying all of the canvases only destroy and reorder the ones of interest
         this.uiManager.placeLayerCanvasesInDiva(this.layers);
         this.uiManager.placeLayerCanvasesInDiva(this.background);
-        this.highlightLayerSelector(this.layers[this.selectedLayerIndex].layerId);
+        this.uiManager.highlightLayerSelectorById(this.layers[this.selectedLayerIndex].layerId);
         this.redrawAllLayers();
     }
 
@@ -306,43 +322,93 @@ export default class PixelPlugin
      * -----------------------------------------------
      **/
 
+    // Actions on key release
     onKeyUp (e)
     {
         const KEY_1 = 49;
-        const KEY_9 = 56;
-        const SHIFT_KEY = 16;
+        const KEY_9 = 57;
 
         let lastLayer = this.selectedLayerIndex,
-            numberOfLayers = this.layers.length,
             key = e.keyCode ? e.keyCode : e.which;
 
-        // Selecting Layer
-        if (key >= KEY_1 && key < KEY_1 + numberOfLayers && key <= KEY_9)
+
+        // Selecting a Layer using keyboard shortcutkeys 1 to 9
+        if (key >= KEY_1 && key <= KEY_9)
         {
-            this.highlightLayerSelector(key - KEY_1 + 1);
+            try
+            {
+                this.uiManager.highlightLayerSelectorById(key - KEY_1 + 1);
+            }
+            catch (e)
+            {
+                if (e instanceof CannotSelectLayerException)
+                {
+                    alert(e.message);
+                }
+            }
 
             if (lastLayer !== this.selectedLayerIndex && this.mousePressed)
                 this.layerChangedMidDraw = true;
         }
 
-        if (key === SHIFT_KEY)
-            this.shiftDown = false;
+        switch (e.key.toLowerCase())
+        {
+            case "shift":
+                this.shiftDown = false;
+                break;
+            case "h":
+                this.layers[this.selectedLayerIndex].toggleLayerActivation();
+        }
     }
 
     onKeyDown (e)
     {
-        switch (e.key)
+        switch (e.key.toLowerCase())
         {
+            case "backspace":
+                //FIXME: is it also "backspace" for windows?
+                try
+                {
+                    if (e.ctrlKey || e.metaKey)                 // Cmd + Delete
+                    {
+                        this.deleteLayer();
+                    }
+                }
+                catch (e)
+                {
+                    if (e instanceof CannotDeleteLayerException)
+                    {
+                        alert(e.message);
+                    }
+                }
+                break;
             case "z":
-                if (e.ctrlKey || e.metaKey)                // Cmd + Z
+                if ((e.ctrlKey || e.metaKey) && e.shiftKey)     // Cmd + Shift + Z
+                    this.redoAction();
+                else if (e.ctrlKey || e.metaKey)                // Cmd + Z
                     this.undoAction();
                 break;
-            case "Z":
-                if (e.ctrlKey || e.metaKey)                 // Cmd + Shift + Z
-                    this.redoAction();
+            case "c":
+                if (e.ctrlKey || e.metaKey)                     // Cmd + c
+                    this.selection.copyShape(this.core.getSettings().maxZoomLevel);
                 break;
-            case "Shift":
+            case "x":
+                if (e.ctrlKey || e.metaKey)                     // Cmd + x
+                    this.selection.cutShape(this.core.getSettings().maxZoomLevel);
+                break;
+            case "v":
+                if (e.ctrlKey || e.metaKey)                     // Cmd + v
+                {
+                    this.selection.pasteShapeToLayer(this.layers[this.selectedLayerIndex]);
+                    this.selection = null;
+                    this.redrawLayer(this.layers[this.selectedLayerIndex]);
+                }
+                break;
+            case "shift":
                 this.shiftDown = true;
+                break;
+            case "f":
+                this.core.publicInstance.toggleFullscreenMode();
                 break;
             case "b":
                 this.tools.setCurrentTool(this.tools.type.brush);
@@ -354,23 +420,44 @@ export default class PixelPlugin
                 this.tools.setCurrentTool(this.tools.type.grab);
                 break;
             case "e":
-                this.tools.setCurrentTool(this.tools.type.eraser);
+                this.tools.setCurrentTool(this.tools.type.erase);
+                break;
+            case "s":
+                this.tools.setCurrentTool(this.tools.type.select);
+                break;
+            //FIXME: Current implementation continuously toggles layer activation on key hold. Should happen once on first key press
+            case "m":
+                this.layers[this.selectedLayerIndex].toggleLayerActivation();
+                break;
+            case "h":
+                if (this.layers[this.selectedLayerIndex].isActivated())
+                    this.layers[this.selectedLayerIndex].toggleLayerActivation();
                 break;
         }
     }
 
-    editLayerName (e, layerName)
+    editLayerName (e, layerName, layerDiv, outsideClick, duringSwap, layer)
     {
         const RETURN_KEY = 13;
 
-        // TODO: Listen for changes when clicked outside of LayerName
-        // TODO: Unsubscribe from other keyboard listeners
+        // TODO: Find a way to unsubscribe from keyboard events while allowing enter key to be pressed
+        layerDiv.removeAttribute("draggable");
+        layerDiv.setAttribute("draggable", "false");
+
         let key = e.which || e.keyCode;
-        if (key === RETURN_KEY)
+        if (key === RETURN_KEY || outsideClick)
         {
-            // TODO: Subscribe to other keyboard listeners
-            this.layers[this.selectedLayerIndex].updateLayerName(layerName.value);
-            layerName.setAttribute("readonly", "true");
+            if (duringSwap === false)
+            {
+                // TODO: Resubscribe to mouse events
+                layer.updateLayerName(layerName.value);
+                layerName.setAttribute("readonly", "true");
+                layerDiv.setAttribute("draggable", "true");
+            }
+            else if (duringSwap === true)
+            {
+                //do nothing
+            }
         }
     }
 
@@ -390,36 +477,65 @@ export default class PixelPlugin
         };
     }
 
+    /*
+        +===========+=======================+=======================+
+        |   tool    |       Left Click      |       Right Click     |
+        +===========+=======================+=======================+
+        |   Brush   |     Freeform paint    |         Resize        |
+        +–––––––––––+–––––––––––––––––––––––+–––––––––––––––––––––––+
+        | Rectangle |     Rectangle draw    |    Rectangle Erase    |
+        +–––––––––––+–––––––––––––––––––––––+–––––––––––––––––––––––+
+        |   Grab    |       Drag scroll     |       Drag scroll     |
+        +–––––––––––+–––––––––––––––––––––––+–––––––––––––––––––––––+
+        |   Erase   |     Freeform erase    |         Resize        |
+        +–––––––––––+–––––––––––––––––––––––+–––––––––––––––––––––––+
+        |   Select  |    Rectangle Select   |    Rectangle Select   |
+        +===========+=======================+=======================+
+                Tools' behaviour on left and right mouse clicks
+     */
+
+    // Initializes tool actions
     onMouseDown (evt)
     {
         let mouseClickDiv = document.getElementById("diva-1-outer"),
             mousePos = this.getMousePos(mouseClickDiv, evt);
 
+        // Clear Selection
+        if (this.selection !== null)
+            this.selection.clearSelection(this.core.getSettings().maxZoomLevel);
+
+        if (evt.which === 1)
+            this.rightMousePressed = false;
+        if (evt.which === 3)
+            this.rightMousePressed = true;
+
+        this.mousePressed = true;
         switch (this.tools.getCurrentTool())
         {
             case this.tools.type.brush:
-                this.mousePressed = true;
-                this.initializeNewPathInCurrentLayer(mousePos);
+                if (this.rightMousePressed)
+                    this.initializeBrushSizeChange(mousePos);
+                else
+                    this.initializeNewPathInCurrentLayer(mousePos);
                 break;
             case this.tools.type.rectangle:
-                this.mousePressed = true;
                 this.initializeRectanglePreview(mousePos);
                 break;
             case this.tools.type.grab:
-                this.mousePressed = true;
+                mouseClickDiv.style.cursor = "-webkit-grabbing";    // Change grab cursor to grabbing
                 break;
-            case this.tools.type.eraser:
-                this.mousePressed = true;
-                this.initializeNewPathInCurrentLayer(mousePos);
+            case this.tools.type.erase:
+                if (this.rightMousePressed)
+                    this.initializeBrushSizeChange(mousePos);
+                else
+                    this.initializeNewPathInCurrentLayer(mousePos);
                 break;
             case this.tools.type.select:
-                this.mousePressed = true;
+                this.selection = new Selection();
                 this.initializeRectanglePreview(mousePos);
                 break;
             default:
-                this.mousePressed = true;
         }
-
         // FIXME: At deactivation mouse is down so it clears the actions to redo
         this.undoneActions = [];
     }
@@ -432,104 +548,106 @@ export default class PixelPlugin
         switch (this.tools.getCurrentTool())
         {
             case this.tools.type.brush:
-                this.addPointToCurrentPath(mousePos);
+                if (this.rightMousePressed)
+                    this.changeBrushSize(mousePos);
+                else
+                    this.addPointToCurrentPath(mousePos);
+                this.uiManager.moveBrushCursor(mousePos);
                 break;
             case this.tools.type.rectangle:
                 this.rectanglePreview(mousePos);
                 break;
-            case this.tools.type.eraser:
-                this.addPointToCurrentPath(mousePos);
+            case this.tools.type.erase:
+                if (this.rightMousePressed)
+                    this.changeBrushSize(mousePos);
+                else
+                    this.addPointToCurrentPath(mousePos);
+                this.uiManager.moveBrushCursor(mousePos);
                 break;
-            case "select":
+            case this.tools.type.select:
                 this.rectanglePreview(mousePos);
                 break;
             default:
         }
     }
 
-    onMouseUp ()    // can take an event as an argument
+    onMouseUp ()
     {
-        // let canvas = document.getElementById("diva-1-outer");
+        let mouseClickDiv = document.getElementById("diva-1-outer");
+        this.mousePressed = false;
+        this.rightMousePressed = false;
+        this.horizontalMove = false;
+        this.initialShiftPress = true;
+
         switch (this.tools.getCurrentTool())
         {
-            case this.tools.type.brush:
-                this.mousePressed = false;
+            case this.tools.type.rectangle:
+                // TODO: Add action: resized rectangle.
+                // This is useful if a user wants to undo a rectangle resize (when implemented)
                 break;
-            case this.tools.type.rectangle: // TODO: Add action: resized rectangle. This is useful if a user wants to revert a rectangle resize (when implemented)
-                this.mousePressed = false;
-                break;
-            case this.tools.type.eraser:
-                this.mousePressed = false;
-                break;
-            case "select":
-                this.mousePressed = false;
+            case this.tools.type.grab:
+                mouseClickDiv.style.cursor = "-webkit-grab";
                 break;
             default:
-                this.mousePressed = false;
         }
     }
 
     /**
      * -----------------------------------------------
-     *                 Tools Selection
+     *            Delete / Create New Layer
      * -----------------------------------------------
      **/
 
-    displayColourOptions ()
+    deleteLayer ()
     {
-        // TODO: Implement function
-        console.log("colour clicked here");
+        let layer = this.layers[this.selectedLayerIndex],
+            currentLayersLength = this.layers.length;
+
+        if (currentLayersLength <= 1)
+            throw new CannotDeleteLayerException("Must at least have one layer other than the background");
+
+        this.uiManager.destroyPluginElements(this.layers, this.background);
+        this.layers.splice(this.selectedLayerIndex, 1);
+
+        //reset to the first element on each delete
+        this.selectedLayerIndex = 0;
+
+        //refreshing the layers view to reflect changes
+        this.uiManager.createPluginElements(this.layers);
+        this.redrawAllLayers();
     }
 
-    displayLayerOptions (layer, layerOptionsDiv)
+    createLayer ()
     {
-        if (layerOptionsDiv.classList.contains("unchecked-layer-settings")) //It is unchecked, check it
-        {
-            layerOptionsDiv.classList.remove("unchecked-layer-settings");
-            layerOptionsDiv.classList.add("checked-layer-settings");
-            this.uiManager.createOpacitySlider(layer, layerOptionsDiv.parentElement.parentElement, layerOptionsDiv.parentElement);
-        }
-        else
-        {
-            layerOptionsDiv.classList.remove("checked-layer-settings");
-            layerOptionsDiv.classList.add("unchecked-layer-settings");
-            this.uiManager.destroyOpacitySlider(layer);
-        }
-    }
+        let colour;
 
-    toggleLayerActivation (layer, layerActivationDiv)
-    {
-        if (layerActivationDiv.classList.contains("layer-deactivated")) // Activating
+        switch (this.layerIdCounter)
         {
-            layerActivationDiv.classList.remove("layer-deactivated");
-            layerActivationDiv.classList.add("layer-activated");
-            layer.getCanvas().style.opacity = layer.getLayerOpacity();
-
-            if (layer.layerId === -1)      // Background
-            {
-                layer.activated = true;
-            }
-            else
-            {
-                layer.activateLayer();
-                this.redrawLayer(layer);
-            }
+            case 1:
+                colour = new Colour(51, 102, 255, 1);
+                break;
+            case 2:
+                colour = new Colour(255, 51, 102, 1);
+                break;
+            case 3:
+                colour = new Colour(255, 255, 10, 1);
+                break;
+            case 4:
+                colour = new Colour(2, 136, 0, 1);
+                break;
+            default:
+                colour = new Colour(parseInt(255 * Math.random()), parseInt(255 * Math.random()), parseInt(255 * Math.random()), 1);
         }
-        else    // Deactivating
-        {
-            layerActivationDiv.classList.remove("layer-activated");
-            layerActivationDiv.classList.add("layer-deactivated");
 
-            if (layer.layerId === -1)      // Background
-            {
-                layer.getCanvas().style.opacity = 0;
-                layer.activated = false;
-            }
-            else
-            {
-                layer.deactivateLayer();
-            }
-        }
+        let layer = new Layer(this.layerIdCounter, colour, "Layer " + this.layerIdCounter, this, 0.5);
+
+        this.layerIdCounter++;
+        this.layers.push(layer);
+
+        this.uiManager.destroyPluginElements(this.layers, this.background);
+        this.uiManager.createPluginElements(this.layers);
+
+        this.redrawAllLayers();
     }
 
     /**
@@ -547,19 +665,21 @@ export default class PixelPlugin
             if (!actionToRedo.layer.isActivated())
                 return;
 
-            if (actionToRedo.action.type === "path")
+            switch (actionToRedo.object.type)
             {
-                actionToRedo.layer.addPathToLayer(actionToRedo.action);
-                this.actions.push(actionToRedo);
-                this.undoneActions.splice(this.undoneActions.length - 1,1);
+                case "path":
+                    actionToRedo.layer.addPathToLayer(actionToRedo.object);
+                    break;
+                case "shape":
+                    actionToRedo.layer.addShapeToLayer(actionToRedo.object);
+                    break;
+                case "selection":
+                    actionToRedo.layer.addToPastedRegions(actionToRedo.object);
+                    break;
+                default:
             }
 
-            else if (actionToRedo.action.type === "shape")
-            {
-                actionToRedo.layer.addShapeToLayer(actionToRedo.action);
-                this.actions.push(actionToRedo);
-                this.undoneActions.splice(this.undoneActions.length - 1,1);
-            }
+            this.undoneActions.splice(this.undoneActions.length - 1, 1);    // Remove last element from undoneActions
             this.redrawLayer(actionToRedo.layer);
         }
     }
@@ -574,27 +694,40 @@ export default class PixelPlugin
                 return;
 
             this.undoneActions.push(actionToRemove);
-            this.removeAction(this.actions.length - 1);
+            this.removeActionAtIndex(this.actions.length - 1);
         }
     }
 
-    removeAction (index)
+    removeActionAtIndex (index)
     {
         if (this.actions.length > 0 && this.actions.length >= index)
         {
             let actionToRemove = this.actions[index];
-            if (actionToRemove.action.type === "path")
-            {
-                actionToRemove.layer.removePathFromLayer(actionToRemove.action);
-                this.actions.splice(index, 1);
-            }
-            else if (actionToRemove.action.type === "shape")
-            {
-                actionToRemove.layer.removeShapeFromLayer(actionToRemove.action);
-                this.actions.splice(index, 1);
-            }
-            this.redrawLayer(actionToRemove.layer);
+            this.removeAction(actionToRemove);
         }
+    }
+
+    removeAction (action)
+    {
+        if (action === null)
+            return;
+
+        switch (action.object.type)
+        {
+            case "path":
+                action.layer.removePathFromLayer(action.object);
+                break;
+            case "shape":
+                action.layer.removeShapeFromLayer(action.object);
+                break;
+            case "selection":
+                action.layer.removeSelectionFromLayer(action.object);
+                break;
+            default:
+        }
+
+        // Get index of the action and remove it from the array
+        this.redrawLayer(action.layer);
     }
 
     /**
@@ -603,42 +736,30 @@ export default class PixelPlugin
      * ===============================================
      **/
 
-    // Specify the class of the selected div. CSS takes care of the rest
-    highlightLayerSelector (layerType)
-    {
-        layerType = parseInt(layerType);
-
-        this.layers.forEach ((layer) =>
-        {
-            // layerType is a string i
-            if (layer.layerId === layerType)
-            {
-                let div = document.getElementById("layer-" + layer.layerId + "-selector");
-
-                if (!div.hasAttribute("selected-layer"))
-                    div.classList.add("selected-layer");
-                this.selectedLayerIndex = this.layers.indexOf(layer);
-            }
-            else
-            {
-                let div = document.getElementById("layer-" + layer.layerId + "-selector");
-                if (div.classList.contains("selected-layer"))
-                    div.classList.remove("selected-layer");
-            }
-        });
-    }
-
+    /*
+        1. Checks if drawing is valid
+        2. Initializes a Path object in the selected layer and chooses its blend mode depending on the current tool
+        3. Adds a point to the newly initialized path
+        4. Specifies the zoomLevel at which the point will be drawn
+     */
     initializeNewPathInCurrentLayer (mousePos)
     {
+        // Layer is inactive
         if (!this.layers[this.selectedLayerIndex].isActivated())
             return;
 
+        // Drawing on another page
+        if (this.core.getSettings().currentPageIndex !== this.layers[0].pageIndex)
+            return;
+
+        // Get settings under the current zoomLevel
         let pageIndex = this.core.getSettings().currentPageIndex,
-            zoomLevel = this.core.getSettings().maxZoomLevel,
-            relativeCoords = this.getRelativeCoordinatesFromPadded(mousePos.x, mousePos.y);
+            zoomLevel = this.core.getSettings().zoomLevel,
+            renderer = this.core.getSettings().renderer,
+            relativeCoords = new Point().getRelativeCoordinatesFromPadded(pageIndex, renderer, mousePos.x, mousePos.y, zoomLevel);
 
         // Make sure user is not drawing outside of a diva page
-        if (this.isInPageBounds(relativeCoords.x, relativeCoords.y))
+        if (this.uiManager.isInPageBounds(relativeCoords.x, relativeCoords.y))
         {
             let selectedLayer = this.layers[this.selectedLayerIndex],
                 point = new Point(relativeCoords.x, relativeCoords.y, pageIndex),
@@ -653,14 +774,14 @@ export default class PixelPlugin
                 selectedLayer.createNewPath(brushSize, "add");
                 selectedLayer.addToCurrentPath(point, "add");
             }
-            else if (this.tools.getCurrentTool() === this.tools.type.eraser)
+            else if (this.tools.getCurrentTool() === this.tools.type.erase)
             {
                 selectedLayer.createNewPath(brushSize, "subtract");
                 selectedLayer.addToCurrentPath(point, "subtract");
             }
 
-            // Add path to list of actions (used for undo/redo)
-            this.actions.push(new Action(selectedLayer.getCurrentPath(), selectedLayer));
+            // Draw in max zoom level
+            zoomLevel = this.core.getSettings().maxZoomLevel;
             selectedLayer.getCurrentPath().connectPoint(selectedLayer, point, pageIndex, zoomLevel, false, this.core.getSettings().renderer, selectedLayer.getCanvas(), "page");
         }
         else
@@ -669,24 +790,31 @@ export default class PixelPlugin
         }
     }
 
+    /*
+         1. Checks if drawing is valid
+         2. Specifies the coordinates of the point to be drawn depending on shift press
+         3. Adds a point to the current path being edited in the current layer
+         4. Connects the new point to the previous point in the current path and draws it
+     */
     addPointToCurrentPath (mousePos)
     {
         if (!this.layers[this.selectedLayerIndex].isActivated())
             return;
 
-        let point,
-            horizontalMove = false,
-            relativeCoords = this.getRelativeCoordinatesFromPadded(mousePos.x, mousePos.y);
-
-        // FIXME: direction of line drawing should be calculated only after the first shift button press
-        // Right now it is being calculated at every point
-        if (Math.abs(relativeCoords.x - this.lastRelCoordX) >= Math.abs(relativeCoords.y - this.lastRelCoordY))
-            horizontalMove = true;
+        // Drawing on another page
+        if (this.core.getSettings().currentPageIndex !== this.layers[0].pageIndex)
+            return;
 
         if (!this.mousePressed)
             return;
 
-        if (!this.isInPageBounds(relativeCoords.x, relativeCoords.y))
+        let point,
+            pageIndex = this.core.getSettings().currentPageIndex,
+            zoomLevel = this.core.getSettings().zoomLevel,
+            renderer = this.core.getSettings().renderer,
+            relativeCoords = new Point().getRelativeCoordinatesFromPadded(pageIndex, renderer, mousePos.x, mousePos.y, zoomLevel);
+
+        if (!this.uiManager.isInPageBounds(relativeCoords.x, relativeCoords.y))
             return;
 
         if (!this.layerChangedMidDraw)
@@ -694,25 +822,41 @@ export default class PixelPlugin
             let pageIndex = this.core.getSettings().currentPageIndex,
                 zoomLevel = this.core.getSettings().maxZoomLevel;
 
+            // Draw straight lines
             if (this.mousePressed && this.shiftDown)
             {
-                if (!horizontalMove)
+                // If this is the first time shift is pressed, calculate the direction of the line
+                if (this.initialShiftPress)
+                {
+                    // this.lastRelCoordX/Y hold saved path coordinates that help drawing a straight line
+                    // They are not updated when the straight line is being drawn
+                    if (Math.abs(relativeCoords.x - this.lastRelCoordX) >= Math.abs(relativeCoords.y - this.lastRelCoordY))
+                        this.horizontalMove = true;
+
+                    this.initialShiftPress = false;
+                }
+
+                if (!this.horizontalMove)
                     point = new Point(this.lastRelCoordX, relativeCoords.y, pageIndex);
                 else
                     point = new Point(relativeCoords.x, this.lastRelCoordY, pageIndex);
             }
             else
             {
+                this.horizontalMove = false;
+                this.initialShiftPress = true;
+                this.lastRelCoordX = relativeCoords.x;
+                this.lastRelCoordY = relativeCoords.y;
                 point = new Point(relativeCoords.x, relativeCoords.y, pageIndex);
             }
 
-            // Draw path with new point
+            // Add new point to the current path
             switch (this.tools.getCurrentTool())
             {
                 case this.tools.type.brush:
                     this.layers[this.selectedLayerIndex].addToCurrentPath(point, "add");
                     break;
-                case this.tools.type.eraser:
+                case this.tools.type.erase:
                     this.layers[this.selectedLayerIndex].addToCurrentPath(point, "subtract");
                     break;
                 default:
@@ -730,83 +874,103 @@ export default class PixelPlugin
         this.layerChangedMidDraw = false;
     }
 
+    /*
+        1. Checks if drawing is valid
+        2. Creates a Rectangle object in the selected layer and chooses its mode depending on the current tool
+     */
     initializeRectanglePreview (mousePos)
     {
         if (!this.layers[this.selectedLayerIndex].isActivated())
             return;
 
-        let pageIndex = this.core.getSettings().currentPageIndex,
-            relativeCoords = this.getRelativeCoordinatesFromPadded(mousePos.x, mousePos.y);
+        // Drawing on another page
+        if (this.core.getSettings().currentPageIndex !== this.layers[0].pageIndex)
+            return;
 
-        if (this.isInPageBounds(relativeCoords.x, relativeCoords.y))
+        let pageIndex = this.core.getSettings().currentPageIndex,
+            zoomLevel = this.core.getSettings().zoomLevel,
+            renderer = this.core.getSettings().renderer,
+            relativeCoords = new Point().getRelativeCoordinatesFromPadded(pageIndex, renderer, mousePos.x, mousePos.y, zoomLevel);
+
+        if (this.uiManager.isInPageBounds(relativeCoords.x, relativeCoords.y))
         {
             let selectedLayer = this.layers[this.selectedLayerIndex];
-            if (this.tools.getCurrentTool() === this.tools.type.select)
-                selectedLayer.addShapeToLayer(new Rectangle(new Point(relativeCoords.x,relativeCoords.y,pageIndex), 0, 0, "select", this.tools.getCurrentTool()));
-            else
-                selectedLayer.addShapeToLayer(new Rectangle(new Point(relativeCoords.x,relativeCoords.y,pageIndex), 0, 0, "add", this.tools.getCurrentTool()));
 
+            switch (this.tools.getCurrentTool())
+            {
+                case this.tools.type.select:
+                    selectedLayer.addShapeToLayer(new Rectangle(new Point(relativeCoords.x,relativeCoords.y,pageIndex), 0, 0, "select", this.tools.getCurrentTool()));
+                    this.selection.setSelectedShape(selectedLayer.getCurrentShape(), this.layers[this.selectedLayerIndex]);
+                    break;
+                case this.tools.type.rectangle:
+                    if (this.rightMousePressed)
+                        selectedLayer.addShapeToLayer(new Rectangle(new Point(relativeCoords.x,relativeCoords.y,pageIndex), 0, 0, "subtract", this.tools.getCurrentTool()));
+                    else
+                        selectedLayer.addShapeToLayer(new Rectangle(new Point(relativeCoords.x,relativeCoords.y,pageIndex), 0, 0, "add", this.tools.getCurrentTool()));
+                    break;
+                default:
+            }
 
-            this.actions.push(new Action(selectedLayer.getCurrentShape(), selectedLayer));
             this.redrawLayer(selectedLayer);
         }
     }
 
+    /*
+        1. Checks if drawing is valid
+        2. Updates the height and width of the current rectangle in the selected layer depending on mouse position
+           or shift press (square)
+        3. Creates a new Rectangle if the layer was changed mid draw
+     */
     rectanglePreview (mousePos)
     {
         if (!this.layers[this.selectedLayerIndex].isActivated())
             return;
 
+        // Drawing on another page
+        if (this.core.getSettings().currentPageIndex !== this.layers[0].pageIndex)
+            return;
+
         if (!this.layerChangedMidDraw)
         {
-            if (this.mousePressed)
+            if (!this.mousePressed)
+                return;
+
+            let pageIndex = this.core.getSettings().currentPageIndex,
+                zoomLevel = this.core.getSettings().zoomLevel,
+                renderer = this.core.getSettings().renderer,
+                relativeCoords = new Point().getRelativeCoordinatesFromPadded(pageIndex, renderer, mousePos.x, mousePos.y, zoomLevel),
+                rectangle = this.layers[this.selectedLayerIndex].getCurrentShape();
+
+            if (!this.uiManager.isInPageBounds(relativeCoords.x, relativeCoords.y))
+                return;
+
+            let lastWidth = rectangle.relativeRectWidth;
+            rectangle.relativeRectWidth = relativeCoords.x - rectangle.origin.relativeOriginX;
+
+            // Draw square
+            if (this.shiftDown)
             {
-                let relativeCoords = this.getRelativeCoordinatesFromPadded(mousePos.x, mousePos.y),
-                    lastShape = this.layers[this.selectedLayerIndex].getCurrentShape();
+                let mainDiagonal;
 
-                if (!this.isInPageBounds(relativeCoords.x, relativeCoords.y))
-                    return;
+                if (this.isInMainDiagonal(relativeCoords, rectangle))
+                    mainDiagonal = 1;
+                else
+                    mainDiagonal = -1;
 
-                // If cursor is to the main diagonal (south east or north west of the point of origin)
-                if (this.isInMainDiagonal(relativeCoords, lastShape))
-                {
-                    let lastWidth = lastShape.relativeRectWidth;
-                    lastShape.relativeRectWidth = relativeCoords.x - lastShape.origin.relativeOriginX;
+                let squareInBounds = this.uiManager.isInPageBounds(rectangle.origin.relativeOriginX + rectangle.relativeRectWidth,
+                    rectangle.origin.relativeOriginY + (mainDiagonal * rectangle.relativeRectWidth));
 
-                    // Draw a square on shift down
-                    if (this.shiftDown)
-                    {
-                        let squareInBounds = this.isInPageBounds(lastShape.origin.relativeOriginX + lastShape.relativeRectWidth,
-                            lastShape.origin.relativeOriginY + lastShape.relativeRectWidth);
-
-                        if (squareInBounds)
-                            lastShape.relativeRectHeight = lastShape.relativeRectWidth;
-                        else
-                            lastShape.relativeRectWidth = lastWidth;
-                    }
-                    else
-                        lastShape.relativeRectHeight = relativeCoords.y - lastShape.origin.relativeOriginY;
-                }
-                else        // If cursor is to the antidiagonal (north east or south west of the point of origin)
-                {
-                    let lastWidth = lastShape.relativeRectWidth;
-                    lastShape.relativeRectWidth = relativeCoords.x - lastShape.origin.relativeOriginX;
-
-                    if (this.shiftDown)
-                    {
-                        let squareInBounds = this.isInPageBounds(lastShape.origin.relativeOriginX + lastShape.relativeRectWidth,
-                            lastShape.origin.relativeOriginY - lastShape.relativeRectWidth);
-
-                        if (squareInBounds)
-                            lastShape.relativeRectHeight = - lastShape.relativeRectWidth;
-                        else
-                            lastShape.relativeRectWidth = lastWidth;
-                    }
-                    else
-                        lastShape.relativeRectHeight = relativeCoords.y - lastShape.origin.relativeOriginY;
-                }
-                this.redrawLayer(this.layers[this.selectedLayerIndex]);
+                if (squareInBounds)
+                    rectangle.relativeRectHeight = mainDiagonal * rectangle.relativeRectWidth;
+                else
+                    rectangle.relativeRectWidth = lastWidth;
             }
+            else
+            {
+                rectangle.relativeRectHeight = relativeCoords.y - rectangle.origin.relativeOriginY;
+            }
+
+            this.redrawLayer(this.layers[this.selectedLayerIndex]);
         }
         else
         {
@@ -816,12 +980,36 @@ export default class PixelPlugin
         }
     }
 
-    // TODO: Generalize so that function returns any general relative position using enums
-    isInMainDiagonal (relativeCoords, lastShape)
+    initializeBrushSizeChange (mousePos)
     {
-        if (relativeCoords.x < lastShape.origin.relativeOriginX && relativeCoords.y < lastShape.origin.relativeOriginY)
+        let brushSizeSlider = document.getElementById("brush-size-selector");
+        this.prevMouseX = mousePos.x;
+        this.prevSize = brushSizeSlider.value;
+    }
+
+    changeBrushSize (mousePos)
+    {
+        let brushSizeSlider = document.getElementById("brush-size-selector"),
+            mouseXVariation = 0.1 * (parseFloat(mousePos.x) - parseFloat(this.prevMouseX));
+        //Start at the current brush size when varying
+        brushSizeSlider.value = parseFloat(this.prevSize) + mouseXVariation;
+
+        this.uiManager.resizeBrushCursor();
+    }
+
+    // TODO: Generalize so that function returns any general relative position using enums
+    /**
+     * Returns true if the relative coordinates provided are on the main diagonal of the origin of the shape (south east or
+     * north west of the origin) otherwise returns false
+     * @param relativeCoords
+     * @param shape
+     * @returns {boolean}
+     */
+    isInMainDiagonal (relativeCoords, shape)
+    {
+        if (relativeCoords.x < shape.origin.relativeOriginX && relativeCoords.y < shape.origin.relativeOriginY)
             return true;
-        else if (relativeCoords.x > lastShape.origin.relativeOriginX && relativeCoords.y > lastShape.origin.relativeOriginY)
+        else if (relativeCoords.x > shape.origin.relativeOriginX && relativeCoords.y > shape.origin.relativeOriginY)
             return true;
 
         return false;
@@ -834,49 +1022,10 @@ export default class PixelPlugin
 
     redrawAllLayers ()
     {
-        this.layers.forEach((layer) =>
+        this.layers.forEach ((layer) =>
         {
             this.redrawLayer(layer);
         });
-    }
-
-    isInPageBounds (relativeX, relativeY)
-    {
-        let pageIndex = this.core.getSettings().currentPageIndex,
-            zoomLevel = this.core.getSettings().zoomLevel,
-            renderer  = this.core.getSettings().renderer;
-
-        let pageDimensions = this.core.publicInstance.getCurrentPageDimensionsAtCurrentZoomLevel(),
-            absolutePageOrigin = new Point(0,0).getCoordsInViewport(zoomLevel,pageIndex,renderer),
-            absolutePageWidthOffset = pageDimensions.width + absolutePageOrigin.x,  //Taking into account the padding, etc...
-            absolutePageHeightOffset = pageDimensions.height + absolutePageOrigin.y,
-            relativeBounds = this.getRelativeCoordinatesFromPadded(absolutePageWidthOffset, absolutePageHeightOffset);
-
-        if (relativeX < 0 || relativeY < 0 || relativeX > relativeBounds.x || relativeY > relativeBounds.y)
-            return false;
-
-        return true;
-    }
-
-    getRelativeCoordinatesFromPadded (paddedX, paddedY)
-    {
-        let pageIndex = this.core.getSettings().currentPageIndex,
-            zoomLevel = this.core.getSettings().zoomLevel,
-            renderer = this.core.getSettings().renderer,
-            scaleRatio = Math.pow(2, zoomLevel);
-
-        const viewportPaddingX = Math.max(0, (renderer._viewport.width - renderer.layout.dimensions.width) / 2);
-        const viewportPaddingY = Math.max(0, (renderer._viewport.height - renderer.layout.dimensions.height) / 2);
-
-        // Calculates where the highlights should be drawn as a function of the whole webpage coordinates
-        // (to make it look like it is on top of a page in Diva)
-        let absoluteRectOriginX = paddedX - renderer._getImageOffset(pageIndex).left + renderer._viewport.left -  viewportPaddingX,
-            absoluteRectOriginY = paddedY - renderer._getImageOffset(pageIndex).top + renderer._viewport.top - viewportPaddingY;
-
-        return{
-            x: absoluteRectOriginX/scaleRatio,
-            y: absoluteRectOriginY/scaleRatio
-        };
     }
 
     /**
@@ -889,6 +1038,7 @@ export default class PixelPlugin
     // on the highlighted regions
     exportAsImageData ()
     {
+        //FIXME: Force Diva to highest zoom level to be able to get the pixel data
         let pageIndex = this.core.getSettings().currentPageIndex,
             zoomLevel = this.core.getSettings().zoomLevel;
 
@@ -906,111 +1056,19 @@ export default class PixelPlugin
     exportAsCSV ()
     {
         let pageIndex = this.core.getSettings().currentPageIndex,
-            zoomLevel = this.core.getSettings().zoomLevel;
+            zoomLevel = this.core.getSettings().maxZoomLevel;
 
         new Export(this, this.layers, pageIndex, zoomLevel, this.uiManager).exportLayersAsCSV();
     }
 
     /**
      * ===============================================
-     *                     Tutorial
+     *                    Import
      * ===============================================
      **/
-
-    tutorial ()
+    importPNGToLayer (e)
     {
-        let overlay = document.createElement('div');
-        overlay.setAttribute("id", "tutorial-div");
-
-        let background = document.createElement('div');
-        background.setAttribute("id", "tutorial-overlay");
-
-        let modal = document.createElement('div');
-        modal.setAttribute("id", "myModal");
-        modal.setAttribute("class", "modal");
-
-        let modalContent = document.createElement('div');
-        modalContent.setAttribute("class", "modal-content");
-
-        let modalHeader = document.createElement('div');
-        modalHeader.setAttribute("class", "modal-header");
-
-        let text = document.createTextNode("Hello, World");
-        let h2 = document.createElement('h2');
-        h2.appendChild(text);
-
-        let closeModal = document.createElement('span');
-        closeModal.setAttribute("class", "close");
-        closeModal.innerHTML = "&times;";
-
-        let modalBody = document.createElement('div');
-        modalBody.setAttribute("class", "modal-body");
-
-        let tutorialP = document.createElement('p');
-        tutorialP.innerHTML = "The following is a glossary of the hotkeys you will find useful when using Pixel.js";
-
-        let hotkeyGlossary = document.createElement('ul');
-        hotkeyGlossary.setAttribute("style", "list-style-type:none;");
-
-        let LayerSelect = document.createElement('li');
-        LayerSelect.innerHTML = "<kbd>1</kbd> ... <kbd>9</kbd> layer select";
-
-        let brushTool = document.createElement('li');
-        brushTool.innerHTML = "<kbd>b</kbd> brush tool";
-
-        let rectangleTool = document.createElement('li');
-        rectangleTool.innerHTML = "<kbd>r</kbd> rectangle tool";
-
-        let grabTool = document.createElement('li');
-        grabTool.innerHTML = "<kbd>g</kbd> grab tool";
-
-        let eraserTool = document.createElement('li');
-        eraserTool.innerHTML = "<kbd>e</kbd> eraser tool";
-
-        let shift = document.createElement('li');
-        shift.innerHTML = "<kbd>Shift</kbd>  force tools to paint in an exact way.";
-
-        let undo = document.createElement('li');
-        undo.innerHTML = "<kbd>cmd</kbd> + <kbd>z</kbd> undo";
-
-        let redo = document.createElement('li');
-        redo.innerHTML = "<kbd>cmd</kbd> + <kbd>Shift</kbd> + <kbd>z</kbd> redo";
-
-        let modalFooter = document.createElement('div');
-        modalFooter.setAttribute("class", "modal-footer");
-
-        let close = document.createElement('h2');
-        close.innerHTML = "Got It!";
-
-        hotkeyGlossary.appendChild(LayerSelect);
-        hotkeyGlossary.appendChild(brushTool);
-        hotkeyGlossary.appendChild(rectangleTool);
-        hotkeyGlossary.appendChild(grabTool);
-        hotkeyGlossary.appendChild(eraserTool);
-        hotkeyGlossary.appendChild(shift);
-        hotkeyGlossary.appendChild(undo);
-        hotkeyGlossary.appendChild(redo);
-
-        modal.appendChild(modalContent);
-        modalContent.appendChild(modalHeader);
-        modalContent.appendChild(modalBody);
-        modalContent.appendChild(modalFooter);
-        modalHeader.appendChild(h2);
-        modalHeader.appendChild(closeModal);
-        modalBody.appendChild(tutorialP);
-        modalBody.appendChild(hotkeyGlossary);
-        modalFooter.appendChild(close);
-
-        overlay.appendChild(background);
-        overlay.appendChild(modal);
-        document.body.appendChild(overlay);
-
-        modal.style.display = "block";
-
-        modalFooter.addEventListener("click", () =>
-        {
-            overlay.parentNode.removeChild(overlay);
-        });
+        new Import(this, this.layers, this.core.getSettings().currentPageIndex, this.core.getSettings().zoomLevel, this.uiManager).uploadLocalImageToLayer(this.layers[this.selectedLayerIndex], e);
     }
 }
 

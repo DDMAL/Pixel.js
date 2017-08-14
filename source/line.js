@@ -1,3 +1,4 @@
+/*jshint esversion: 6 */
 import {Shape} from './shape';
 import {Circle} from './circle';
 import {Point} from './point';
@@ -27,8 +28,8 @@ export class Line extends Shape
      */
     getAngleRad (zoomLevel, pageIndex, renderer)
     {
-        let startPointAbsolutePaddedCoords = this.origin.getCoordsInViewport(zoomLevel, pageIndex, renderer);
-        let endPointAbsolutePaddedCoords = this.endPoint.getCoordsInViewport(zoomLevel, pageIndex, renderer);
+        let startPointAbsolutePaddedCoords = this.origin.getCoordsInViewport(zoomLevel, pageIndex, renderer),
+            endPointAbsolutePaddedCoords = this.endPoint.getCoordsInViewport(zoomLevel, pageIndex, renderer);
 
         return Math.atan2(endPointAbsolutePaddedCoords.y - startPointAbsolutePaddedCoords.y,
             endPointAbsolutePaddedCoords.x - startPointAbsolutePaddedCoords.x);
@@ -44,11 +45,11 @@ export class Line extends Shape
      */
     drawInViewport (layer, pageIndex, zoomLevel, renderer, canvas)
     {
-        let scaleRatio = Math.pow(2,zoomLevel);
-        let ctx = canvas.getContext('2d');
+        let scaleRatio = Math.pow(2,zoomLevel),
+            ctx = canvas.getContext('2d');
 
-        let startPointAbsoluteCoordsWithPadding = this.origin.getCoordsInViewport(zoomLevel, pageIndex, renderer);
-        let endPointAbsoluteCoordsWithPadding = this.endPoint.getCoordsInViewport(zoomLevel, pageIndex, renderer);
+        let startPointAbsoluteCoordsWithPadding = this.origin.getCoordsInViewport(zoomLevel, pageIndex, renderer),
+            endPointAbsoluteCoordsWithPadding = this.endPoint.getCoordsInViewport(zoomLevel, pageIndex, renderer);
 
         ctx.beginPath();
         ctx.strokeStyle = layer.colour.toHTMLColour();
@@ -70,11 +71,11 @@ export class Line extends Shape
      */
     drawOnPage (layer, pageIndex, zoomLevel, renderer, canvas)
     {
-        let scaleRatio = Math.pow(2,zoomLevel);
-        let ctx = canvas.getContext('2d');
+        let scaleRatio = Math.pow(2,zoomLevel),
+            ctx = canvas.getContext('2d');
 
-        let startPointAbsoluteCoords = this.origin.getCoordsInPage(zoomLevel);
-        let endPointAbsoluteCoords = this.endPoint.getCoordsInPage(zoomLevel);
+        let startPointAbsoluteCoords = this.origin.getCoordsInPage(zoomLevel),
+            endPointAbsoluteCoords = this.endPoint.getCoordsInPage(zoomLevel);
 
         ctx.beginPath();
         ctx.strokeStyle = layer.colour.toHTMLColour();
@@ -114,7 +115,8 @@ export class Line extends Shape
         let ang = this.getAngleRad(zoomLevel,pageIndex,renderer);
 
         // find the first point on the circumference that is orthogonal
-        // to the line intersecting the two circle origos
+        // to the line intersecting the two circle origins
+        // ie tangent 1
         // These are values with padding
         var start1 = {
             absolutePaddedX: point1.x + Math.cos(ang + Math.PI / 2) * absoluteLineWidth / 2,
@@ -126,7 +128,8 @@ export class Line extends Shape
         };
 
         // find the second point on the circumference that is orthogonal
-        // to the line intersecting the two circle origos
+        // to the line intersecting the two circle origins
+        // ie tangent 2
         var start2 = {
             absolutePaddedX: point1.x + Math.cos(ang - Math.PI / 2) * absoluteLineWidth / 2,
             absolutePaddedY: point1.y + Math.sin(ang - Math.PI / 2) * absoluteLineWidth / 2
@@ -136,10 +139,10 @@ export class Line extends Shape
             absolutePaddedY: point2.y + Math.sin(ang - Math.PI / 2) * absoluteLineWidth / 2
         };
 
-        // 1. get ymax and ymin
-        let ymax = Math.round(Math.max(start1.absolutePaddedY, start2.absolutePaddedY, end1.absolutePaddedY, end2.absolutePaddedY));
-        let ymin = Math.round(Math.min(start1.absolutePaddedY, start2.absolutePaddedY, end1.absolutePaddedY, end2.absolutePaddedY));
-        let pairOfEdges = [[start1, end1], [start2, end2], [start1, start2], [end1, end2]];
+        // get ymax and ymin
+        let ymax = Math.round(Math.max(start1.absolutePaddedY, start2.absolutePaddedY, end1.absolutePaddedY, end2.absolutePaddedY)),
+            ymin = Math.round(Math.min(start1.absolutePaddedY, start2.absolutePaddedY, end1.absolutePaddedY, end2.absolutePaddedY)),
+            pairOfEdges = [[start1, end1], [start2, end2], [start1, start2], [end1, end2]];
 
         // Logic for polygon fill using scan lines
         new Shape(new Point(0,0,0), this.blendMode).getPixels(layer, pageIndex, zoomLevel, renderer, drawingCanvas, imageCanvas, ymax, ymin, pairOfEdges);

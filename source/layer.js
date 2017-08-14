@@ -1,5 +1,7 @@
+/*jshint esversion: 6 */
 import {Path} from './path';
 import {Point} from './point';
+import {Action} from './action';
 
 export class Layer
 {
@@ -17,9 +19,14 @@ export class Layer
         this.layerOpacity = layerOpacity;
         this.pixelInstance = pixelInstance;
         this.pageIndex = this.pixelInstance.core.getSettings().currentPageIndex;
+        this.backgroundImageCanvas = null;
+        this.pastedRegions = [];
         this.cloneCanvas();
     }
 
+    /**
+     * Creates a layer canvas that is the same size as a page in diva
+     */
     cloneCanvas ()
     {
         let maxZoomLevel = this.pixelInstance.core.getSettings().maxZoomLevel;
@@ -37,6 +44,10 @@ export class Layer
 
         this.resizeLayerCanvasToZoomLevel(this.pixelInstance.core.getSettings().zoomLevel);
         this.placeLayerCanvasOnTopOfEditingPage();
+
+        this.backgroundImageCanvas = document.createElement("canvas");
+        this.backgroundImageCanvas.width = this.canvas.width;
+        this.backgroundImageCanvas.height = this.canvas.height;
     }
 
     resizeLayerCanvasToZoomLevel (zoomLevel)
@@ -55,6 +66,9 @@ export class Layer
         this.canvas.style.height = height + "px";
 
         this.placeLayerCanvasOnTopOfEditingPage();
+
+        if (this.pixelInstance.uiManager !== null)
+            this.pixelInstance.uiManager.resizeBrushCursor();
     }
 
     placeLayerCanvasOnTopOfEditingPage ()
@@ -95,13 +109,13 @@ export class Layer
     addShapeToLayer (shape)
     {
         this.shapes.push(shape);
-        this.actions.push(shape);
+        this.addAction(new Action (shape, this));
     }
 
     addPathToLayer (path)
     {
         this.paths.push(path);
-        this.actions.push(path);
+        this.addAction(new Action (path, this));
     }
 
     /**
@@ -129,7 +143,7 @@ export class Layer
     {
         let path = new Path(brushSize, blendMode);
         this.paths.push(path);
-        this.actions.push(path);
+        this.addAction(new Action (path, this));
     }
 
     removePathFromLayer (path)
@@ -137,8 +151,13 @@ export class Layer
         let index = this.paths.indexOf(path);
         this.paths.splice(index, 1);
 
-        let actionIndex = this.actions.indexOf(path);
-        this.actions.splice(actionIndex, 1);
+        this.actions.forEach((action) =>
+        {
+            if (action.object === path)
+            {
+                this.removeAction(action);
+            }
+        });
     }
 
     removeShapeFromLayer (shape)
@@ -146,8 +165,23 @@ export class Layer
         let index = this.shapes.indexOf(shape);
         this.shapes.splice(index, 1);
 
-        let actionIndex = this.actions.indexOf(shape);
-        this.actions.splice(actionIndex, 1);
+        this.actions.forEach((action) =>
+        {
+            if (action.object === shape)
+                this.removeAction(action);
+        });
+    }
+
+    removeSelectionFromLayer (selection)
+    {
+        let index = this.pastedRegions.indexOf(selection);
+        this.pastedRegions.splice(index, 1);
+
+        this.actions.forEach((action) =>
+        {
+            if (action.object === selection)
+                this.removeAction(action);
+        });
     }
 
     setOpacity (opacity)
@@ -170,22 +204,6 @@ export class Layer
         {
             return null;
         }
-    }
-
-    deactivateLayer ()
-    {
-        this.activated = false;
-        this.clearCtx();
-    }
-
-    activateLayer ()
-    {
-        this.activated = true;
-    }
-
-    toggleLayerActivation ()
-    {
-        this.activated = !this.activated;
     }
 
     isActivated ()
@@ -213,26 +231,130 @@ export class Layer
         if (!this.isActivated())
             return;
 
+        this.drawLayerInPageCoords(zoomLevel, canvas, this.pageIndex);
+    }
+
+    drawLayerInPageCoords (zoomLevel, canvas, pageIndex)
+    {
         let ctx = canvas.getContext('2d');
+        // Clear canvas
         ctx.clearRect(0, 0, canvas.width, canvas.height);
 
-        let renderer = this.pixelInstance.core.getSettings().renderer;
+        // Redraw PreBinarized Image on layer canvas
+        if (this.backgroundImageCanvas !== null)
+            ctx.drawImage(this.backgroundImageCanvas, 0, 0);
 
-        renderer._renderedPages.forEach((pageIndex) =>
+        // Redraw all actions
+        this.actions.forEach ((action) =>
         {
-            this.actions.forEach((action) =>
-            {
-                action.drawOnPage(this, pageIndex, zoomLevel, renderer, canvas);
-            });
+            action.object.drawOnPage(this, pageIndex, zoomLevel, this.pixelInstance.core.getSettings().renderer, canvas);
         });
     }
 
-    // Called on export
-    drawLayerInPageCoords (zoomLevel, canvas, pageIndex)
+    setBackgroundImageCanvas (canvas)
     {
-        this.actions.forEach((action) =>
+        this.backgroundImageCanvas = canvas;
+    }
+
+    addToPastedRegions (selection)
+    {
+        this.pastedRegions.push(selection);
+        this.addAction(new Action (selection, this));
+    }
+
+    addAction (action)
+    {
+        this.actions.push(action);
+
+        // Selection is temporary and only concerns this layer thus no need to add to global actions
+        if (!(action.object.type === "selection" && action.object.selectedShape.blendMode === "select"))
+            this.pixelInstance.actions.push(action);
+    }
+
+    removeAction (action)
+    {
+        let actionIndex = this.actions.indexOf(action);
+        this.actions.splice(actionIndex, 1);
+
+        let globalActionIndex = this.pixelInstance.actions.indexOf(action);
+        this.pixelInstance.actions.splice(globalActionIndex, 1);
+    }
+
+    displayColourOptions ()
+    {
+        // TODO: Implement function
+        console.log("colour clicked here");
+    }
+
+    /**
+     * Displays the layer options (such as opacity) as a drop down from the layer selectors
+     */
+    displayLayerOptions ()
+    {
+        let layerOptionsDiv = document.getElementById("layer-" + this.layerId + "-options");
+
+        if (layerOptionsDiv.classList.contains("unchecked-layer-settings")) //It is unchecked, check it
         {
-            action.drawOnPage(this, pageIndex, zoomLevel, this.pixelInstance.core.getSettings().renderer, canvas);
-        });
+            layerOptionsDiv.classList.remove("unchecked-layer-settings");
+            layerOptionsDiv.classList.add("checked-layer-settings");
+            this.pixelInstance.uiManager.createOpacitySlider(this, layerOptionsDiv.parentElement.parentElement, layerOptionsDiv.parentElement);
+        }
+        else
+        {
+            layerOptionsDiv.classList.remove("checked-layer-settings");
+            layerOptionsDiv.classList.add("unchecked-layer-settings");
+            this.pixelInstance.uiManager.destroyOpacitySlider(this);
+        }
+    }
+
+    /**
+     * Visually displays a layer
+     */
+    activateLayer ()
+    {
+        let layerActivationDiv = document.getElementById("layer-" + this.layerId + "-activation");
+        layerActivationDiv.classList.remove("layer-deactivated");
+        layerActivationDiv.classList.add("layer-activated");
+        this.getCanvas().style.opacity = this.getLayerOpacity();
+
+        if (this.layerId === this.pixelInstance.background.layerId)      // Background
+        {
+            this.activated = true;
+        }
+        else
+        {
+            this.activated = true;
+            this.pixelInstance.redrawLayer(this);
+        }
+    }
+
+    deactivateLayer ()
+    {
+        let layerActivationDiv = document.getElementById("layer-" + this.layerId + "-activation");
+        layerActivationDiv.classList.remove("layer-activated");
+        layerActivationDiv.classList.add("layer-deactivated");
+        this.activated = false;
+
+        if (this.layerId === this.pixelInstance.background.layerId)      // Background
+        {
+            this.getCanvas().style.opacity = 0;
+        }
+        else
+        {
+            this.clearCtx();
+        }
+    }
+
+    toggleLayerActivation ()
+    {
+        let layerActivationDiv = document.getElementById("layer-" + this.layerId + "-activation");
+        if (layerActivationDiv.classList.contains("layer-deactivated"))
+        {
+            this.activateLayer();
+        }
+        else
+        {
+            this.deactivateLayer();
+        }
     }
 }
