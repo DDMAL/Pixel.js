@@ -382,6 +382,12 @@ export default class PixelPlugin
                     }
                 }
                 break;
+            case "n":
+                if (e.ctrlKey || e.metaKey)
+                {
+                    this.createLayer();                         // Cmd + N
+                }
+                break;
             case "z":
                 if ((e.ctrlKey || e.metaKey) && e.shiftKey)     // Cmd + Shift + Z
                     this.redoAction();
