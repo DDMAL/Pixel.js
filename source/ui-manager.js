@@ -196,7 +196,6 @@ export class UIManager
         layerName.setAttribute("type", "text");
         layerName.setAttribute("readonly", "true");
         layerName.setAttribute("value", layer.layerName);
-        //layerName.setAttribute("ondblclick", "this.readOnly='';");
 
         colourDiv.setAttribute("class", "color-box");
         colourDiv.setAttribute("style", "background-color: " + layer.colour.toHexString() + ";");
@@ -205,9 +204,15 @@ export class UIManager
         layerOptionsDiv.setAttribute("id", "layer-" + layer.layerId + "-options");
 
         if (this.pixelInstance.background.isActivated())
+        {
             layerActivationDiv.setAttribute("class", "layer-activated");
+            this.pixelInstance.background.getCanvas().style.opacity = 1;
+        }
         else
+        {
             layerActivationDiv.setAttribute("class", "layer-deactivated");
+            this.pixelInstance.background.getCanvas().style.opacity = 0;
+        }
 
         layerActivationDiv.setAttribute("id", "layer-" + layer.layerId + "-activation");
 
@@ -220,8 +225,6 @@ export class UIManager
         layerDiv.appendChild(colourDiv);
         layerDiv.appendChild(layerActivationDiv);
         backgroundViewDiv.appendChild(layerDiv);
-
-        this.pixelInstance.background.getCanvas().style.opacity = 1;
 
         document.body.appendChild(backgroundViewDiv);
     }
