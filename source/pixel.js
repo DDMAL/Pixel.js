@@ -1039,9 +1039,12 @@ export default class PixelPlugin
     changeCurrentlySelectedLayerIndex (newIndex)
     {
         this.selectedLayerIndex = newIndex;
-        if (this.selection.imageData === null)
+        if (this.selection !== null)
         {
-            this.selection.clearSelection(this.core.getSettings().maxZoomLevel);
+            if (this.selection.imageData === null)
+            {
+                this.selection.clearSelection(this.core.getSettings().maxZoomLevel);
+            }
         }
     }
 
@@ -1062,12 +1065,12 @@ export default class PixelPlugin
         new Export(this, this.layers, pageIndex, zoomLevel, this.uiManager).exportLayersAsImageData();
     }
 
-    exportAsHighlights ()
+    exportAsPNG ()
     {
         let pageIndex = this.core.getSettings().currentPageIndex,
             zoomLevel = this.core.getSettings().zoomLevel;
 
-        new Export(this, this.layers, pageIndex, zoomLevel, this.uiManager).exportLayersAsHighlights();
+        new Export(this, this.layers, pageIndex, zoomLevel, this.uiManager).exportLayersAsPNG();
     }
 
     exportAsCSV ()

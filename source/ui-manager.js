@@ -515,12 +515,12 @@ export class UIManager
         let csvExportButton = document.createElement("button"),
             csvExportText = document.createTextNode("Export as CSV"),
             pngExportButton = document.createElement("button"),
-            pngExportText = document.createTextNode("Export as highlights PNG"),
+            pngExportText = document.createTextNode("Export as PNG"),
             pngDataExportButton = document.createElement("button"),
             pngDataExportText = document.createTextNode("Export as image Data PNG");
 
         this.exportCSV = () => { this.pixelInstance.exportAsCSV(); };
-        this.exportPNG = () => { this.pixelInstance.exportAsHighlights(); };
+        this.exportPNG = () => { this.pixelInstance.exportAsPNG(); };
         this.exportPNGData = () => { this.pixelInstance.exportAsImageData(); };
 
         csvExportButton.setAttribute("id", "csv-export-button");
