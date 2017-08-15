@@ -366,6 +366,15 @@ export default class PixelPlugin
     {
         switch (e.key.toLowerCase())
         {
+            case "escape":
+                if (this.selection !== null)
+                {
+                    if (this.selection.imageData === null)
+                    {
+                        this.selection.clearSelection(this.core.getSettings().maxZoomLevel);
+                    }
+                }
+                break;
             case "backspace":
                 //FIXME: is it also "backspace" for windows?
                 try
@@ -406,9 +415,15 @@ export default class PixelPlugin
             case "v":
                 if (e.ctrlKey || e.metaKey)                     // Cmd + v
                 {
-                    this.selection.pasteShapeToLayer(this.layers[this.selectedLayerIndex]);
-                    this.selection = null;
-                    this.redrawLayer(this.layers[this.selectedLayerIndex]);
+                    if (this.selection !== null)
+                    {
+                        if (this.selection.imageData !== null)
+                        {
+                            this.selection.pasteShapeToLayer(this.layers[this.selectedLayerIndex]);
+                            this.selection = null;
+                            this.redrawLayer(this.layers[this.selectedLayerIndex]);
+                        }
+                    }
                 }
                 break;
             case "shift":
