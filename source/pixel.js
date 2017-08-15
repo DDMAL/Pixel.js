@@ -17,6 +17,7 @@ import {UIManager} from './ui-manager';
 import {Tools} from './tools';
 import {Import} from './import';
 import {Selection} from './selection';
+import {Tutorial} from './tutorial';
 import
 {
     CannotDeleteLayerException,
@@ -100,7 +101,7 @@ export default class PixelPlugin
         this.tools.setCurrentTool(this.tools.getCurrentTool());
         this.activated = true;
 
-        //this.uiManager.tutorial();
+        new Tutorial();
     }
 
     deactivatePlugin ()
