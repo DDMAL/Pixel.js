@@ -374,7 +374,7 @@ export class UIManager
 
                 if (!div.hasAttribute("selected-layer"))
                     div.classList.add("selected-layer");
-                this.pixelInstance.selectedLayerIndex = this.pixelInstance.layers.indexOf(layer);
+                this.pixelInstance.changeCurrentlySelectedLayerIndex(this.pixelInstance.layers.indexOf(layer));
             }
             else
             {

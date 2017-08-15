@@ -307,7 +307,7 @@ export default class PixelPlugin
         }
 
         // Destroy all UI elements then recreate them (to show that the layers have been reordered through the UI)
-        this.selectedLayerIndex = destinationLayerIndex;
+        this.changeCurrentlySelectedLayerIndex(destinationLayerIndex);
         this.uiManager.destroyPluginElements(this.layers, this.background);
         this.uiManager.createPluginElements(this.layers);
         this.uiManager.destroyPixelCanvases(this.layers);   // TODO: Optimization: Instead of destroying all of the canvases only destroy and reorder the ones of interest
@@ -651,8 +651,7 @@ export default class PixelPlugin
         this.layerIdCounter++;
         this.layers.push(layer);
 
-        this.selectedLayerIndex = this.layers.length - 1;
-
+        this.changeCurrentlySelectedLayerIndex(this.layers.length - 1);
         this.uiManager.destroyPluginElements(this.layers, this.background);
         this.uiManager.createPluginElements(this.layers);
 
@@ -1035,6 +1034,15 @@ export default class PixelPlugin
         {
             this.redrawLayer(layer);
         });
+    }
+
+    changeCurrentlySelectedLayerIndex (newIndex)
+    {
+        this.selectedLayerIndex = newIndex;
+        if (this.selection.imageData === null)
+        {
+            this.selection.clearSelection(this.core.getSettings().maxZoomLevel);
+        }
     }
 
     /**
