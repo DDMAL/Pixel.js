@@ -96,15 +96,15 @@ export class Tutorial
                 img.src = "https://media.giphy.com/media/aL9oQ0f1sDIpq/giphy.gif";
                 break;
             case 1:
-                tutorialP.innerHTML = "You can start by creating a layer for every class you have. The layer's colour is indicated in the layer's view";
+                tutorialP.innerHTML = "You can start by creating a layer for every class you have. The layer's colour is indicated in a colour box next to the layer's name in the layer's view";
                 img.src = "https://media.giphy.com/media/rBiuWy5YUsIow/giphy.gif";
                 break;
             case 2:
-                tutorialP.innerHTML = "Upload images to layers";
+                tutorialP.innerHTML = "You can upload images to the currently selected layer";
                 img.src = "https://media.giphy.com/media/Qy4u6oHru8OpG/giphy.gif";
                 break;
             case 3:
-                tutorialP.innerHTML = "Rename Layers";
+                tutorialP.innerHTML = "Double click on the layer's name to rename it";
                 img.src = "https://media.giphy.com/media/LRxzQa1ogqKAw/giphy.gif";
                 break;
             case 4:
@@ -112,7 +112,7 @@ export class Tutorial
                 img.src = "https://media.giphy.com/media/hcLjZ9dFHOKDm/giphy.gif";
                 break;
             case 5:
-                tutorialP.innerHTML = "Use the select tool <kbd>s</kbd> to copy/cut and paste rectangular regions of pixels from one layer to another";
+                tutorialP.innerHTML = "Use the select tool <kbd>s</kbd> to copy <kbd>Ctrl</kbd> + <kbd>c</kbd> /cut <kbd>Ctrl</kbd> + <kbd>x</kbd> and paste <kbd>Ctrl</kbd> + <kbd>v</kbd> rectangular regions of pixels from one layer to another";
                 img.src = "https://media.giphy.com/media/ruMD98axGjdyE/giphy.gif";
                 break;
             case 6:
@@ -128,7 +128,7 @@ export class Tutorial
                 img.src = "https://media.giphy.com/media/i497rUNYB8t32/giphy.gif";
                 break;
             case 9:
-                tutorialP.innerHTML = "Use the Fullscreen mode and the browser zoom to get more precision when needed";
+                tutorialP.innerHTML = "Use the Fullscreen mode <kbd>f</kbd> and the browser zoom to get more precision when needed";
                 img.src = "https://media.giphy.com/media/FkzOAenUJxfGg/giphy.gif";
                 break;
             case 10:
@@ -136,11 +136,11 @@ export class Tutorial
                 img.src = "https://media.giphy.com/media/DImPhyGZ3OltC/giphy.gif";
                 break;
             case 11:
-                tutorialP.innerHTML = "You can undo/redo an action";
+                tutorialP.innerHTML = "You can undo <kbd>Ctrl</kbd> + <kbd>z</kbd> and redo <kbd>Ctrl</kbd> + <kbd>Shift</kbd> + <kbd>z</kbd>  fffan action";
                 img.src = "https://media.giphy.com/media/24kHpWLzbHFrq/giphy.gif";
                 break;
             case 12:
-                tutorialP.innerHTML = "You can delete layers";
+                tutorialP.innerHTML = "You can delete layers using <kbd>Ctrl</kbd> + <kbd>Shift</kbd> + <kbd>del</kbd>";
                 img.src = "https://media.giphy.com/media/cmQesBkeEvdmM/giphy.gif";
                 break;
             case 13:
@@ -184,8 +184,8 @@ export class Tutorial
             // redo.innerHTML = "<kbd>cmd</kbd> + <kbd>Shift</kbd> + <kbd>z</kbd> redo";
         }
 
-        modalBody.appendChild(tutorialP);
         modalBody.appendChild(img);
+        modalBody.appendChild(tutorialP);
         if (this.currentTutorialPageIndex !== 0)
             modalBody.appendChild(previous);
         if (this.currentTutorialPageIndex !== 15)

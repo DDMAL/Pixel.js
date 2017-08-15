@@ -651,6 +651,8 @@ export default class PixelPlugin
         this.layerIdCounter++;
         this.layers.push(layer);
 
+        this.selectedLayerIndex = this.layers.length - 1;
+
         this.uiManager.destroyPluginElements(this.layers, this.background);
         this.uiManager.createPluginElements(this.layers);
 
