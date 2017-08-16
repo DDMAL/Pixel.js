@@ -286,6 +286,11 @@ export default class PixelPlugin
     drop (event, departureLayerIndex, destinationLayerIndex)
     {
         event.preventDefault();
+        this.reorderLayers(departureLayerIndex, destinationLayerIndex);
+    }
+
+    reorderLayers (departureLayerIndex, destinationLayerIndex)
+    {
         let tempLayerStorage = this.layers[departureLayerIndex];
 
         if (departureLayerIndex > destinationLayerIndex)
@@ -366,6 +371,13 @@ export default class PixelPlugin
     {
         switch (e.key.toLowerCase())
         {
+            case "[":
+                if (e.ctrlKey || e.metaKey)
+                {
+                    //TODO: swap current layer and next lower layer, unless there is no lower layer
+                    //this.reorderLayers()
+                }
+                break;
             case "escape":
                 if (this.selection !== null)
                 {
