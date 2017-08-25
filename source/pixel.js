@@ -669,6 +669,21 @@ export default class PixelPlugin
             case 4:
                 colour = new Colour(2, 136, 0, 1);
                 break;
+            case 5:
+                colour = new Colour(96, 0, 186, 1);
+                break;
+            case 6:
+                colour = new Colour(239, 143, 0, 1);
+                break;
+            case 7:
+                colour = new Colour(71, 239, 200, 1);
+                break;
+            case 8:
+                colour = new Colour(247, 96, 229, 1);
+                break;
+            case 9:
+                colour = new Colour(114, 61, 0, 1);
+                break;
             default:
                 colour = new Colour(parseInt(255 * Math.random()), parseInt(255 * Math.random()), parseInt(255 * Math.random()), 1);
         }
