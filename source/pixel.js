@@ -372,12 +372,21 @@ export default class PixelPlugin
         switch (e.key.toLowerCase())
         {
             case "[":
-                if (e.ctrlKey || e.metaKey)
+                console.log(this.selectedLayerIndex);
+                if (this.selectedLayerIndex !== 0)
+                    this.reorderLayers(this.selectedLayerIndex, this.selectedLayerIndex - 1);
+                else
                 {
-                    //TODO: swap current layer and next lower layer, unless there is no lower layer
-                    //this.reorderLayers()
+                    //TODO: throw layer is already lowest layer exception
                 }
                 break;
+            case "]":
+                if (this.selectedLayerIndex !== this.layers.length - 1)
+                    this.reorderLayers(this.selectedLayerIndex, this.selectedLayerIndex + 1);
+                else
+                {
+                    //TODO: throw layer is already highest layer exception
+                }
             case "escape":
                 if (this.selection !== null)
                 {
