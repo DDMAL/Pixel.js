@@ -79,6 +79,7 @@ export class Tutorial
         let previous = document.createElement("button");
         previous.innerHTML = "Previous";
         let progress = document.createElement('p');
+        progress.setAttribute("id", "tutorial-progress");
         progress.innerHTML = tutorialPageIndex + 1 + "/16";
 
         next.addEventListener("click", () =>

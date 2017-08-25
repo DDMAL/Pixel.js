@@ -471,3 +471,9 @@ button {
 .tutorial-image {
   width: 100%;
 }
+
+#tutorial-progress {
+  position: absolute;
+  right: 10px;
+  bottom: 60px;
+}
