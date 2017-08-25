@@ -75,17 +75,20 @@ export class Tutorial
         let img = new Image();
         img.className = "tutorial-image";
         let next = document.createElement("button");
-        next.innerHTML = "next";
+        next.innerHTML = "Next";
         let previous = document.createElement("button");
-        previous.innerHTML = "previous";
+        previous.innerHTML = "Previous";
+        let progress = document.createElement('p');
+        progress.innerHTML = tutorialPageIndex + 1 + "/16";
+
         next.addEventListener("click", () =>
         {
-            this.currentTutorialPageIndex ++;
+            this.currentTutorialPageIndex++;
             this.getTutorialPage(this.currentTutorialPageIndex);
         });
         previous.addEventListener("click", () =>
         {
-            this.currentTutorialPageIndex --;
+            this.currentTutorialPageIndex--;
             this.getTutorialPage(this.currentTutorialPageIndex);
         });
 
@@ -190,6 +193,7 @@ export class Tutorial
             modalBody.appendChild(previous);
         if (this.currentTutorialPageIndex !== 15)
             modalBody.appendChild(next);
+        modalBody.appendChild(progress);
 
         return modalBody;
     }
