@@ -78,6 +78,9 @@ export class Tutorial
         next.innerHTML = "Next";
         let previous = document.createElement("button");
         previous.innerHTML = "Previous";
+        let progress = document.createElement('p');
+        progress.innerHTML = tutorialPageIndex + 1 + "/16";
+
         next.addEventListener("click", () =>
         {
             this.currentTutorialPageIndex++;
@@ -190,6 +193,7 @@ export class Tutorial
             modalBody.appendChild(previous);
         if (this.currentTutorialPageIndex !== 15)
             modalBody.appendChild(next);
+        modalBody.appendChild(progress);
 
         return modalBody;
     }
