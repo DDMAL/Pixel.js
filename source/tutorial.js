@@ -75,17 +75,17 @@ export class Tutorial
         let img = new Image();
         img.className = "tutorial-image";
         let next = document.createElement("button");
-        next.innerHTML = "next";
+        next.innerHTML = "Next";
         let previous = document.createElement("button");
-        previous.innerHTML = "previous";
+        previous.innerHTML = "Previous";
         next.addEventListener("click", () =>
         {
-            this.currentTutorialPageIndex ++;
+            this.currentTutorialPageIndex++;
             this.getTutorialPage(this.currentTutorialPageIndex);
         });
         previous.addEventListener("click", () =>
         {
-            this.currentTutorialPageIndex --;
+            this.currentTutorialPageIndex--;
             this.getTutorialPage(this.currentTutorialPageIndex);
         });
 
