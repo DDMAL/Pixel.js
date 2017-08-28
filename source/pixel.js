@@ -17,6 +17,7 @@ import {UIManager} from './ui-manager';
 import {Tools} from './tools';
 import {Import} from './import';
 import {Selection} from './selection';
+import {Tutorial} from './tutorial';
 import
 {
     CannotDeleteLayerException,
@@ -100,7 +101,7 @@ export default class PixelPlugin
         this.tools.setCurrentTool(this.tools.getCurrentTool());
         this.activated = true;
 
-        //this.uiManager.tutorial();
+        new Tutorial();
     }
 
     deactivatePlugin ()
@@ -285,6 +286,11 @@ export default class PixelPlugin
     drop (event, departureLayerIndex, destinationLayerIndex)
     {
         event.preventDefault();
+        this.reorderLayers(departureLayerIndex, destinationLayerIndex);
+    }
+
+    reorderLayers (departureLayerIndex, destinationLayerIndex)
+    {
         let tempLayerStorage = this.layers[departureLayerIndex];
 
         if (departureLayerIndex > destinationLayerIndex)
@@ -306,7 +312,7 @@ export default class PixelPlugin
         }
 
         // Destroy all UI elements then recreate them (to show that the layers have been reordered through the UI)
-        this.selectedLayerIndex = destinationLayerIndex;
+        this.changeCurrentlySelectedLayerIndex(destinationLayerIndex);
         this.uiManager.destroyPluginElements(this.layers, this.background);
         this.uiManager.createPluginElements(this.layers);
         this.uiManager.destroyPixelCanvases(this.layers);   // TODO: Optimization: Instead of destroying all of the canvases only destroy and reorder the ones of interest
@@ -365,6 +371,31 @@ export default class PixelPlugin
     {
         switch (e.key.toLowerCase())
         {
+            case "[":
+                console.log(this.selectedLayerIndex);
+                if (this.selectedLayerIndex !== 0)
+                    this.reorderLayers(this.selectedLayerIndex, this.selectedLayerIndex - 1);
+                else
+                {
+                    //TODO: throw layer is already lowest layer exception
+                }
+                break;
+            case "]":
+                if (this.selectedLayerIndex !== this.layers.length - 1)
+                    this.reorderLayers(this.selectedLayerIndex, this.selectedLayerIndex + 1);
+                else
+                {
+                    //TODO: throw layer is already highest layer exception
+                }
+            case "escape":
+                if (this.selection !== null)
+                {
+                    if (this.selection.imageData === null)
+                    {
+                        this.selection.clearSelection(this.core.getSettings().maxZoomLevel);
+                    }
+                }
+                break;
             case "backspace":
                 //FIXME: is it also "backspace" for windows?
                 try
@@ -405,9 +436,15 @@ export default class PixelPlugin
             case "v":
                 if (e.ctrlKey || e.metaKey)                     // Cmd + v
                 {
-                    this.selection.pasteShapeToLayer(this.layers[this.selectedLayerIndex]);
-                    this.selection = null;
-                    this.redrawLayer(this.layers[this.selectedLayerIndex]);
+                    if (this.selection !== null)
+                    {
+                        if (this.selection.imageData !== null)
+                        {
+                            this.selection.pasteShapeToLayer(this.layers[this.selectedLayerIndex]);
+                            this.selection = null;
+                            this.redrawLayer(this.layers[this.selectedLayerIndex]);
+                        }
+                    }
                 }
                 break;
             case "shift":
@@ -641,6 +678,21 @@ export default class PixelPlugin
             case 4:
                 colour = new Colour(2, 136, 0, 1);
                 break;
+            case 5:
+                colour = new Colour(96, 0, 186, 1);
+                break;
+            case 6:
+                colour = new Colour(239, 143, 0, 1);
+                break;
+            case 7:
+                colour = new Colour(71, 239, 200, 1);
+                break;
+            case 8:
+                colour = new Colour(247, 96, 229, 1);
+                break;
+            case 9:
+                colour = new Colour(114, 61, 0, 1);
+                break;
             default:
                 colour = new Colour(parseInt(255 * Math.random()), parseInt(255 * Math.random()), parseInt(255 * Math.random()), 1);
         }
@@ -650,6 +702,7 @@ export default class PixelPlugin
         this.layerIdCounter++;
         this.layers.push(layer);
 
+        this.changeCurrentlySelectedLayerIndex(this.layers.length - 1);
         this.uiManager.destroyPluginElements(this.layers, this.background);
         this.uiManager.createPluginElements(this.layers);
 
@@ -1034,6 +1087,18 @@ export default class PixelPlugin
         });
     }
 
+    changeCurrentlySelectedLayerIndex (newIndex)
+    {
+        this.selectedLayerIndex = newIndex;
+        if (this.selection !== null)
+        {
+            if (this.selection.imageData === null)
+            {
+                this.selection.clearSelection(this.core.getSettings().maxZoomLevel);
+            }
+        }
+    }
+
     /**
      * ===============================================
      *                    Export
@@ -1051,12 +1116,12 @@ export default class PixelPlugin
         new Export(this, this.layers, pageIndex, zoomLevel, this.uiManager).exportLayersAsImageData();
     }
 
-    exportAsHighlights ()
+    exportAsPNG ()
     {
         let pageIndex = this.core.getSettings().currentPageIndex,
             zoomLevel = this.core.getSettings().zoomLevel;
 
-        new Export(this, this.layers, pageIndex, zoomLevel, this.uiManager).exportLayersAsHighlights();
+        new Export(this, this.layers, pageIndex, zoomLevel, this.uiManager).exportLayersAsPNG();
     }
 
     exportAsCSV ()

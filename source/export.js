@@ -85,8 +85,18 @@ export class Export
      * Creates a PNG for each layer where the pixels spanned by the layers are replaced by the layer colour
      */
 
-    exportLayersAsHighlights ()
+    exportLayersAsPNG ()
     {
+        let linksDiv = document.getElementById("png-links-div");
+
+        if (linksDiv !== null)
+        {
+            linksDiv.parentElement.removeChild(linksDiv);
+        }
+
+        linksDiv = document.createElement("div");
+        linksDiv.setAttribute("id", "png-links-div");
+
         // The idea here is to draw each layer on a canvas and scan the pixels of that canvas to fill the matrix
         this.layers.forEach((layer) => {
             layer.getCanvas().toBlob((blob) =>
@@ -103,7 +113,7 @@ export class Export
 
                     link = document.createElement("a");
                     link.appendChild(text);
-                    document.body.appendChild(link);
+                    linksDiv.appendChild(link);
                 }
 
                 // Browsers that support HTML5 download attribute
@@ -114,6 +124,8 @@ export class Export
                 link.setAttribute("download", layer.layerName);
             });
         });
+
+        document.body.appendChild(linksDiv);
     }
 
     /**

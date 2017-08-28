@@ -196,7 +196,6 @@ export class UIManager
         layerName.setAttribute("type", "text");
         layerName.setAttribute("readonly", "true");
         layerName.setAttribute("value", layer.layerName);
-        //layerName.setAttribute("ondblclick", "this.readOnly='';");
 
         colourDiv.setAttribute("class", "color-box");
         colourDiv.setAttribute("style", "background-color: " + layer.colour.toHexString() + ";");
@@ -205,9 +204,15 @@ export class UIManager
         layerOptionsDiv.setAttribute("id", "layer-" + layer.layerId + "-options");
 
         if (this.pixelInstance.background.isActivated())
+        {
             layerActivationDiv.setAttribute("class", "layer-activated");
+            this.pixelInstance.background.getCanvas().style.opacity = 1;
+        }
         else
+        {
             layerActivationDiv.setAttribute("class", "layer-deactivated");
+            this.pixelInstance.background.getCanvas().style.opacity = 0;
+        }
 
         layerActivationDiv.setAttribute("id", "layer-" + layer.layerId + "-activation");
 
@@ -220,8 +225,6 @@ export class UIManager
         layerDiv.appendChild(colourDiv);
         layerDiv.appendChild(layerActivationDiv);
         backgroundViewDiv.appendChild(layerDiv);
-
-        this.pixelInstance.background.getCanvas().style.opacity = 1;
 
         document.body.appendChild(backgroundViewDiv);
     }
@@ -371,7 +374,7 @@ export class UIManager
 
                 if (!div.hasAttribute("selected-layer"))
                     div.classList.add("selected-layer");
-                this.pixelInstance.selectedLayerIndex = this.pixelInstance.layers.indexOf(layer);
+                this.pixelInstance.changeCurrentlySelectedLayerIndex(this.pixelInstance.layers.indexOf(layer));
             }
             else
             {
@@ -512,12 +515,12 @@ export class UIManager
         let csvExportButton = document.createElement("button"),
             csvExportText = document.createTextNode("Export as CSV"),
             pngExportButton = document.createElement("button"),
-            pngExportText = document.createTextNode("Export as highlights PNG"),
+            pngExportText = document.createTextNode("Export as PNG"),
             pngDataExportButton = document.createElement("button"),
             pngDataExportText = document.createTextNode("Export as image Data PNG");
 
         this.exportCSV = () => { this.pixelInstance.exportAsCSV(); };
-        this.exportPNG = () => { this.pixelInstance.exportAsHighlights(); };
+        this.exportPNG = () => { this.pixelInstance.exportAsPNG(); };
         this.exportPNGData = () => { this.pixelInstance.exportAsImageData(); };
 
         csvExportButton.setAttribute("id", "csv-export-button");
