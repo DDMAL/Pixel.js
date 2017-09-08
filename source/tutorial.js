@@ -1,6 +1,5 @@
-/**
- * Created by zeyadsaleh on 2017-08-14.
- */
+/*jshint esversion: 6 */
+
 export class Tutorial
 {
     constructor (pixelInstance)

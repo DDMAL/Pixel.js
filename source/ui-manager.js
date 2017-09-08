@@ -1,5 +1,6 @@
 /*jshint esversion: 6 */
 import {Point} from './point';
+import {Tutorial} from './tutorial';
 import
 {
     CannotDeleteLayerException,
@@ -31,6 +32,7 @@ export class UIManager
         this.createToolsView(this.pixelInstance.tools.getAllTools());
         this.createExportButtons();
         this.createImportButtons();
+        this.createTutorialActivationButtons();
     }
 
     destroyPluginElements (layers, background)
@@ -49,6 +51,7 @@ export class UIManager
         this.destroyDownloadLinks();
         this.destroyBrushCursor();
         this.restoreDefaultCursor();
+        this.destroyTutorialActivationButtons();
     }
 
     // Tools are strings or enums
@@ -570,6 +573,31 @@ export class UIManager
     {
         let imageLoader = document.getElementById("imageLoader");
         imageLoader.parentNode.removeChild(imageLoader);
+    }
+
+    createTutorialActivationButtons ()
+    {
+        let tutorialActivationButton = document.createElement("button"),
+            tutorialActivationText = document.createTextNode("How to use");
+
+        tutorialActivationButton.setAttribute("id", "tutorial-button");
+        tutorialActivationButton.appendChild(tutorialActivationText);
+        //Come back here
+        // this.createTut = () => {
+        //     console.log("creating new tutorial from ui-manager");
+        //     //new Tutorial();
+        // };
+        //tutorialActivationButton.addEventListener("dblclick", new Tutorial());
+        //FIXME: tutorialActivationButton does not react to the click and instead, plugin icon does
+        tutorialActivationButton.onclick = new Tutorial();
+
+        document.body.appendChild(tutorialActivationButton);
+    }
+
+    destroyTutorialActivationButtons ()
+    {
+        let tutorialActivationButton = document.getElementById("tutorial-button");
+        tutorialActivationButton.parentNode.removeChild(tutorialActivationButton);
     }
 
     updateProgress (percentage)
