@@ -100,7 +100,7 @@ export default class PixelPlugin
         // Setting Tool to change the cursor type
         this.tools.setCurrentTool(this.tools.getCurrentTool());
         this.activated = true;
-
+        
         new Tutorial();
     }
 
