@@ -582,14 +582,11 @@ export class UIManager
 
         tutorialActivationButton.setAttribute("id", "tutorial-button");
         tutorialActivationButton.appendChild(tutorialActivationText);
-        //Come back here
-        // this.createTut = () => {
-        //     console.log("creating new tutorial from ui-manager");
-        //     //new Tutorial();
-        // };
-        //tutorialActivationButton.addEventListener("dblclick", new Tutorial());
-        //FIXME: tutorialActivationButton does not react to the click and instead, plugin icon does
-        tutorialActivationButton.onclick = new Tutorial();
+
+        this.createTut = () => {
+            new Tutorial();
+        };
+        tutorialActivationButton.addEventListener("click", this.createTut);
 
         document.body.appendChild(tutorialActivationButton);
     }
