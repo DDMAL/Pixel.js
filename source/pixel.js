@@ -338,7 +338,7 @@ export default class PixelPlugin
             key = e.keyCode ? e.keyCode : e.which;
 
 
-        // Selecting a Layer using keyboard shortcutkeys 1 to 9
+        // Selecting a Layer using keyboard shortcut keys 1 to 9
         if (key >= KEY_1 && key <= KEY_9)
         {
             try
@@ -475,6 +475,9 @@ export default class PixelPlugin
             case "h":
                 if (this.layers[this.selectedLayerIndex].isActivated())
                     this.layers[this.selectedLayerIndex].toggleLayerActivation();
+                break;
+            case "t":
+                new Tutorial();
                 break;
         }
     }
