@@ -66,14 +66,12 @@ export class Glossary
 
     getModalBody ()
     {
-        //this.getTutorialPage(this.currentTutorialPageIndex);
-
         let modalBody = document.createElement('div');
         modalBody.setAttribute("class", "modal-body");
         modalBody.setAttribute("id", "modal-body");
 
         let glossaryP = document.createElement('p');
-        glossaryP.innerHTML = "The following is a glossary of the hotkeys you will find useful when using Pixel.js";
+        glossaryP.innerHTML = "The following is a glossary of available hotkeys: ";
 
 
         let hotkeyGlossary = document.createElement('ul');
@@ -83,34 +81,70 @@ export class Glossary
         layerSelect.innerHTML = "<kbd>1</kbd> ... <kbd>9</kbd> layer select";
 
         let brushTool = document.createElement('li');
-        brushTool.innerHTML = "<kbd>b</kbd> brush tool";
-
-        let rectangleTool = document.createElement('li');
-        rectangleTool.innerHTML = "<kbd>r</kbd> rectangle tool";
-
-        let grabTool = document.createElement('li');
-        grabTool.innerHTML = "<kbd>g</kbd> grab tool";
+        brushTool.innerHTML = "<kbd>B</kbd> brush tool";
 
         let eraserTool = document.createElement('li');
-        eraserTool.innerHTML = "<kbd>e</kbd> eraser tool";
+        eraserTool.innerHTML = "<kbd>E</kbd> eraser tool";
 
-        let shift = document.createElement('li');
-        shift.innerHTML = "<kbd>Shift</kbd> force tools to paint in an exact way.";
+        let fullscreenMode = document.createElement('li');
+        fullscreenMode.innerHTML = "<kbd>F</kbd> full screen mode";
+
+        let grabTool = document.createElement('li');
+        grabTool.innerHTML = "<kbd>G</kbd> grab tool";
+
+        let hideLayer = document.createElement('li');
+        hideLayer.innerHTML = "<kbd>H</kbd> hide selected layer (hold down)";
+
+        let glossaryPopup = document.createElement('li');
+        glossaryPopup.innerHTML = "<kbd>K</kbd> keyboard shortcut list";
+
+        let muteLayer = document.createElement('li');
+        muteLayer.innerHTML = "<kbd>M</kbd> mute selected layer";
+
+        let rectangleTool = document.createElement('li');
+        rectangleTool.innerHTML = "<kbd>R</kbd> rectangle tool";
+
+        let tutorialPopup = document.createElement('li');
+        tutorialPopup.innerHTML = "<kbd>T</kbd> tutorial";
+
+        let createLayer = document.createElement('li');
+        createLayer.innerHTML = "<kbd>ctrl</kbd> + <kbd>N</kbd> create new layer";
+
+        let deleteLayer = document.createElement('li');
+        deleteLayer.innerHTML = "<kbd>cmd</kbd>/<kbd>ctrl</kbd> + <kbd>backspace</kbd> delete selected layer";
 
         let undo = document.createElement('li');
-        undo.innerHTML = "<kbd>cmd</kbd> + <kbd>z</kbd> undo";
+        undo.innerHTML = "<kbd>cmd</kbd>/<kbd>ctrl</kbd> + <kbd>Z</kbd> undo";
 
         let redo = document.createElement('li');
-        redo.innerHTML = "<kbd>cmd</kbd> + <kbd>Shift</kbd> + <kbd>z</kbd> redo";
+        redo.innerHTML = "<kbd>cmd</kbd>/<kbd>ctrl</kbd> + <kbd>Shift</kbd> + <kbd>Z</kbd> redo";
+
+        let moveLayerDown = document.createElement('li');
+        moveLayerDown.innerHTML = "<kbd>[</kbd> move selected layer down";
+
+        let moveLayerUp = document.createElement('li');
+        moveLayerUp.innerHTML = "<kbd>]</kbd> move selected layer up";
+
+        let shift = document.createElement('li');
+        shift.innerHTML = "<kbd>Shift</kbd> force tools to paint in an exact way";
 
         hotkeyGlossary.appendChild(layerSelect);
         hotkeyGlossary.appendChild(brushTool);
-        hotkeyGlossary.appendChild(rectangleTool);
-        hotkeyGlossary.appendChild(grabTool);
         hotkeyGlossary.appendChild(eraserTool);
-        hotkeyGlossary.appendChild(shift);
+        hotkeyGlossary.appendChild(fullscreenMode);
+        hotkeyGlossary.appendChild(grabTool);
+        hotkeyGlossary.appendChild(hideLayer);
+        hotkeyGlossary.appendChild(glossaryPopup);
+        hotkeyGlossary.appendChild(muteLayer);
+        hotkeyGlossary.appendChild(rectangleTool);
+        hotkeyGlossary.appendChild(tutorialPopup);
+        hotkeyGlossary.appendChild(createLayer);
+        hotkeyGlossary.appendChild(deleteLayer);
         hotkeyGlossary.appendChild(undo);
         hotkeyGlossary.appendChild(redo);
+        hotkeyGlossary.appendChild(moveLayerDown);
+        hotkeyGlossary.appendChild(moveLayerUp);
+        hotkeyGlossary.appendChild(shift);
 
         modalBody.appendChild(glossaryP);
         modalBody.appendChild(hotkeyGlossary);
