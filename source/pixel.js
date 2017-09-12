@@ -18,6 +18,7 @@ import {Tools} from './tools';
 import {Import} from './import';
 import {Selection} from './selection';
 import {Tutorial} from './tutorial';
+import {Glossary} from './glossary';
 import
 {
     CannotDeleteLayerException,
@@ -479,6 +480,10 @@ export default class PixelPlugin
             case "t":
                 new Tutorial();
                 break;
+            case "k":
+                new Glossary();
+                break;
+
         }
     }
 

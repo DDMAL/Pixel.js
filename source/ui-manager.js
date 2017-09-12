@@ -1,6 +1,7 @@
 /*jshint esversion: 6 */
 import {Point} from './point';
 import {Tutorial} from './tutorial';
+import {Glossary} from './glossary';
 import
 {
     CannotDeleteLayerException,
