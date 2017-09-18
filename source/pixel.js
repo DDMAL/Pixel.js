@@ -54,6 +54,7 @@ export default class PixelPlugin
         this.selection = null;
         this.horizontalMove = false;
         this.layerIdCounter = 2;
+        this.editingLayerName = false;
     }
 
     /**
@@ -370,6 +371,9 @@ export default class PixelPlugin
 
     onKeyDown (e)
     {
+        if(this.editingLayerName)   //  Do not work with shortcuts when editing a layer name
+            return;
+
         switch (e.key.toLowerCase())
         {
             case "[":
@@ -489,6 +493,8 @@ export default class PixelPlugin
 
     editLayerName (e, layerName, layerDiv, outsideClick, duringSwap, layer)
     {
+        this.editingLayerName = true;
+
         const RETURN_KEY = 13;
 
         // TODO: Find a way to unsubscribe from keyboard events while allowing enter key to be pressed
@@ -500,6 +506,8 @@ export default class PixelPlugin
         {
             if (duringSwap === false)
             {
+                this.editingLayerName = false;
+
                 // TODO: Resubscribe to mouse events
                 layer.updateLayerName(layerName.value);
                 layerName.setAttribute("readonly", "true");
