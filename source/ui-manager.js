@@ -33,8 +33,7 @@ export class UIManager
         this.createToolsView(this.pixelInstance.tools.getAllTools());
         this.createExportButtons();
         this.createImportButtons();
-        this.createTutorialActivationButton();
-        this.createGlossaryActivationButton();
+        this.createInstructionButtons();
     }
 
     destroyPluginElements (layers, background)
@@ -53,8 +52,7 @@ export class UIManager
         this.destroyDownloadLinks();
         this.destroyBrushCursor();
         this.restoreDefaultCursor();
-        this.destroyTutorialActivationButton();
-        this.destroyGlossaryActivationButton();
+        this.destroyInstructionButtons();
     }
 
     // Tools are strings or enums
@@ -578,47 +576,40 @@ export class UIManager
         imageLoader.parentNode.removeChild(imageLoader);
     }
 
-    createTutorialActivationButton ()
+    createInstructionButtons ()
     {
         let tutorialActivationButton = document.createElement("button"),
-            tutorialActivationText = document.createTextNode("How to use");
+            tutorialActivationText = document.createTextNode("How to use"),
+            glossaryActivationButton = document.createElement("button"),
+            glossaryActivationText = document.createTextNode("Keyboard shortcuts");
 
         tutorialActivationButton.setAttribute("id", "tutorial-button");
         tutorialActivationButton.appendChild(tutorialActivationText);
 
+        glossaryActivationButton.setAttribute("id", "glossary-button");
+        glossaryActivationButton.appendChild(glossaryActivationText);
+
         this.createTut = () => {
             new Tutorial();
         };
-        tutorialActivationButton.addEventListener("click", this.createTut);
-
-        document.body.appendChild(tutorialActivationButton);
-    }
-
-    destroyTutorialActivationButton ()
-    {
-        let tutorialActivationButton = document.getElementById("tutorial-button");
-        tutorialActivationButton.parentNode.removeChild(tutorialActivationButton);
-    }
-
-    createGlossaryActivationButton ()
-    {
-        let glossaryActivationButton = document.createElement("button"),
-            glossaryActivationText = document.createTextNode("Keyboard shortcuts");
-
-        glossaryActivationButton.setAttribute("id", "glossary-button");
-        glossaryActivationButton.appendChild(glossaryActivationText);
 
         this.createGlossary = () => {
             new Glossary();
         };
+
+        tutorialActivationButton.addEventListener("click", this.createTut);
         glossaryActivationButton.addEventListener("click", this.createGlossary);
 
+        document.body.appendChild(tutorialActivationButton);
         document.body.appendChild(glossaryActivationButton);
     }
 
-    destroyGlossaryActivationButton ()
+    destroyInstructionButtons ()
     {
-        let glossaryActivationButton = document.getElementById("glossary-button");
+        let tutorialActivationButton = document.getElementById("tutorial-button"),
+            glossaryActivationButton = document.getElementById("glossary-button");
+
+        tutorialActivationButton.parentNode.removeChild(tutorialActivationButton);
         glossaryActivationButton.parentNode.removeChild(glossaryActivationButton);
     }
 

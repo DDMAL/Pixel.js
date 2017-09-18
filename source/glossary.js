@@ -71,9 +71,8 @@ export class Glossary
         modalBody.setAttribute("id", "modal-body");
 
         let glossaryP = document.createElement('p');
-        glossaryP.innerHTML = "The following is a glossary of available hotkeys: ";
-
-
+        glossaryP.innerHTML = "The following is a glossary of available hotkeys. To learn how to use them in more detail, please consult the Pixel.js "  + '<a href="https://github.com/DDMAL/Pixel.js/wiki">wiki</a>' + " for details on the different export buttons and more information.";
+        
         let hotkeyGlossary = document.createElement('ul');
         hotkeyGlossary.setAttribute("style", "list-style-type:none;");
 

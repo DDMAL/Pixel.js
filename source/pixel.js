@@ -678,13 +678,13 @@ export default class PixelPlugin
                 colour = new Colour(51, 102, 255, 1);
                 break;
             case 2:
-                colour = new Colour(255, 51, 102, 1);
+                colour = new Colour(2, 136, 0, 1);
                 break;
             case 3:
-                colour = new Colour(255, 255, 10, 1);
+                colour = new Colour(255, 51, 102, 1);
                 break;
             case 4:
-                colour = new Colour(2, 136, 0, 1);
+                colour = new Colour(255, 221, 0, 1);
                 break;
             case 5:
                 colour = new Colour(96, 0, 186, 1);
