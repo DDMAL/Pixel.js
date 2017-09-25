@@ -95,7 +95,7 @@ export class Tutorial
         switch (tutorialPageIndex)
         {
             case 0:
-                tutorialP.innerHTML = "Navigate to the page you would like to edit and click the Pixel.js icon to open the toolboxes and layers view.";
+                tutorialP.innerHTML = "Welcome to Pixel.js, this is a tutorial that serves as a reminder of the available tools. For a complete, detailed tutorial, visit the " + '<a href="https://github.com/DDMAL/Pixel.js/wiki/How-to-use-Pixel.js">Tutorial Page</a>' + ". <br>Click on Got It! to exit the tutorial.";
                 img.src = "https://media.giphy.com/media/aL9oQ0f1sDIpq/giphy.gif";
                 break;
             case 1:
