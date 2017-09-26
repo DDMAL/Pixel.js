@@ -581,7 +581,10 @@ export class UIManager
         let tutorialActivationButton = document.createElement("button"),
             tutorialActivationText = document.createTextNode("How to use"),
             glossaryActivationButton = document.createElement("button"),
-            glossaryActivationText = document.createTextNode("Keyboard shortcuts");
+            glossaryActivationText = document.createTextNode("Keyboard shortcuts"),
+            br = document.createElement("br");
+
+        br.setAttribute("id", "instruction-br");
 
         tutorialActivationButton.setAttribute("id", "tutorial-button");
         tutorialActivationButton.appendChild(tutorialActivationText);
@@ -600,6 +603,7 @@ export class UIManager
         tutorialActivationButton.addEventListener("click", this.createTut);
         glossaryActivationButton.addEventListener("click", this.createGlossary);
 
+        document.body.appendChild(br);
         document.body.appendChild(tutorialActivationButton);
         document.body.appendChild(glossaryActivationButton);
     }
@@ -607,8 +611,10 @@ export class UIManager
     destroyInstructionButtons ()
     {
         let tutorialActivationButton = document.getElementById("tutorial-button"),
-            glossaryActivationButton = document.getElementById("glossary-button");
+            glossaryActivationButton = document.getElementById("glossary-button"),
+            br = document.getElementById("instruction-br");
 
+        br.parentNode.removeChild(br);
         tutorialActivationButton.parentNode.removeChild(tutorialActivationButton);
         glossaryActivationButton.parentNode.removeChild(glossaryActivationButton);
     }
