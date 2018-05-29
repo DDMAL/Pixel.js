@@ -658,6 +658,8 @@ export default class PixelPlugin
         //refreshing the layers view to reflect changes
         this.uiManager.createPluginElements(this.layers);
         this.redrawAllLayers();
+
+        this.layerIdCounter--;
     }
 
     createLayer ()
