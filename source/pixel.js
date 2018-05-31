@@ -658,10 +658,9 @@ export default class PixelPlugin
 
         this.uiManager.destroyPluginElements(this.layers, this.background);
         this.layers.splice(this.selectedLayerIndex, 1);
-        this.layerIdCounter--;
 
-        //reset to the last layer created on delete
-        this.selectedLayerIndex = this.layerIdCounter - 2;
+        //reset to the first layer on delete
+        this.selectedLayerIndex = 0;
 
         //refreshing the layers view to reflect changes
         this.uiManager.createPluginElements(this.layers);
