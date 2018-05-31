@@ -25,8 +25,11 @@ export class UIManager
         this.placeLayerCanvasesInDiva(layers);
         this.createUndoButton();
         this.createRedoButton();
-        this.createDeleteLayerButton();
-        this.createCreateLayerButton();
+        // Disable buttons if in standalone Pixel or no input layers
+        if (typeof numberInputLayers === 'undefined' || numberInputLayers === 0) {
+            this.createDeleteLayerButton();
+            this.createCreateLayerButton();
+        }
         this.createLayersView(layers);
         this.createToolsView(this.pixelInstance.tools.getAllTools());
         this.createExportButtons();
@@ -39,8 +42,11 @@ export class UIManager
         this.destroyBrushSizeSelector();
         this.destroyUndoButton();
         this.destroyRedoButton();
-        this.destroyDeleteLayerButton();
-        this.destroyCreateLayerButton();
+        // Disable buttons if in standalone Pixel or no input layers
+        if (typeof numberInputLayers === 'undefined' || numberInputLayers === 0) {
+            this.destroyDeleteLayerButton();
+            this.destroyCreateLayerButton();
+        }
         this.destroyExportButtons();
         this.destroyImportButtons();
         this.destroyPixelCanvases(layers);
@@ -459,6 +465,11 @@ export class UIManager
 
     createDeleteLayerButton ()
     {
+        // Check if we're in the wrapper, if so then disable this function
+        if (document.getElementById("rodan-export-button") !== null) {
+            return;
+        }
+
         let deleteLayerButton = document.createElement("button"),
             text = document.createTextNode("Delete selected layer");
 
@@ -486,12 +497,22 @@ export class UIManager
 
     destroyDeleteLayerButton ()
     {
+        // Check if we're in the wrapper, if so then disable this function
+        if (document.getElementById("rodan-export-button") !== null) {
+            return;
+        }
+
         let deleteLayerButton = document.getElementById("delete-layer-button");
         deleteLayerButton.parentNode.removeChild(deleteLayerButton);
     }
 
     createCreateLayerButton ()
     {
+        // Check if we're in the wrapper, if so then disable this function
+        if (document.getElementById("rodan-export-button") !== null) {
+            return;
+        }
+
         let createLayerButton = document.createElement("button"),
             text = document.createTextNode("Create new layer");
 
@@ -506,6 +527,11 @@ export class UIManager
 
     destroyCreateLayerButton ()
     {
+        // Check if we're in the wrapper, if so then disable this function
+        if (document.getElementById("rodan-export-button") !== null) {
+            return;
+        }
+
         let createLayerButton = document.getElementById("create-layer-button");
         createLayerButton.parentNode.removeChild(createLayerButton);
     }
