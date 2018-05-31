@@ -643,6 +643,13 @@ export default class PixelPlugin
 
     deleteLayer ()
     {
+        // Enable function only if in standalone Pixel or no input layers
+        if (typeof numberInputLayers === 'undefined' || numberInputLayers === 0) {
+            // Continue
+        } else {
+            return;
+        }
+        
         let layer = this.layers[this.selectedLayerIndex],
             currentLayersLength = this.layers.length;
 
@@ -651,19 +658,25 @@ export default class PixelPlugin
 
         this.uiManager.destroyPluginElements(this.layers, this.background);
         this.layers.splice(this.selectedLayerIndex, 1);
+        this.layerIdCounter--;
 
-        //reset to the first element on each delete
-        this.selectedLayerIndex = 0;
+        //reset to the last layer created on delete
+        this.selectedLayerIndex = this.layerIdCounter - 2;
 
         //refreshing the layers view to reflect changes
         this.uiManager.createPluginElements(this.layers);
         this.redrawAllLayers();
-
-        this.layerIdCounter--;
     }
 
     createLayer ()
-    {
+    { 
+        // Enable function only if in standalone Pixel or no input layers
+        if (typeof numberInputLayers === 'undefined' || numberInputLayers === 0) {
+            // Continue
+        } else {
+            return;
+        }
+
         let colour;
 
         switch (this.layerIdCounter)
