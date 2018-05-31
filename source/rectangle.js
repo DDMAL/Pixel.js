@@ -128,9 +128,16 @@ export class Rectangle extends Shape
         // TODO: Use padded coordinates
         else if (this.blendMode === "add")
         {
-            if (pageIndex === this.origin.pageIndex)
+            if (pageIndex === this.origin.pageIndex && layer.layerId === -1) // "Select Region" layer 
             {
-                //Draw the rectangle
+                // Draw the rectangle with a border
+                ctx.fillStyle = layer.colour.toHTMLColour();
+                ctx.lineWidth = 1;
+                ctx.strokeStyle = 'rgba(0, 0, 0, 1)';
+                ctx.fillRect(absoluteRectOriginX, absoluteRectOriginY, absoluteRectWidth, absoluteRectHeight);
+                ctx.strokeRect(absoluteRectOriginX, absoluteRectOriginY, absoluteRectWidth, absoluteRectHeight);
+            } else if (pageIndex === this.origin.pageIndex) { 
+                // Draw rectangle without border
                 ctx.fillStyle = layer.colour.toHTMLColour();
                 ctx.fillRect(absoluteRectOriginX, absoluteRectOriginY,absoluteRectWidth,absoluteRectHeight);
             }

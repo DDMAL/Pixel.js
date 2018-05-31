@@ -40,6 +40,9 @@ export class Tools
             case this.type.erase:
                 this.pixelInstance.uiManager.destroyBrushCursor();
                 break;
+            case this.type.rectangle:
+                this.pixelInstance.uiManager.destroyBrushCursor();
+                break;
             default:
                 break;
         }

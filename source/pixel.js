@@ -643,15 +643,19 @@ export default class PixelPlugin
 
     deleteLayer ()
     {
+        let layer = this.layers[this.selectedLayerIndex],
+            currentLayersLength = this.layers.length;
+
         // Enable function only if in standalone Pixel or no input layers
         if (typeof numberInputLayers === 'undefined' || numberInputLayers === 0) {
+            if (layer.layerId === -1) {
+                alert("The Select Region layer cannot be deleted!");
+                return;
+            }
             // Continue
         } else {
             return;
         }
-        
-        let layer = this.layers[this.selectedLayerIndex],
-            currentLayersLength = this.layers.length;
 
         if (currentLayersLength <= 1)
             throw new CannotDeleteLayerException("Must at least have one layer other than the background");
