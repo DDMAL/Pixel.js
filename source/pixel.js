@@ -648,10 +648,6 @@ export default class PixelPlugin
 
         // Enable function only if in standalone Pixel 
         if (typeof numberInputLayers === 'undefined') {
-            if (layer.layerId === -1) {
-                alert("The Select Region layer cannot be deleted!");
-                return;
-            }
             // Continue
         } else {
             return;
