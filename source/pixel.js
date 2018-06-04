@@ -646,8 +646,8 @@ export default class PixelPlugin
         let layer = this.layers[this.selectedLayerIndex],
             currentLayersLength = this.layers.length;
 
-        // Enable function only if in standalone Pixel or no input layers
-        if (typeof numberInputLayers === 'undefined' || numberInputLayers === 0) {
+        // Enable function only if in standalone Pixel 
+        if (typeof numberInputLayers === 'undefined') {
             if (layer.layerId === -1) {
                 alert("The Select Region layer cannot be deleted!");
                 return;
@@ -673,8 +673,8 @@ export default class PixelPlugin
 
     createLayer ()
     { 
-        // Enable function only if in standalone Pixel or no input layers
-        if (typeof numberInputLayers === 'undefined' || numberInputLayers === 0) {
+        // Enable function only if in standalone Pixel
+        if (typeof numberInputLayers === 'undefined') {
             // Continue
         } else {
             return;

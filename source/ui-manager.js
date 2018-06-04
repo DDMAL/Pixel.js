@@ -25,8 +25,8 @@ export class UIManager
         this.placeLayerCanvasesInDiva(layers);
         this.createUndoButton();
         this.createRedoButton();
-        // Enable buttons only if in standalone Pixel or no input layers
-        if (typeof numberInputLayers === 'undefined' || numberInputLayers === 0) {
+        // Enable buttons only if in standalone Pixel 
+        if (typeof numberInputLayers === 'undefined') {
             this.createDeleteLayerButton();
             this.createCreateLayerButton();
         }
@@ -42,8 +42,8 @@ export class UIManager
         this.destroyBrushSizeSelector();
         this.destroyUndoButton();
         this.destroyRedoButton();
-        // Enable buttons only if in standalone Pixel or no input layers
-        if (typeof numberInputLayers === 'undefined' || numberInputLayers === 0) {
+        // Enable buttons only if in standalone Pixel 
+        if (typeof numberInputLayers === 'undefined') {
             this.destroyDeleteLayerButton();
             this.destroyCreateLayerButton();
         }
