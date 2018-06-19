@@ -304,7 +304,7 @@ export class UIManager
 
             //sets draggable attribute to false on double click
             //only allows the onblur event after a double click
-            layerName.addEventListener('dblclick', (e) => {
+            layerName.addEventListener('dblclick', (e) => { // jshint ignore:line
                 this.pixelInstance.editLayerName(e, layerName, layerDiv, false, duringSwap, layer);
                 layerName.onblur = (e) => {
                     this.pixelInstance.editLayerName(e, layerName, layerDiv, true, duringSwap, layer);
