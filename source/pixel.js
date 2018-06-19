@@ -387,6 +387,7 @@ export default class PixelPlugin
                 {
                     //TODO: throw layer is already highest layer exception
                 }
+                break;
             case "escape":
                 if (this.selection !== null)
                 {
@@ -643,8 +644,7 @@ export default class PixelPlugin
 
     deleteLayer ()
     {
-        let layer = this.layers[this.selectedLayerIndex],
-            currentLayersLength = this.layers.length;
+        let currentLayersLength = this.layers.length;
 
         // Enable function only if in standalone Pixel 
         if (typeof numberInputLayers === 'undefined') {
