@@ -18,7 +18,7 @@ export class Layer
         this.activated = true;
         this.layerOpacity = layerOpacity;
         this.pixelInstance = pixelInstance;
-        this.pageIndex = this.pixelInstance.core.getSettings().currentPageIndex;
+        this.pageIndex = this.pixelInstance.core.getSettings().activePageIndex;
         this.backgroundImageCanvas = null;
         this.pastedRegions = [];
         this.cloneCanvas();

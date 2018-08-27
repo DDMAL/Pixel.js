@@ -855,7 +855,7 @@ export class UIManager
 
     isInPageBounds (relativeX, relativeY)
     {
-        let pageIndex = this.pixelInstance.core.getSettings().currentPageIndex,
+        let pageIndex = this.pixelInstance.core.getSettings().activePageIndex,
             zoomLevel = this.pixelInstance.core.getSettings().zoomLevel,
             renderer  = this.pixelInstance.core.getSettings().renderer;
 

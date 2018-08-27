@@ -838,11 +838,11 @@ export default class PixelPlugin
             return;
 
         // Drawing on another page
-        if (this.core.getSettings().currentPageIndex !== this.layers[0].pageIndex)
+        if (this.core.getSettings().activePageIndex !== this.layers[0].pageIndex)
             return;
 
         // Get settings under the current zoomLevel
-        let pageIndex = this.core.getSettings().currentPageIndex,
+        let pageIndex = this.core.getSettings().activePageIndex,
             zoomLevel = this.core.getSettings().zoomLevel,
             renderer = this.core.getSettings().renderer,
             relativeCoords = new Point().getRelativeCoordinatesFromPadded(pageIndex, renderer, mousePos.x, mousePos.y, zoomLevel);
@@ -891,14 +891,14 @@ export default class PixelPlugin
             return;
 
         // Drawing on another page
-        if (this.core.getSettings().currentPageIndex !== this.layers[0].pageIndex)
+        if (this.core.getSettings().activePageIndex !== this.layers[0].pageIndex)
             return;
 
         if (!this.mousePressed)
             return;
 
         let point,
-            pageIndex = this.core.getSettings().currentPageIndex,
+            pageIndex = this.core.getSettings().activePageIndex,
             zoomLevel = this.core.getSettings().zoomLevel,
             renderer = this.core.getSettings().renderer,
             relativeCoords = new Point().getRelativeCoordinatesFromPadded(pageIndex, renderer, mousePos.x, mousePos.y, zoomLevel);
@@ -908,7 +908,7 @@ export default class PixelPlugin
 
         if (!this.layerChangedMidDraw)
         {
-            let pageIndex = this.core.getSettings().currentPageIndex,
+            let pageIndex = this.core.getSettings().activePageIndex,
                 zoomLevel = this.core.getSettings().maxZoomLevel;
 
             // Draw straight lines
@@ -973,10 +973,10 @@ export default class PixelPlugin
             return;
 
         // Drawing on another page
-        if (this.core.getSettings().currentPageIndex !== this.layers[0].pageIndex)
+        if (this.core.getSettings().activePageIndex !== this.layers[0].pageIndex)
             return;
 
-        let pageIndex = this.core.getSettings().currentPageIndex,
+        let pageIndex = this.core.getSettings().activePageIndex,
             zoomLevel = this.core.getSettings().zoomLevel,
             renderer = this.core.getSettings().renderer,
             relativeCoords = new Point().getRelativeCoordinatesFromPadded(pageIndex, renderer, mousePos.x, mousePos.y, zoomLevel);
@@ -1016,7 +1016,7 @@ export default class PixelPlugin
             return;
 
         // Drawing on another page
-        if (this.core.getSettings().currentPageIndex !== this.layers[0].pageIndex)
+        if (this.core.getSettings().activePageIndex !== this.layers[0].pageIndex)
             return;
 
         if (!this.layerChangedMidDraw)
@@ -1024,7 +1024,7 @@ export default class PixelPlugin
             if (!this.mousePressed)
                 return;
 
-            let pageIndex = this.core.getSettings().currentPageIndex,
+            let pageIndex = this.core.getSettings().activePageIndex,
                 zoomLevel = this.core.getSettings().zoomLevel,
                 renderer = this.core.getSettings().renderer,
                 relativeCoords = new Point().getRelativeCoordinatesFromPadded(pageIndex, renderer, mousePos.x, mousePos.y, zoomLevel),
@@ -1140,7 +1140,7 @@ export default class PixelPlugin
     exportAsImageData ()
     {
         //FIXME: Force Diva to highest zoom level to be able to get the pixel data
-        let pageIndex = this.core.getSettings().currentPageIndex,
+        let pageIndex = this.core.getSettings().activePageIndex,
             zoomLevel = this.core.getSettings().zoomLevel;
 
         new Export(this, this.layers, pageIndex, zoomLevel, this.uiManager).exportLayersAsImageData();
@@ -1148,7 +1148,7 @@ export default class PixelPlugin
 
     exportAsPNG ()
     {
-        let pageIndex = this.core.getSettings().currentPageIndex,
+        let pageIndex = this.core.getSettings().activePageIndex,
             zoomLevel = this.core.getSettings().zoomLevel;
 
         new Export(this, this.layers, pageIndex, zoomLevel, this.uiManager).exportLayersAsPNG();
@@ -1156,7 +1156,7 @@ export default class PixelPlugin
 
     exportAsCSV ()
     {
-        let pageIndex = this.core.getSettings().currentPageIndex,
+        let pageIndex = this.core.getSettings().activePageIndex,
             zoomLevel = this.core.getSettings().maxZoomLevel;
 
         new Export(this, this.layers, pageIndex, zoomLevel, this.uiManager).exportLayersAsCSV();
@@ -1169,7 +1169,7 @@ export default class PixelPlugin
      **/
     importPNGToLayer (e)
     {
-        new Import(this, this.layers, this.core.getSettings().currentPageIndex, this.core.getSettings().zoomLevel, this.uiManager).uploadLocalImageToLayer(this.layers[this.selectedLayerIndex], e);
+        new Import(this, this.layers, this.core.getSettings().activePageIndex, this.core.getSettings().zoomLevel, this.uiManager).uploadLocalImageToLayer(this.layers[this.selectedLayerIndex], e);
     }
 }
 
