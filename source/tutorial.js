@@ -1,6 +1,5 @@
-/**
- * Created by zeyadsaleh on 2017-08-14.
- */
+/* jshint esversion: 6 */
+
 export class Tutorial
 {
     constructor (pixelInstance)
@@ -96,7 +95,7 @@ export class Tutorial
         switch (tutorialPageIndex)
         {
             case 0:
-                tutorialP.innerHTML = "Navigate to the page you would like to edit and click the Pixel.js icon to open the toolboxes and layers view.";
+                tutorialP.innerHTML = "Welcome to Pixel.js, this is a tutorial that serves as a reminder of the available tools. <br>For a complete, detailed tutorial, visit the " + '<a href="https://github.com/DDMAL/Pixel.js/wiki/How-to-use-Pixel.js">Full Tutorial Page</a>' + " (right-click -> Open Link in New Tab). <br><br>Click on Got It! to exit this tutorial.";
                 img.src = "https://media.giphy.com/media/aL9oQ0f1sDIpq/giphy.gif";
                 break;
             case 1:
@@ -136,7 +135,7 @@ export class Tutorial
                 img.src = "https://media.giphy.com/media/FkzOAenUJxfGg/giphy.gif";
                 break;
             case 10:
-                tutorialP.innerHTML = "You can bring a layer forward/backward by clicking and dragging them to their desired position.";
+                tutorialP.innerHTML = "You can bring a layer forward/backward by clicking and dragging them to their desired position.<br>You can also use <kbd>[</kbd> and <kbd>]</kbd> to move a selected layer down or up.";
                 img.src = "https://media.giphy.com/media/DImPhyGZ3OltC/giphy.gif";
                 break;
             case 11:
@@ -159,33 +158,6 @@ export class Tutorial
                 tutorialP.innerHTML = "Export layers as PNGs to save a specific layer as an image. See the " + '<a href="https://github.com/DDMAL/Pixel.js/wiki">wiki</a>' + " for details on the different export buttons and more information.";
                 img.src = "https://media.giphy.com/media/kBAau6Gebio7e/giphy.gif";
                 break;
-
-            // let hotkeyGlossary = document.createElement('ul');
-            // hotkeyGlossary.setAttribute("style", "list-style-type:none;");
-            //
-            // let LayerSelect = document.createElement('li');
-            // LayerSelect.innerHTML = "<kbd>1</kbd> ... <kbd>9</kbd> layer select";
-            //
-            // let brushTool = document.createElement('li');
-            // brushTool.innerHTML = "<kbd>b</kbd> brush tool";
-            //
-            // let rectangleTool = document.createElement('li');
-            // rectangleTool.innerHTML = "<kbd>r</kbd> rectangle tool";
-            //
-            // let grabTool = document.createElement('li');
-            // grabTool.innerHTML = "<kbd>g</kbd> grab tool";
-            //
-            // let eraserTool = document.createElement('li');
-            // eraserTool.innerHTML = "<kbd>e</kbd> eraser tool";
-            //
-            // let shift = document.createElement('li');
-            // shift.innerHTML = "<kbd>Shift</kbd>  force tools to paint in an exact way.";
-            //
-            // let undo = document.createElement('li');
-            // undo.innerHTML = "<kbd>cmd</kbd> + <kbd>z</kbd> undo";
-            //
-            // let redo = document.createElement('li');
-            // redo.innerHTML = "<kbd>cmd</kbd> + <kbd>Shift</kbd> + <kbd>z</kbd> redo";
         }
 
         modalBody.appendChild(img);

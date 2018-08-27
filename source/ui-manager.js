@@ -1,5 +1,7 @@
 /*jshint esversion: 6 */
 import {Point} from './point';
+import {Tutorial} from './tutorial';
+import {Glossary} from './glossary';
 import
 {
     CannotDeleteLayerException,
@@ -34,6 +36,7 @@ export class UIManager
         this.createToolsView(this.pixelInstance.tools.getAllTools());
         this.createExportButtons();
         this.createImportButtons();
+        this.createInstructionButtons();
     }
 
     destroyPluginElements (layers, background)
@@ -55,6 +58,7 @@ export class UIManager
         this.destroyDownloadLinks();
         this.destroyBrushCursor();
         this.restoreDefaultCursor();
+        this.destroyInstructionButtons();
     }
 
     // Tools are strings or enums
@@ -576,6 +580,49 @@ export class UIManager
     {
         let imageLoader = document.getElementById("imageLoader");
         imageLoader.parentNode.removeChild(imageLoader);
+    }
+
+    createInstructionButtons ()
+    {
+        let tutorialActivationButton = document.createElement("button"),
+            tutorialActivationText = document.createTextNode("How to use"),
+            glossaryActivationButton = document.createElement("button"),
+            glossaryActivationText = document.createTextNode("Keyboard shortcuts"),
+            br = document.createElement("br");
+
+        br.setAttribute("id", "instruction-br");
+
+        tutorialActivationButton.setAttribute("id", "tutorial-button");
+        tutorialActivationButton.appendChild(tutorialActivationText);
+
+        glossaryActivationButton.setAttribute("id", "glossary-button");
+        glossaryActivationButton.appendChild(glossaryActivationText);
+
+        this.createTut = () => {
+            new Tutorial();
+        };
+
+        this.createGlossary = () => {
+            new Glossary();
+        };
+
+        tutorialActivationButton.addEventListener("click", this.createTut);
+        glossaryActivationButton.addEventListener("click", this.createGlossary);
+
+        document.body.appendChild(br);
+        document.body.appendChild(tutorialActivationButton);
+        document.body.appendChild(glossaryActivationButton);
+    }
+
+    destroyInstructionButtons ()
+    {
+        let tutorialActivationButton = document.getElementById("tutorial-button"),
+            glossaryActivationButton = document.getElementById("glossary-button"),
+            br = document.getElementById("instruction-br");
+
+        br.parentNode.removeChild(br);
+        tutorialActivationButton.parentNode.removeChild(tutorialActivationButton);
+        glossaryActivationButton.parentNode.removeChild(glossaryActivationButton);
     }
 
     updateProgress (percentage)

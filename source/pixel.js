@@ -18,6 +18,7 @@ import {Tools} from './tools';
 import {Import} from './import';
 import {Selection} from './selection';
 import {Tutorial} from './tutorial';
+import {Glossary} from './glossary';
 import
 {
     CannotDeleteLayerException,
@@ -53,6 +54,7 @@ export default class PixelPlugin
         this.selection = null;
         this.horizontalMove = false;
         this.layerIdCounter = 2;
+        this.editingLayerName = false;
     }
 
     /**
@@ -100,7 +102,7 @@ export default class PixelPlugin
         // Setting Tool to change the cursor type
         this.tools.setCurrentTool(this.tools.getCurrentTool());
         this.activated = true;
-
+        
         new Tutorial();
     }
 
@@ -338,7 +340,7 @@ export default class PixelPlugin
             key = e.keyCode ? e.keyCode : e.which;
 
 
-        // Selecting a Layer using keyboard shortcutkeys 1 to 9
+        // Selecting a Layer using keyboard shortcut keys 1 to 9
         if (key >= KEY_1 && key <= KEY_9)
         {
             try
@@ -369,6 +371,9 @@ export default class PixelPlugin
 
     onKeyDown (e)
     {
+        if(this.editingLayerName)   //  Do not work with shortcuts when editing a layer name
+            return;
+
         switch (e.key.toLowerCase())
         {
             case "[":
@@ -477,11 +482,20 @@ export default class PixelPlugin
                 if (this.layers[this.selectedLayerIndex].isActivated())
                     this.layers[this.selectedLayerIndex].toggleLayerActivation();
                 break;
+            case "t":
+                new Tutorial();
+                break;
+            case "k":
+                new Glossary();
+                break;
+
         }
     }
 
     editLayerName (e, layerName, layerDiv, outsideClick, duringSwap, layer)
     {
+        this.editingLayerName = true;
+
         const RETURN_KEY = 13;
 
         // TODO: Find a way to unsubscribe from keyboard events while allowing enter key to be pressed
@@ -493,6 +507,8 @@ export default class PixelPlugin
         {
             if (duringSwap === false)
             {
+                this.editingLayerName = false;
+
                 // TODO: Resubscribe to mouse events
                 layer.updateLayerName(layerName.value);
                 layerName.setAttribute("readonly", "true");
@@ -684,13 +700,13 @@ export default class PixelPlugin
                 colour = new Colour(51, 102, 255, 1);
                 break;
             case 2:
-                colour = new Colour(255, 51, 102, 1);
+                colour = new Colour(2, 136, 0, 1);
                 break;
             case 3:
-                colour = new Colour(255, 255, 10, 1);
+                colour = new Colour(255, 51, 102, 1);
                 break;
             case 4:
-                colour = new Colour(2, 136, 0, 1);
+                colour = new Colour(255, 221, 0, 1);
                 break;
             case 5:
                 colour = new Colour(96, 0, 186, 1);
