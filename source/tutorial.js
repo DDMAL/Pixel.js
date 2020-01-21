@@ -132,7 +132,7 @@ export class Tutorial
                 break;
             case 9:
                 tutorialP.innerHTML = "Use the Fullscreen mode <kbd>f</kbd> and the browser zoom to get more precision, when needed. <br> To exit Fullscreen mode, press on <kbd>f</kbd> again.";
-                img.src = "https://media.giphy.com/media/FkzOAenUJxfGg/giphy.gif";
+                img.src = "https://github.com/DDMAL/Pixel.js/wiki/assets/fullscreen.gif";
                 break;
             case 10:
                 tutorialP.innerHTML = "You can bring a layer forward/backward by clicking and dragging them to their desired position.<br>You can also use <kbd>[</kbd> and <kbd>]</kbd> to move a selected layer down or up.";
@@ -140,11 +140,11 @@ export class Tutorial
                 break;
             case 11:
                 tutorialP.innerHTML = "You can undo <kbd>Ctrl</kbd> + <kbd>z</kbd> and redo <kbd>Ctrl</kbd> + <kbd>Shift</kbd> + <kbd>z</kbd> an action.";
-                img.src = "https://media.giphy.com/media/24kHpWLzbHFrq/giphy.gif";
+                img.src = "https://github.com/DDMAL/Pixel.js/wiki/assets/undo_redo.gif";
                 break;
             case 12:
                 tutorialP.innerHTML = "You can delete a layer by selecting it and then using <kbd>Ctrl</kbd> + <kbd>del</kbd>.";
-                img.src = "https://media.giphy.com/media/cmQesBkeEvdmM/giphy.gif";
+                img.src = "https://github.com/DDMAL/Pixel.js/wiki/assets/delete_layer.gif";
                 break;
             case 13:
                 tutorialP.innerHTML = "You can mute (press <kbd>m</kbd> to toggle on/off) or hide (hold <kbd>h</kbd> to turn off, release to turn on) layers.";
@@ -156,7 +156,7 @@ export class Tutorial
                 break;
             case 15:
                 tutorialP.innerHTML = "Export layers as PNGs to save a specific layer as an image. See the " + '<a href="https://github.com/DDMAL/Pixel.js/wiki">wiki</a>' + " for details on the different export buttons and more information.";
-                img.src = "https://media.giphy.com/media/kBAau6Gebio7e/giphy.gif";
+                img.src = "https://github.com/DDMAL/Pixel.js/wiki/assets/21_export.gif";
                 break;
         }
 
