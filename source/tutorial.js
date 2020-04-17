@@ -42,7 +42,7 @@ export class Tutorial
         modalFooter.setAttribute("id", "modal-footer");
 
         let close = document.createElement('h2');
-        close.innerHTML = "Got It!";
+        close.innerHTML = "Dismiss";
 
         modal.appendChild(this.modalContent);
         this.modalContent.appendChild(modalHeader);
@@ -95,7 +95,7 @@ export class Tutorial
         switch (tutorialPageIndex)
         {
             case 0:
-                tutorialP.innerHTML = "Welcome to Pixel.js, this is a tutorial that serves as a reminder of the available tools. <br>For a complete, detailed tutorial, visit the " + '<a href="https://github.com/DDMAL/Pixel.js/wiki/How-to-use-Pixel.js">Full Tutorial Page</a>' + " (right-click -> Open Link in New Tab). <br><br>Click on Got It! to exit this tutorial.";
+                tutorialP.innerHTML = "Welcome to Pixel.js, this is a tutorial that serves as a reminder of the available tools. <br>For a complete, detailed tutorial, visit the " + '<a href="https://github.com/DDMAL/Pixel.js/wiki/How-to-use-Pixel.js" target="_blank">full tutorial page</a>' + "<br><br>Click on \"Dismiss\" to exit this tutorial.";
                 img.src = "https://github.com/DDMAL/Pixel.js/wiki/assets/01.gif";
                 break;
             case 1:

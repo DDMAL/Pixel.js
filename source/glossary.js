@@ -42,7 +42,7 @@ export class Glossary
         modalFooter.setAttribute("id", "modal-footer");
 
         let close = document.createElement('h2');
-        close.innerHTML = "Got It!";
+        close.innerHTML = "Dismiss";
 
         modal.appendChild(this.modalContent);
         this.modalContent.appendChild(modalHeader);
@@ -72,7 +72,7 @@ export class Glossary
 
         let glossaryP = document.createElement('p');
         glossaryP.innerHTML = "The following is a glossary of available hotkeys. To learn how to use them in more detail, please consult the Pixel.js "  + '<a href="https://github.com/DDMAL/Pixel.js/wiki">wiki</a>' + " for details on the different export buttons and more information.";
-        
+
         let hotkeyGlossary = document.createElement('ul');
         hotkeyGlossary.setAttribute("style", "list-style-type:none;");
 
