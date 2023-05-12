@@ -447,7 +447,6 @@ export default class PixelPlugin
                         if (this.selection.imageData !== null)
                         {
                             this.selection.pasteShapeToLayer(this.layers[this.selectedLayerIndex]);
-                            this.selection = null;
                             this.redrawLayer(this.layers[this.selectedLayerIndex]);
                         }
                     }
