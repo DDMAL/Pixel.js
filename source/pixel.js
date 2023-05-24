@@ -98,6 +98,7 @@ export default class PixelPlugin
         this.subscribeToWindowResizeEvent();
         this.subscribeToMouseEvents();
         this.subscribeToKeyboardEvents();
+        this.subscribeToBeforeUnloadEvents();
 
         // Setting Tool to change the cursor type
         this.tools.setCurrentTool(this.tools.getCurrentTool());
@@ -113,6 +114,7 @@ export default class PixelPlugin
 
         this.unsubscribeFromMouseEvents();
         this.unsubscribeFromKeyboardEvents();
+        this.unsubscribeFromBeforeUnloadEvents();
         this.redrawAllLayers(); // Repaint the tiles to make the highlights disappear off the page
 
         this.uiManager.destroyPluginElements(this.layers, this.background);
@@ -258,6 +260,22 @@ export default class PixelPlugin
     {
         document.removeEventListener("keyup", this.keyboardHandles.keyup);
         document.removeEventListener("keydown", this.keyboardHandles.keydown);
+    }
+
+    subscribeToBeforeUnloadEvents ()
+    {
+        // This is to prevent the user from accidentally closing the page and losing their work
+        this.handleBeforeUnload = (e) => {
+            // Support all browsers: https://developer.mozilla.org/en-US/docs/Web/API/Window/beforeunload_event#browser_compatibility
+            e.preventDefault();
+            return (e.returnValue = "Are you sure you want to close this page? Changes you made may not be saved.");
+        }
+        window.addEventListener("beforeunload", this.handleBeforeUnload);
+    }
+
+    unsubscribeFromBeforeUnloadEvents ()
+    {
+        window.removeEventListener("beforeunload", this.handleBeforeUnload);
     }
 
     /**
