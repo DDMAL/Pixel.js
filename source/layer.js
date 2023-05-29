@@ -228,9 +228,6 @@ export class Layer
 
     drawLayer (zoomLevel, canvas)
     {
-        if (!this.isActivated())
-            return;
-
         this.drawLayerInPageCoords(zoomLevel, canvas, this.pageIndex);
     }
 
@@ -316,16 +313,7 @@ export class Layer
         layerActivationDiv.classList.remove("layer-deactivated");
         layerActivationDiv.classList.add("layer-activated");
         this.getCanvas().style.opacity = this.getLayerOpacity();
-
-        if (this.layerId === this.pixelInstance.background.layerId)      // Background
-        {
-            this.activated = true;
-        }
-        else
-        {
-            this.activated = true;
-            this.pixelInstance.redrawLayer(this);
-        }
+        this.activated = true;
     }
 
     deactivateLayer ()
@@ -333,16 +321,8 @@ export class Layer
         let layerActivationDiv = document.getElementById("layer-" + this.layerId + "-activation");
         layerActivationDiv.classList.remove("layer-activated");
         layerActivationDiv.classList.add("layer-deactivated");
+        this.getCanvas().style.opacity = 0;
         this.activated = false;
-
-        if (this.layerId === this.pixelInstance.background.layerId)      // Background
-        {
-            this.getCanvas().style.opacity = 0;
-        }
-        else
-        {
-            this.clearCtx();
-        }
     }
 
     toggleLayerActivation ()
