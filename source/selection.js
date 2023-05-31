@@ -59,6 +59,14 @@ export class Selection
         this.layer.drawLayer(maxZoomLevel, this.layer.getCanvas());
     }
 
+    deleteShape(maxZoomLevel)
+    {
+        this.layer.removeShapeFromLayer(this.selectedShape);
+        this.selectedShape.changeBlendModeTo("subtract");
+        this.layer.addShapeToLayer(this.selectedShape);
+        this.layer.drawLayer(maxZoomLevel, this.layer.getCanvas());
+    }
+
     /**
      * Must redraw layer after calling
      * @param layerToPasteTo
