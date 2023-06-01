@@ -420,6 +420,7 @@ export default class PixelPlugin
                     }
                 }
                 break;
+            case "delete":
             case "backspace":
                 //FIXME: is it also "backspace" for windows?
                 try
@@ -427,6 +428,9 @@ export default class PixelPlugin
                     if (e.ctrlKey || e.metaKey)                 // Cmd + Delete
                     {
                         this.deleteLayer();
+                    } else
+                    {
+                        this.selection.deleteShape(this.core.getSettings().maxZoomLevel);
                     }
                 }
                 catch (e)
