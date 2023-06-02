@@ -51,7 +51,7 @@ export default class PixelPlugin
         this.lastRelCoordY = null;
         this.uiManager = null;
         this.tools = null;
-        this.selection = null;
+        this.selection = new Selection();
         this.horizontalMove = false;
         this.layerIdCounter = 2;
         this.editingLayerName = false;
@@ -412,12 +412,9 @@ export default class PixelPlugin
                 }
                 break;
             case "escape":
-                if (this.selection !== null)
+                if (this.selection.imageDataList.length > 0)
                 {
-                    if (this.selection.imageData === null)
-                    {
-                        this.selection.clearSelection(this.core.getSettings().maxZoomLevel);
-                    }
+                    this.selection.clearSelection(this.core.getSettings().maxZoomLevel);
                 }
                 break;
             case "backspace":
@@ -450,24 +447,24 @@ export default class PixelPlugin
                     this.undoAction();
                 break;
             case "c":
-                if (e.ctrlKey || e.metaKey)                     // Cmd + c
+                if (e.ctrlKey || e.metaKey) {                   // Cmd + c
                     this.selection.copyShape(this.core.getSettings().maxZoomLevel);
+                }
                 break;
             case "x":
-                if (e.ctrlKey || e.metaKey)                     // Cmd + x
+                if (e.ctrlKey || e.metaKey) {                   // Cmd + x
                     this.selection.cutShape(this.core.getSettings().maxZoomLevel);
+                }
                 break;
             case "v":
                 if (e.ctrlKey || e.metaKey)                     // Cmd + v
                 {
-                    if (this.selection !== null)
+                    if (this.selection.imageDataList.length > 0)
                     {
-                        if (this.selection.imageData !== null)
-                        {
-                            this.selection.pasteShapeToLayer(this.layers[this.selectedLayerIndex]);
-                            this.redrawLayer(this.layers[this.selectedLayerIndex]);
-                        }
+                        this.selection.pasteShapeToLayer(this.layers[this.selectedLayerIndex]);
+                        this.redrawLayer(this.layers[this.selectedLayerIndex]);
                     }
+                    this.selection = new Selection();
                 }
                 break;
             case "shift":
@@ -578,8 +575,10 @@ export default class PixelPlugin
             mousePos = this.getMousePos(mouseClickDiv, evt);
 
         // Clear Selection
-        if (this.selection !== null)
+        if (!evt.ctrlKey) {
             this.selection.clearSelection(this.core.getSettings().maxZoomLevel);
+            this.selection = new Selection();
+        }
 
         if (evt.which === 1)
             this.rightMousePressed = false;
@@ -608,7 +607,6 @@ export default class PixelPlugin
                     this.initializeNewPathInCurrentLayer(mousePos);
                 break;
             case this.tools.type.select:
-                this.selection = new Selection();
                 this.initializeRectanglePreview(mousePos);
                 break;
             default:
@@ -825,6 +823,10 @@ export default class PixelPlugin
                 break;
             case "shape":
                 action.layer.removeShapeFromLayer(action.object);
+                // If we are undoing a selection preview, we need to remove the shape from the selection
+                if (action.object.blendMode === "select" || action.object.blendMode === "subtract") {
+                    this.selection.removeSelectedShape(action.object);
+                }
                 break;
             case "selection":
                 action.layer.removeSelectionFromLayer(action.object);
@@ -1006,7 +1008,8 @@ export default class PixelPlugin
             {
                 case this.tools.type.select:
                     selectedLayer.addShapeToLayer(new Rectangle(new Point(relativeCoords.x,relativeCoords.y,pageIndex), 0, 0, "select", this.tools.getCurrentTool()));
-                    this.selection.setSelectedShape(selectedLayer.getCurrentShape(), this.layers[this.selectedLayerIndex]);
+                    this.selection.setLayer(this.layers[this.selectedLayerIndex]);
+                    this.selection.addSelectedShape(selectedLayer.getCurrentShape());
                     break;
                 case this.tools.type.rectangle:
                     if (this.rightMousePressed)
@@ -1137,12 +1140,9 @@ export default class PixelPlugin
     changeCurrentlySelectedLayerIndex (newIndex)
     {
         this.selectedLayerIndex = newIndex;
-        if (this.selection !== null)
+        if (this.selection.imageDataList.length > 0)
         {
-            if (this.selection.imageData === null)
-            {
-                this.selection.clearSelection(this.core.getSettings().maxZoomLevel);
-            }
+            this.selection.clearSelection(this.core.getSettings().maxZoomLevel);
         }
     }
 

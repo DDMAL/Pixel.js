@@ -267,7 +267,7 @@ export class Layer
         this.actions.push(action);
 
         // Selection is temporary and only concerns this layer thus no need to add to global actions
-        if (!(action.object.type === "selection" && action.object.selectedShape.blendMode === "select"))
+        if (!(action.object.type === "selection" && action.object.selectedShapes[0].blendMode === "select"))
             this.pixelInstance.actions.push(action);
     }
 
