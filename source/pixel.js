@@ -448,12 +448,12 @@ export default class PixelPlugin
                 break;
             case "c":
                 if (e.ctrlKey || e.metaKey) {                   // Cmd + c
-                    this.selection.copyShape(this.core.getSettings().maxZoomLevel);
+                    this.selection.copySelection(this.core.getSettings().maxZoomLevel);
                 }
                 break;
             case "x":
                 if (e.ctrlKey || e.metaKey) {                   // Cmd + x
-                    this.selection.cutShape(this.core.getSettings().maxZoomLevel);
+                    this.selection.cutSelection(this.core.getSettings().maxZoomLevel);
                 }
                 break;
             case "v":

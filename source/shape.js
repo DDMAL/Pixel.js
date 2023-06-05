@@ -14,14 +14,6 @@ export class Shape
     /**
      * Abstract method, to be overridden
      */
-    drawInViewport ()
-    {
-
-    }
-
-    /**
-     * Abstract method, to be overridden
-     */
     drawOnPage ()
     {
 

@@ -1,64 +1,32 @@
+import { CompoundShape } from "./compound-shape";
+
 /*jshint esversion: 6 */
 export class Selection {
     constructor() {
         this.layer = null;
         this.selectedShapes = [];
-        this.type = "selection";
         this.imageDataList = [];
+        this.type = "selection";
     }
 
-    copyShape(maxZoomLevel) {
+    copySelection(maxZoomLevel) {
         this.imageDataList = [];
         this.selectedShapes.forEach((shape) => {
+            this._copyImageData(shape, maxZoomLevel);
             this.layer.removeShapeFromLayer(shape);
-            this.layer.drawLayer(maxZoomLevel, this.layer.getCanvas());
-
-            let scaleRatio = Math.pow(2, maxZoomLevel);
-
-            // Get coordinates of the selection shape (a rectangle here)
-            let absoluteRectOriginX = shape.origin.relativeOriginX * scaleRatio,
-                absoluteRectOriginY = shape.origin.relativeOriginY * scaleRatio,
-                absoluteRectWidth = shape.relativeRectWidth * scaleRatio,
-                absoluteRectHeight = shape.relativeRectHeight * scaleRatio;
-
-            let xmin = Math.min(absoluteRectOriginX, absoluteRectOriginX + absoluteRectWidth),
-                ymin = Math.min(absoluteRectOriginY, absoluteRectOriginY + absoluteRectHeight);
-
-            let selectedLayerCtx = this.layer.getCanvas().getContext("2d");
-            let imageData = selectedLayerCtx.getImageData(xmin, ymin, Math.abs(absoluteRectWidth), Math.abs(absoluteRectHeight));
-
-            this.imageDataList.push(imageData);
-
             shape.changeBlendModeTo("add");
         });
     }
 
-    cutShape(maxZoomLevel) {
+    cutSelection(maxZoomLevel) {
         this.imageDataList = [];
         this.selectedShapes.forEach((shape) => {
-            this.layer.removeShapeFromLayer(shape);
-            this.layer.drawLayer(maxZoomLevel, this.layer.getCanvas());
-
-            let scaleRatio = Math.pow(2, maxZoomLevel);
-
-            // Get coordinates of the selection shape (a rectangle here)
-            let absoluteRectOriginX = shape.origin.relativeOriginX * scaleRatio,
-                absoluteRectOriginY = shape.origin.relativeOriginY * scaleRatio,
-                absoluteRectWidth = shape.relativeRectWidth * scaleRatio,
-                absoluteRectHeight = shape.relativeRectHeight * scaleRatio;
-
-            let xmin = Math.min(absoluteRectOriginX, absoluteRectOriginX + absoluteRectWidth),
-                ymin = Math.min(absoluteRectOriginY, absoluteRectOriginY + absoluteRectHeight);
-
-            let selectedLayerCtx = this.layer.getCanvas().getContext("2d");
-            let imageData = selectedLayerCtx.getImageData(xmin, ymin, Math.abs(absoluteRectWidth), Math.abs(absoluteRectHeight));
-
-            this.imageDataList.push(imageData);
-
+            this._copyImageData(shape, maxZoomLevel);
             shape.changeBlendModeTo("subtract");
-            this.layer.addShapeToLayer(shape);
-            this.layer.drawLayer(maxZoomLevel, this.layer.getCanvas());
         });
+
+        this.layer.addShapeToLayer(new CompoundShape(...this.selectedShapes));
+        this.layer.drawLayer(maxZoomLevel, this.layer.getCanvas());
     }
 
     /**
@@ -106,17 +74,9 @@ export class Selection {
     }
 
     drawOnPage(layer, pageIndex, zoomLevel, renderer, canvas) {
-        let scaleRatio = Math.pow(2, zoomLevel);
-
         this.selectedShapes.forEach((shape, index) => {
             // Get coordinates of the selection shape (a rectangle here)
-            let absoluteRectOriginX = shape.origin.relativeOriginX * scaleRatio,
-                absoluteRectOriginY = shape.origin.relativeOriginY * scaleRatio,
-                absoluteRectWidth = shape.relativeRectWidth * scaleRatio,
-                absoluteRectHeight = shape.relativeRectHeight * scaleRatio;
-
-            let xmin = Math.min(absoluteRectOriginX, absoluteRectOriginX + absoluteRectWidth);
-            let ymin = Math.min(absoluteRectOriginY, absoluteRectOriginY + absoluteRectHeight);
+            let { x, y, absoluteRectWidth, absoluteRectHeight } = this._getBoundingDimensions(shape, zoomLevel);
 
             let pasteCanvas = document.createElement("canvas");
             pasteCanvas.width = Math.abs(absoluteRectWidth);
@@ -124,7 +84,35 @@ export class Selection {
 
             pasteCanvas.getContext("2d").putImageData(this.imageDataList[index], 0, 0);
 
-            canvas.getContext("2d").drawImage(pasteCanvas, xmin, ymin);
+            canvas.getContext("2d").drawImage(pasteCanvas, x, y);
         });
+    }
+
+    _copyImageData(shape, maxZoomLevel) {
+        this.layer.removeShapeFromLayer(shape);
+        this.layer.drawLayer(maxZoomLevel, this.layer.getCanvas());
+
+        // Get coordinates of the selection shape (a rectangle here)
+        let { x, y, absoluteRectWidth, absoluteRectHeight } = this._getBoundingDimensions(shape, maxZoomLevel);
+
+        let selectedLayerCtx = this.layer.getCanvas().getContext("2d");
+        let imageData = selectedLayerCtx.getImageData(x, y, Math.abs(absoluteRectWidth), Math.abs(absoluteRectHeight));
+
+        this.imageDataList.push(imageData);
+    }
+
+    _getBoundingDimensions(shape, zoomLevel) {
+        let scaleRatio = Math.pow(2, zoomLevel);
+
+        // Get coordinates of the selection shape (a rectangle here)
+        let absoluteRectOriginX = shape.origin.relativeOriginX * scaleRatio,
+            absoluteRectOriginY = shape.origin.relativeOriginY * scaleRatio,
+            absoluteRectWidth = shape.relativeRectWidth * scaleRatio,
+            absoluteRectHeight = shape.relativeRectHeight * scaleRatio;
+
+        let x = Math.min(absoluteRectOriginX, absoluteRectOriginX + absoluteRectWidth),
+            y = Math.min(absoluteRectOriginY, absoluteRectOriginY + absoluteRectHeight);
+
+        return { x, y, absoluteRectWidth, absoluteRectHeight };
     }
 }
