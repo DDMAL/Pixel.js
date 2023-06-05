@@ -669,6 +669,16 @@ export default class PixelPlugin
             case this.tools.type.grab:
                 mouseClickDiv.style.cursor = "-webkit-grab";
                 break;
+            case this.tools.type.select:
+                if(this.selection !== null && this.selection.selectedShape !== null) {
+                    let rectangle = this.selection.selectedShape;
+                    //if the rectangle has 0 area, then the user just clicked and should be
+                    //interpreted as a command to remove the current selection
+                    if(rectangle.relativeRectHeight === 0 && rectangle.relativeRectWidth === 0) {
+                        this.selection.clearSelection(this.core.getSettings().maxZoomLevel);
+                    }
+                }                
+                break;
             default:
         }
     }
