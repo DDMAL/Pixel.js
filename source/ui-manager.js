@@ -423,6 +423,51 @@ export class UIManager
             brushSizeDiv.parentNode.removeChild(brushSizeDiv);
     }
 
+    createBrushColoreSelector ()
+    {
+        let brushColorDiv = document.createElement("div");
+        brushColorDiv.setAttribute("class", "tool-settings");
+        brushColorDiv.setAttribute("id", "brush-color");
+
+        let text = document.createTextNode("Brush color:"),
+            brushColorSpan = document.createElement("span"),
+            brushColorLabel = document.createElement("label"),
+            brushColorSelector = document.createElement("input"),
+            brushColorText = document.createElement('span');
+        
+        brushColorSpan.classList.add("brush-color-span");
+
+        brushColorLabel.setAttribute("for", "brush-color-selector");
+        brushColorLabel.classList.add("brush-color-label");
+
+        brushColorSelector.setAttribute("id", "brush-color-selector");
+        brushColorSelector.setAttribute("type", "color");
+        brushColorSelector.setAttribute("value", "#666666");
+
+        brushColorText.innerHTML = brushColorSelector.value;
+        brushColorText.classList.add("brush-color-text");
+        
+        brushColorDiv.appendChild(text);
+        brushColorDiv.appendChild(brushColorSpan);
+        brushColorSpan.appendChild(brushColorLabel);
+        brushColorLabel.appendChild(brushColorSelector);
+        brushColorLabel.appendChild(brushColorText);
+        document.body.appendChild(brushColorDiv);
+
+        brushColorSelector.addEventListener('input', () => {
+            console.log("here");
+            brushColorText.innerHTML = brushColorSelector.value;
+            this.setBrushColor();
+        });
+    }
+
+    destroyBrushColorSelector ()
+    {
+        let brushColorDiv = document.getElementById("brush-color");
+        if (brushColorDiv !== null)
+            brushColorDiv.parentNode.removeChild(brushColorDiv);
+    }
+
     createUndoButton ()
     {
         let undoButton = document.createElement("button"),
@@ -714,6 +759,7 @@ export class UIManager
 
         cursorDiv.setAttribute("oncontextmenu", "return false");
         this.resizeBrushCursor();
+        this.setBrushColor();
     }
 
     resizeBrushCursor ()
@@ -728,6 +774,18 @@ export class UIManager
 
         cursorDiv.style.width = brushSizeSelectorValue + "px";
         cursorDiv.style.height = brushSizeSelectorValue + "px";
+    }
+
+    setBrushColor ()
+    {
+        let cursorDiv = document.getElementById("brush-cursor-div");
+
+        if (cursorDiv === null)
+            return;
+
+        let color = document.getElementById("brush-color-selector").value;
+
+        cursorDiv.style.borderColor = color;
     }
 
     destroyBrushCursor ()

@@ -58,28 +58,40 @@ export class Tools
             this.pixelInstance.uiManager.createBrushSizeSelector();
             slider = document.getElementById("brush-size");
         }
+        // Add actions that are specific to the current tool
+        let picker = document.getElementById("brush-color");
+        if (picker === null)
+        {
+            this.pixelInstance.uiManager.createBrushColoreSelector();
+            picker = document.getElementById("brush-color");
+        }
         switch (tool) {
             case this.type.grab:
                 this.pixelInstance.enableDragScrollable();
                 slider.style.visibility = "hidden";
+                picker.style.visibility = "hidden";
                 mouseClickDiv.style.cursor = "-webkit-grab";
                 break;
             case this.type.rectangle:
                 slider.style.visibility = "hidden";
+                picker.style.visibility = "hidden";
                 mouseClickDiv.style.cursor = "crosshair";
                 break;
             case this.type.brush:
                 slider.style.visibility = "visible";
+                picker.style.visibility = "visible";
                 this.pixelInstance.uiManager.createBrushCursor();
                 mouseClickDiv.style.cursor = "none";
                 break;
             case this.type.erase:
                 slider.style.visibility = "visible";
+                picker.style.visibility = "visible";
                 this.pixelInstance.uiManager.createBrushCursor();
                 mouseClickDiv.style.cursor = "none";
                 break;
             case this.type.select:
                 slider.style.visibility = "hidden";
+                picker.style.visibility = "hidden";
                 mouseClickDiv.style.cursor = "crosshair";
                 break;
             default:

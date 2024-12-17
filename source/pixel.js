@@ -1070,6 +1070,24 @@ export default class PixelPlugin
         this.uiManager.resizeBrushCursor();
     }
 
+    // initializeBrushColorChange (mousePos)
+    // {
+    //     let brushColorPicker = document.getElementById("brush-color-selector");
+    //     let brushColorLabel = 
+    //     this.prevMouseX = mousePos.x;
+    //     this.prevSize = brushSizeSlider.value;
+    // }
+
+    // changeBrushColor (mousePos)
+    // {
+    //     let brushSizeSlider = document.getElementById("brush-size-selector"),
+    //         mouseXVariation = 0.1 * (parseFloat(mousePos.x) - parseFloat(this.prevMouseX));
+    //     //Start at the current brush size when varying
+    //     brushSizeSlider.value = parseFloat(this.prevSize) + mouseXVariation;
+
+    //     this.uiManager.resizeBrushCursor();
+    // }
+
     // TODO: Generalize so that function returns any general relative position using enums
     /**
      * Returns true if the relative coordinates provided are on the main diagonal of the origin of the shape (south east or

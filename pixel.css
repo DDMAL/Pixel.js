@@ -385,7 +385,8 @@ li:not(:last-child) {
   position: absolute;
   top: 50%;
   left: 50%;
-  border: 1px solid #666666;
+  border-width: 3px;
+  border-style: solid;
   border-radius: 50%;
   -ms-filter: "progid:DXImageTransform.Microsoft.Alpha(Opacity=60)";
   filter: alpha(opacity=60);
@@ -465,6 +466,48 @@ button {
 /* For controlling the brush size slider's visibility */
 #brush-size {
   visibility: hidden;
+}
+
+/* For controlling the brush color picker */
+#brush-color {
+  visibility: hidden;
+  display: flex;
+  align-items: center;
+}
+
+.brush-color-span {
+  margin-left: 10px;
+  padding: 5px;
+  border-radius: 10px;
+  border: 1px solid #ccc;
+  background: #f8f9f9;
+}
+
+.brush-color-text {
+  margin-left: 5px;
+  color: #242729;
+}
+
+.brush-color-label {
+  padding: 3px;
+  display: flex;
+  align-items: center;
+}
+
+[type='color'] {
+    appearance: none;
+    padding: 0;
+    width: 15px;
+    height: 15px;
+    border: none;
+}
+
+[type='color']::-webkit-color-swatch-wrapper {
+  padding: 0;
+}
+
+[type='color']::-webkit-color-swatch {
+  border: none;
 }
 
 /* For Tutorial Gifs*/
